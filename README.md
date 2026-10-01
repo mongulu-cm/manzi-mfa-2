@@ -64,7 +64,8 @@ npm run deploy
 ```
 
 Prod : `https://manzi-mfa-2.mongulu.cm`.
-Previews : une URL stable par PR, pattern visé `https://manzi-mfa-pr-<NUM>.mongulu.cm`.
+Previews : URL stable par branche, pattern `https://<nom-branche>.manzi-mfa-2.mongulu.cm`
+(convention branche `manzi-mfa-pr-<N>` donne `https://manzi-mfa-pr-<N>.manzi-mfa-2.mongulu.cm`).
 
 Le socle conserve le SSR par défaut. Via Workers Builds (repo connecté) :
 push sur `main` déploie la prod, chaque PR crée/met à jour sa Preview
