@@ -1,12 +1,60 @@
 # Manzi-mfa
 
-Nouveau projet du collectif Mongulu : le pont vers l'emploi dans l'IT grâce à un échange d'une heure avec un senior.
+Un projet du Collectif Mongulu : le pont vers l'emploi dans l'IT grâce à un échange d'une heure avec un senior.
 
-## Stack prévue
+## Démarrage
 
-- Nuxt 4
-- Vue.js 3
+Node.js 24 LTS et npm. Une version Node 22 >= 22.19 est également supportée.
 
-## État du projet
+```sh
+nvm use
+npm ci
+npm run dev
+```
 
-Dépôt initialisé. L'application et sa configuration seront ajoutées dans une prochaine étape.
+L'application est disponible sur http://localhost:3000.
+
+## Commandes
+
+| Commande | Usage |
+| --- | --- |
+| `npm run dev` | Développement avec rechargement automatique |
+| `npm run lint` | Vérification ESLint (Nuxt, Vue et TypeScript) |
+| `npm run lint:fix` | Correction des règles automatisables |
+| `npm run typecheck` | Vérification des types Nuxt et Vue |
+| `npm run build` | Build SSR de production |
+| `npm run preview` | Prévisualisation du build |
+| `npm run generate` | Génération statique si le produit le nécessite |
+| `npm run check` | Lint, types et build (également exécutés en CI) |
+
+## Structure
+
+- `app/app.vue` : racine, layout, routeur et annonce des navigations pour l'accessibilité.
+- `app/pages/` : routes générées par Nuxt.
+- `app/layouts/` : structures de pages.
+- `app/assets/css/` : styles et tokens dérivés de `DESIGN.md`.
+- `public/` : fichiers servis tels quels, dont le logo fourni.
+- `server/` : endpoints et logique serveur Nitro, à créer lorsque nécessaires.
+- `shared/` : types et fonctions compatibles navigateur/serveur, à créer lorsque nécessaires.
+
+## Conventions
+
+- Nuxt 4, Vue 3, TypeScript strict ; composants avec `<script setup lang="ts">`.
+- Utiliser les conventions Nuxt : pages, auto-imports et composables ; pas de routeur manuel.
+- Charger les données SSR avec `useFetch` ou `useAsyncData` ; utiliser `$fetch` pour les actions.
+- Utiliser `useState` pour l'état partagé compatible SSR ; ajouter Pinia seulement si nécessaire.
+- Éviter l'accès à `window` ou `document` côté serveur ; utiliser `onMounted` pour les APIs navigateur.
+- Les secrets passent par `runtimeConfig` côté serveur. `runtimeConfig.public` est exposé au navigateur.
+- Ne jamais committer `.env`. Documenter les futures variables dans `.env.example`.
+- Respecter `DESIGN.md` et le logo fourni. Les polices sont servies localement via Fontsource.
+- Commiter `package-lock.json` et utiliser `npm ci` pour des installations reproductibles.
+- Ajouter les tests métier avec les premières fonctionnalités ; ce socle est vérifié par lint, types, build et smoke HTTP.
+
+## Production
+
+```sh
+npm run build
+node .output/server/index.mjs
+```
+
+Le socle conserve le SSR par défaut. Le backend, l'authentification et le déploiement seront définis avec les besoins produit.
