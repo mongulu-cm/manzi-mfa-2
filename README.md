@@ -25,6 +25,7 @@ L'application est disponible sur http://localhost:3000.
 | `npm run build` | Build SSR de production |
 | `npm run preview` | Prévisualisation du build |
 | `npm run generate` | Génération statique si le produit le nécessite |
+| `npm run deploy` | Build Nuxt + `wrangler deploy` vers Cloudflare |
 | `npm run check` | Lint, types et build (également exécutés en CI) |
 
 ## Structure
@@ -50,11 +51,23 @@ L'application est disponible sur http://localhost:3000.
 - Commiter `package-lock.json` et utiliser `npm ci` pour des installations reproductibles.
 - Ajouter les tests métier avec les premières fonctionnalités ; ce socle est vérifié par lint, types, build et smoke HTTP.
 
-## Production
+## Production (Cloudflare Workers)
+
+SSR déployé comme Worker via le preset Nitro `cloudflare_module`.
+Config versionnée dans `wrangler.jsonc` (`manzi-mfa-2`).
 
 ```sh
 npm run build
-node .output/server/index.mjs
+npx wrangler deploy
+# ou
+npm run deploy
 ```
 
-Le socle conserve le SSR par défaut. Le backend, l'authentification et le déploiement seront définis avec les besoins produit.
+Prod : `https://manzi-mfa-2.mongulu.cm`.
+Previews : une URL stable par PR, pattern visé `https://manzi-mfa-pr-<NUM>.mongulu.cm`.
+
+Le socle conserve le SSR par défaut. Via Workers Builds (repo connecté) :
+push sur `main` déploie la prod, chaque PR crée/met à jour sa Preview
+avec commentaire URL. Domaines configurés dans le dashboard
+(Worker > Domains, Previews Base). Le backend et l'authentification
+seront définis avec les besoins produit.

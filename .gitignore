@@ -2,6 +2,7 @@ node_modules/
 .nuxt/
 .output/
 .data/
+.wrangler/
 dist/
 coverage/
 *.log

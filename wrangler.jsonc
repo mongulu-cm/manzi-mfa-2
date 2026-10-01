@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/configuration-schema.json",
+  "name": "manzi-mfa-2",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".output/public"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "workers_dev": true,
+  // Domaine prod géré aussi dans le dashboard (Worker > Domains).
+  // Previews : configurées dans le dashboard (Previews Base + domaine previews).
+  // Pattern visé : manzi-mfa-pr-<NUM>.mongulu.cm, prod : manzi-mfa-2.mongulu.cm.
+  "routes": [
+    {
+      "pattern": "manzi-mfa-2.mongulu.cm",
+      "custom_domain": true
+    }
+  ]
+}
