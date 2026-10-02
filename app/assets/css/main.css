@@ -1,39 +1,28 @@
-/* Palette et typographie issues de DESIGN.md. */
-:root {
-  --color-primary: #6b8e23;
-  --color-heading: #556b2f;
-  --color-background: #f5f1e8;
-  --color-text: #1f1f1f;
-  --color-muted: #6b6b6b;
-  --color-border: #e0ddd4;
-  --font-body: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-heading: 'Alegreya', Georgia, serif;
-}
-
+/* Styles de page — tokens dans tokens.css, composants dans components.css. */
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--color-background); color: var(--color-text); font-family: var(--font-body); font-size: 16px; line-height: 26px; }
+body { margin: 0; background: var(--color-cream); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-body-size); line-height: var(--text-body-height); }
 a { color: var(--color-primary); text-underline-offset: 4px; }
-a:hover { color: var(--color-heading); }
-:focus-visible { outline: 3px solid var(--color-heading); outline-offset: 4px; }
-.site-shell { max-width: 1200px; min-height: 100dvh; margin-inline: auto; padding-inline: 32px; display: flex; flex-direction: column; }
-.site-header { padding-block: 32px; border-bottom: 1px solid var(--color-border); }
-.brand { display: inline-flex; align-items: center; gap: 16px; min-height: 44px; font-weight: 600; color: var(--color-text); }
+a:hover { color: var(--color-primary-hover); }
+:focus-visible { outline: 3px solid var(--color-primary-hover); outline-offset: 4px; }
+.site-shell { max-width: var(--container-max); min-height: 100dvh; margin-inline: auto; padding-inline: var(--space-8); display: flex; flex-direction: column; }
+.site-header { padding-block: var(--space-8); border-bottom: 1px solid var(--color-divider); }
+.brand { display: inline-flex; align-items: center; gap: var(--space-4); min-height: var(--touch-min); font-weight: var(--text-weight-strong); color: var(--color-text); }
 .brand img { object-fit: contain; }
-.site-main { flex: 1; padding-block: 88px; }
-.intro { padding: 52px; border: 1px solid var(--color-border); border-radius: 16px; }
-h1 { margin: 0 0 32px; font-family: var(--font-heading); font-size: 62px; line-height: 60px; font-weight: 700; color: var(--color-heading); }
+.site-main { flex: 1; padding-block: var(--space-22); }
+.intro { padding: var(--space-13); border: 1px solid var(--color-divider); border-radius: var(--radius-card); }
+h1 { margin: 0 0 var(--space-8); font-family: var(--font-display); font-size: var(--text-display-size); line-height: var(--text-display-height); font-weight: var(--text-weight-heading); color: var(--color-primary-hover); }
 p { max-width: 65ch; }
 .muted { color: var(--color-muted); }
-.site-footer { padding-block: 32px; border-top: 1px solid var(--color-border); color: var(--color-muted); }
-.skip-link { position: absolute; top: 12px; left: 12px; padding: 12px 16px; background: white; transform: translateY(-200%); }
+.site-footer { padding-block: var(--space-8); border-top: 1px solid var(--color-divider); color: var(--color-muted); }
+.skip-link { position: absolute; top: var(--space-3); left: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--color-surface); transform: translateY(-200%); }
 .skip-link:focus { transform: translateY(0); }
 @media (max-width: 1023px) {
-  .site-shell { padding-inline: 20px; }
-  .intro { padding: 32px; }
+  .site-shell { padding-inline: var(--space-5); }
+  .intro { padding: var(--space-8); }
   h1 { font-size: 44px; line-height: 48px; }
 }
 @media (max-width: 639px) {
-  .site-shell { padding-inline: 12px; }
-  .intro { padding: 20px; }
+  .site-shell { padding-inline: var(--space-3); }
+  .intro { padding: var(--space-5); }
   h1 { font-size: 32px; line-height: 40px; }
 }

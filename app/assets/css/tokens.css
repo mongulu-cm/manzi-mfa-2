@@ -1,0 +1,88 @@
+/* Design tokens — source : DESIGN.md (Collectif Mongulu).
+   Nommage : --<famille>-<nom>[-<état>]. Valeurs figées, ne pas éditer
+   sans mettre à jour DESIGN.md. Breakpoints en commentaire : les
+   media queries n'acceptent pas de custom properties.
+   Breakpoints : 640px (mobile), 1024px (tablet/desktop), 1440px (large). */
+:root {
+  /* Couleurs — primaires (AA : contraste ≥ 4.5 sur blanc ET cream, cf. tests a11y) */
+  --color-primary: #576f1f;
+  --color-primary-hover: #556b2f;
+  --color-primary-active: #3d4d1a;
+  --color-accent: #9acd32;
+
+  /* Couleurs — fonds chauds */
+  --color-cream: #f5f1e8;
+  --color-beige: #e8e4d8;
+  --color-tan: #d4b896;
+
+  /* Couleurs — verts interactifs */
+  --color-sage-glass: #e6f0d6;
+  --color-sage-tint: #c8dba8;
+  --color-sage-active: #d0e5b8;
+  --color-charcoal: #47483b;
+
+  /* Couleurs — neutres */
+  --color-text: #1f1f1f;
+  --color-muted: #6b6b6b;
+  --color-disabled: #a9a9a9;
+  --color-surface: #ffffff;
+  --color-card: #fafaf8;
+
+  /* Couleurs — lignes */
+  --color-border: #d9d9d9;
+  --color-divider: #e0ddd4;
+
+  /* Anneau de focus (inputs) */
+  --color-focus-ring: rgb(87 111 31 / 0.1);
+
+  /* Typographie — familles */
+  --font-display: 'Alegreya', Georgia, serif;
+  --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Typographie — rôles (taille / hauteur / graisse) */
+  --text-display-size: 62px;
+  --text-display-height: 60px;
+  --text-h2-size: 45px;
+  --text-h2-height: 46px;
+  --text-h3-size: 22px;
+  --text-h3-height: 25px;
+  --text-body-size: 16px;
+  --text-body-height: 26px;
+  --text-button-height: 27px;
+  --text-caption-size: 13px;
+  --text-caption-height: 20px;
+  --text-weight-heading: 700;
+  --text-weight-body: 400;
+  --text-weight-strong: 600;
+
+  /* Espacements — base 4px (nom = multiples) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-8: 32px;
+  --space-13: 52px;
+  --space-22: 88px;
+  --space-40: 160px;
+
+  /* Rayons */
+  --radius-pill: 999px;
+  --radius-card: 16px;
+  --radius-image: 12px;
+  --radius-tag: 12px;
+  --radius-input: 8px;
+  --radius-nav-pill: 20px;
+
+  /* Élévation (réservée aux états interactifs, jamais au repos) */
+  --shadow-none: none;
+  --shadow-hover: 0 2px 8px rgb(0 0 0 / 0.06);
+  --shadow-raised: 0 4px 12px rgb(0 0 0 / 0.1);
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.12);
+  --shadow-nav: 0 1px 3px rgb(0 0 0 / 0.08);
+
+  /* Mise en page */
+  --container-max: 1200px;
+  --nav-height: 64px;
+  --touch-min: 44px;
+}

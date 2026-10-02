@@ -1,0 +1,34 @@
+{
+  // This file is JSONC: fallow reads these comments; generic JSON tools may not.
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  // Points d'entrée Nuxt : le graphe suit les imports depuis ces fichiers.
+  "entry": [
+    "nuxt.config.ts",
+    "app/app.vue",
+    "vitest.config.ts",
+    ".storybook/main.ts"
+  ],
+  "ignorePatterns": [
+    ".storybook/**",
+    ".nuxt/**",
+    ".output/**",
+    ".wrangler/**",
+    "storybook-static/**",
+    "node_modules/**",
+    "public/**"
+  ],
+  "duplicates": {
+    // Tolérance zéro : chaque paire dupliquée est rapportée.
+    "minOccurrences": 2
+  },
+  "rules": {
+    "unused-dependencies": "warn"
+  },
+  // Usages réels invisibles à l'analyse statique :
+  // - @storybook/addon-a11y : référencé en chaîne dans .storybook/main.ts
+  // - storybook : importé via le sous-chemin 'storybook/test' dans les stories.
+  "ignoreDependencies": [
+    "@storybook/addon-a11y",
+    "storybook"
+  ]
+}

@@ -15,7 +15,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 ## 2. Color Palette & Roles
 
 ### Primary
-- **Forest Green** (`#6B8E23`): Primary call-to-action buttons, links, and active navigation states; represents growth and community engagement
+- **Forest Green** (`#576F1F`): Primary call-to-action buttons, links, and active navigation states; represents growth and community engagement. Darkened from `#576F1F` to meet WCAG AA contrast (≥ 4.5 on white and cream), enforced by automated a11y tests
 - **Deep Olive** (`#556B2F`): Secondary emphasis and heading text; conveys stability and grounding
 - **Sage Green** (`#9ACD32`): Accent highlights, badges, and secondary interactive states; softer, supporting role
 
@@ -71,7 +71,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 ### Buttons
 
 #### Primary Button
-- **Background:** `#6B8E23` (Forest Green)
+- **Background:** `#576F1F` (Forest Green)
 - **Text Color:** `#FFFFFF` (White)
 - **Padding:** `12px 32px`
 - **Border Radius:** `999px` (full pill)
@@ -99,10 +99,10 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 
 #### Ghost Button
 - **Background:** `rgba(0, 0, 0, 0)` (Transparent)
-- **Text Color:** `#6B8E23` (Forest Green)
+- **Text Color:** `#576F1F` (Forest Green)
 - **Padding:** `12px 32px`
 - **Border Radius:** `999px`
-- **Border:** `1px solid #6B8E23`
+- **Border:** `1px solid #576F1F`
 - **Font Family:** Hanken Grotesk
 - **Font Size:** `16px`
 - **Font Weight:** 600
@@ -153,7 +153,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 - **Font Size:** `16px`
 - **Font Weight:** 400
 - **Line Height:** `26px`
-- **Focus State:** Border color `#6B8E23`, box-shadow `0 0 0 3px rgba(107, 142, 35, 0.1)`
+- **Focus State:** Border color `#576F1F`, box-shadow `0 0 0 3px rgba(87, 111, 31, 0.1)`
 - **Placeholder Color:** `#A9A9A9`
 
 #### Textarea
@@ -166,7 +166,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 - **Font Size:** `16px`
 - **Min Height:** `120px`
 - **Resize:** vertical
-- **Focus State:** Border `#6B8E23`, shadow `0 0 0 3px rgba(107, 142, 35, 0.1)`
+- **Focus State:** Border `#576F1F`, shadow `0 0 0 3px rgba(87, 111, 31, 0.1)`
 
 #### Form Label
 - **Font Family:** Hanken Grotesk
@@ -197,8 +197,8 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 - **Transition:** `color 200ms, border-color 200ms`
 
 #### Navigation Link (Active/Hover)
-- **Color:** `#6B8E23` (Forest Green)
-- **Border Bottom:** `2px solid #6B8E23`
+- **Color:** `#576F1F` (Forest Green)
+- **Border Bottom:** `2px solid #576F1F`
 
 #### Navigation Pill (Secondary Nav)
 - **Background:** `#E6F0D6` (Sage Glass)
@@ -214,7 +214,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 ### Links
 
 #### Text Link (Inline)
-- **Color:** `#6B8E23` (Forest Green)
+- **Color:** `#576F1F` (Forest Green)
 - **Text Decoration:** underline
 - **Font Family:** Hanken Grotesk
 - **Font Size:** `16px`
@@ -299,7 +299,7 @@ The design prioritizes generous breathing room around content. Sections are sepa
 ## 7. Do's and Don'ts
 
 ### Do
-- **Use Forest Green (`#6B8E23`) for primary CTAs** — it signals action and trust while remaining cohesive with the brand identity
+- **Use Forest Green (`#576F1F`) for primary CTAs** — it signals action and trust while remaining cohesive with the brand identity
 - **Pair Alegreya headings with Hanken Grotesk body text** — this pairing creates distinctive hierarchy and maintains readability
 - **Maintain generous padding in hero sections** — `52px` minimum, allowing content to breathe and emphasizing importance
 - **Apply rounded pill buttons (`999px`)** — they feel approachable and modern, reinforcing community-forward positioning
@@ -349,15 +349,15 @@ The design prioritizes generous breathing room around content. Sections are sepa
 ## 9. Agent Prompt Guide
 
 ### Quick Color Reference
-- **Primary CTA Button:** Forest Green (`#6B8E23`)
+- **Primary CTA Button:** Forest Green (`#576F1F`)
 - **Secondary CTA Button:** Transparent with gray text and light border (`transparent`, `#6B6B6B`, `#D9D9D9`)
 - **Hero/Section Background:** Light Cream (`#F5F1E8`)
 - **Card Background:** White (`#FFFFFF`)
 - **Card Border:** Soft Border (`#D9D9D9`)
-- **Navigation Active Link:** Forest Green (`#6B8E23`) with underline
+- **Navigation Active Link:** Forest Green (`#576F1F`) with underline
 - **Body Text Color:** Dark Text (`#1F1F1F`)
 - **Secondary Text:** Mid Gray (`#6B6B6B`)
-- **Link Text:** Forest Green (`#6B8E23`)
+- **Link Text:** Forest Green (`#576F1F`)
 - **Heading Text:** Deep Olive (`#556B2F`) or Dark Text (`#1F1F1F`) depending on context
 - **Badge/Pill Background:** Sage Glass (`#E6F0D6`)
 - **Hover State Background:** Sage Glass (`#E6F0D6`) or subtle shift toward muted beige
@@ -365,7 +365,7 @@ The design prioritizes generous breathing room around content. Sections are sepa
 ### Iteration Guide
 1. **Always start with Hanken Grotesk for body and UI text** (`16px`, weight `400` for body, `600` for emphasis); reserve Alegreya exclusively for headings and display text (`62px`, `45px`, `22px` with weight `700`).
 
-2. **Primary buttons must be Forest Green (`#6B8E23`) with white text**, `16px` font, `600` weight, `12px 32px` padding, and `999px` border-radius. Hover state shifts background to Deep Olive (`#556B2F`).
+2. **Primary buttons must be Forest Green (`#576F1F`) with white text**, `16px` font, `600` weight, `12px 32px` padding, and `999px` border-radius. Hover state shifts background to Deep Olive (`#556B2F`).
 
 3. **Apply card styling consistently**: white background, `16px` padding, `16px` border-radius, `1px solid #D9D9D9` border, no shadow. Maintain spacing `20px` between cards in grids.
 
@@ -373,12 +373,12 @@ The design prioritizes generous breathing room around content. Sections are sepa
 
 5. **Spacing between major sections is `88px` minimum**; internal padding within hero/container sections is `52px`. Follow the scale: `4px → 8px → 12px → 16px → 20px → 32px → 52px → 88px`.
 
-6. **Links are Forest Green (`#6B8E23`), underlined by default, with hover state shifting to Deep Olive (`#556B2F`)**; navigation links use pill styling only in secondary nav contexts (background `#E6F0D6`, padding `8px 16px`, radius `20px`).
+6. **Links are Forest Green (`#576F1F`), underlined by default, with hover state shifting to Deep Olive (`#556B2F`)**; navigation links use pill styling only in secondary nav contexts (background `#E6F0D6`, padding `8px 16px`, radius `20px`).
 
 7. **Borders and dividers prioritize low-contrast lines (`#D9D9D9`, `#E0DDD4`) over shadows**; if elevation is necessary, use subtle shadows from the elevation table (hover: `0 2px 8px rgba(0, 0, 0, 0.06)`).
 
 8. **Hero sections and large containers use Light Cream (`#F5F1E8`) background to create visual separation** without relying on color intensity; text remains Dark Text (`#1F1F1F`) for high contrast.
 
-9. **Form inputs default to white background, `1px solid #D9D9D9` border, `8px` border-radius, `12px 16px` padding**; focus state adds border-color `#6B8E23` and subtle green shadow `0 0 0 3px rgba(107, 142, 35, 0.1)`.
+9. **Form inputs default to white background, `1px solid #D9D9D9` border, `8px` border-radius, `12px 16px` padding**; focus state adds border-color `#576F1F` and subtle green shadow `0 0 0 3px rgba(87, 111, 31, 0.1)`.
 
 10. **On responsive breakpoints, reduce heading sizes proportionally** (H1: `62px → 44px → 32px`), shift card grids from multi-column to 2-column or 1-column, and collapse horizontal navigation into hamburger menu below `640px` width. Maintain minimum `12px` padding on mobile viewports.
