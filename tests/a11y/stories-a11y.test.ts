@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { type Browser, type Page, chromium } from 'playwright-core'
 import axe from 'axe-core'
+import { STATIC_PORT } from './serve-static.setup'
 
-const BASE = process.env.STORYBOOK_URL ?? 'http://127.0.0.1:6007'
+const BASE = process.env.STORYBOOK_URL ?? `http://127.0.0.1:${STATIC_PORT}`
 
 interface IndexEntry {
   id: string

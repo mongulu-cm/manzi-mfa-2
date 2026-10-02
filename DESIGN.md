@@ -379,6 +379,6 @@ The design prioritizes generous breathing room around content. Sections are sepa
 
 8. **Hero sections and large containers use Light Cream (`#F5F1E8`) background to create visual separation** without relying on color intensity; text remains Dark Text (`#1F1F1F`) for high contrast.
 
-9. **Form inputs default to white background, `1px solid #D9D9D9` border, `8px` border-radius, `12px 16px` padding**; focus state adds border-color `#576F1F` and subtle green shadow `0 0 0 3px rgba(87, 111, 31, 0.1)`.
+9. **Form inputs default to white background, `1px solid #949494` border (contraste ≥ 3:1, WCAG 1.4.11), `8px` border-radius, `12px 16px` padding**; focus state adds border-color `#576F1F` and subtle green shadow `0 0 0 3px rgba(87, 111, 31, 0.1)`.
 
 10. **On responsive breakpoints, reduce heading sizes proportionally** (H1: `62px → 44px → 32px`), shift card grids from multi-column to 2-column or 1-column, and collapse horizontal navigation into hamburger menu below `640px` width. Maintain minimum `12px` padding on mobile viewports.

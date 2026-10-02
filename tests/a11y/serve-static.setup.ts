@@ -3,6 +3,10 @@ import { readFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 
 const PORT = 6007
+
+// Port unique du serveur statique : importé par le test a11y, la config
+// vitest et documenté dans le job CI (voir .github/workflows/ci.yml).
+export const STATIC_PORT = PORT
 const MIME: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -31,7 +35,11 @@ export default async function setup(): Promise<() => Promise<void>> {
     res.writeHead(200, { 'Content-Type': MIME[extname(path)] ?? 'application/octet-stream' })
     res.end(body)
   })
-  await new Promise<void>(resolve => server.listen(PORT, '127.0.0.1', resolve))
+  await new Promise<void>((resolve) => {
+    // Port déjà pris : un autre run sert déjà le statique, on réutilise.
+    server.on('error', () => resolve())
+    server.listen(PORT, '127.0.0.1', () => resolve())
+  })
   return async () => {
     await new Promise<void>((resolve, reject) => {
       server.close((err?: Error) => err ? reject(err) : resolve())
