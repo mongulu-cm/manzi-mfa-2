@@ -3,7 +3,7 @@ import { type Browser, type Page, chromium } from 'playwright-core'
 import axe from 'axe-core'
 import { STATIC_PORT } from './serve-static.setup'
 
-const BASE = process.env.STORYBOOK_URL ?? `http://127.0.0.1:${STATIC_PORT}`
+const BASE = process.env.STORYBOOK_URL ?? `http://localhost:${STATIC_PORT}`
 
 interface IndexEntry {
   id: string
@@ -30,7 +30,12 @@ async function storyIds(): Promise<string[]> {
 
 async function violationsFor(page: Page, id: string): Promise<string[]> {
   await page.goto(`${BASE}/iframe.html?id=${id}&viewMode=story`, { waitUntil: 'load' })
-  await page.waitForSelector('#storybook-root > *', { timeout: 15_000 })
+  try {
+    await page.waitForSelector('#storybook-root > *', { timeout: 15_000 })
+  }
+  catch {
+    throw new Error(`rendu introuvable pour la story ${id}`)
+  }
   await page.addScriptTag({ content: axe.source })
   // L'addon a11y peut lancer son propre audit en parallèle : réessayer
   // jusqu'à ce qu'axe soit libre (backoff, 5 tentatives max).

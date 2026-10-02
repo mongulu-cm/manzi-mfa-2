@@ -5,8 +5,9 @@ import { STATIC_PORT } from './tests/a11y/serve-static.setup'
 
 // Source unique du port : le test a11y lit la même constante.
 // Sans STORYBOOK_URL, tout pointe vers le statique servi par le globalSetup.
-// Pour viser le dev live : STORYBOOK_URL=http://127.0.0.1:6006.
-const STORYBOOK_URL = process.env.STORYBOOK_URL ?? `http://127.0.0.1:${STATIC_PORT}`
+// Pour viser le dev live : STORYBOOK_URL=http://localhost:6006.
+// (localhost, pas 127.0.0.1 : le preview Storybook refuse les autres hostnames.)
+const STORYBOOK_URL = process.env.STORYBOOK_URL ?? `http://localhost:${STATIC_PORT}`
 
 export default defineConfig({
   test: {

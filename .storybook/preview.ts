@@ -2,8 +2,8 @@ import type { Preview } from '@storybook/vue3'
 
 const preview: Preview = {
   parameters: {
-    // Les violations d'accessibilité font échouer les tests (CI).
-    a11y: { test: 'error' },
+    // Note : pas de `a11y.test` ici — l'audit addon crash au rendu en iframe
+    // standalone. Le gate a11y est assuré par tests/a11y (axe sur chaque story).
   },
 }
 

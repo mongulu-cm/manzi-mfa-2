@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
 
-const PORT = 6007
+const PORT = 6017
 
 // Port unique du serveur statique : importé par le test a11y, la config
 // vitest et documenté dans le job CI (voir .github/workflows/ci.yml).
@@ -20,10 +20,14 @@ const MIME: Record<string, string> = {
   '.map': 'application/json',
 }
 
-// Port déjà pris : un autre run sert déjà le statique, on le réutilise.
+// Port déjà pris : un autre serveur tourne déjà, on le réutilise
+// (avec un avertissement : le contenu servi peut ne pas être le nôtre).
 function waitListening(server: Server): Promise<boolean> {
   return new Promise((resolve) => {
-    server.on('error', () => resolve(false))
+    server.on('error', () => {
+      console.warn(`[serve-static] port ${PORT} occupé, réutilisation du serveur existant`)
+      resolve(false)
+    })
     server.listen(PORT, '127.0.0.1', () => resolve(true))
   })
 }

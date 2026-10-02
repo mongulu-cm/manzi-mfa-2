@@ -41,7 +41,7 @@ jobs:
       - run: npx storybook build -o storybook-static
       - run: npm run test:stories
         env:
-          STORYBOOK_URL: http://127.0.0.1:6007
+          STORYBOOK_URL: http://localhost:6017
 
   fallow:
     name: Fallow (dupes, dead code, santé)

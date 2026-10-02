@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint', '@nuxtjs/storybook'],
+  modules: ['@nuxt/eslint', '@nuxtjs/storybook', '@nuxt/ui'],
   devtools: { enabled: true },
   app: {
     head: {
@@ -12,8 +12,6 @@ export default defineNuxtConfig({
     '@fontsource/alegreya/700.css',
     '@fontsource/hanken-grotesk/400.css',
     '@fontsource/hanken-grotesk/600.css',
-    '~/assets/css/tokens.css',
-    '~/assets/css/components.css',
     '~/assets/css/main.css',
   ],
   compatibilityDate: '2026-10-01',
