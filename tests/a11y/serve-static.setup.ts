@@ -20,6 +20,20 @@ const MIME: Record<string, string> = {
   '.map': 'application/json',
 }
 
+// Port déjà pris : un autre run sert déjà le statique, on le réutilise.
+function waitListening(server: Server): Promise<boolean> {
+  return new Promise((resolve) => {
+    server.on('error', () => resolve(false))
+    server.listen(PORT, '127.0.0.1', () => resolve(true))
+  })
+}
+
+function closeServer(server: Server): Promise<void> {
+  return new Promise((resolve, reject) => {
+    server.close((err?: Error) => err ? reject(err) : resolve())
+  })
+}
+
 // Serveur éphémère localhost pour les tests (jamais exposé) : volontairement
 // minimal, sans contrôle de traversal.
 export default async function setup(): Promise<() => Promise<void>> {
@@ -35,14 +49,10 @@ export default async function setup(): Promise<() => Promise<void>> {
     res.writeHead(200, { 'Content-Type': MIME[extname(path)] ?? 'application/octet-stream' })
     res.end(body)
   })
-  await new Promise<void>((resolve) => {
-    // Port déjà pris : un autre run sert déjà le statique, on réutilise.
-    server.on('error', () => resolve())
-    server.listen(PORT, '127.0.0.1', () => resolve())
-  })
+  const started = await waitListening(server)
   return async () => {
-    await new Promise<void>((resolve, reject) => {
-      server.close((err?: Error) => err ? reject(err) : resolve())
-    })
+    if (started) {
+      await closeServer(server)
+    }
   }
 }
