@@ -27,8 +27,16 @@ SUPABASE_KEY="$(
 
 La clé recherchée a le type `publishable` et le nom `default`, pas le nom `publishable`. Ne pas afficher ni committer sa valeur ; ne jamais lui substituer une clé `secret` ou `service_role`. Le socle actuel démarre avec ces variables exportées mais ne les consomme pas encore : ce lancement ne valide pas à lui seul une intégration Supabase dans l'application.
 
+### Schémas et migrations Supabase — obligatoire
+
+- `supabase/schemas/` est la source de vérité du schéma : tout ajout ou changement de structure (tables, colonnes, index, fonctions, triggers, vues, politiques RLS, etc.) doit d'abord être déclaré dans ces fichiers SQL. Ne pas créer ces éléments directement via Studio, SQL ou une migration écrite à la main.
+- Ensuite, générer la migration avec `npx supabase db schema declarative sync -f nom_modification --no-apply`, relire le SQL généré dans `supabase/migrations/`, puis le tester localement avant déploiement. Versionner ensemble les fichiers déclaratifs et la migration correspondante.
+- Ce workflow nécessite `pg-delta` activé dans `supabase/config.toml` (`[experimental.pgdelta]`, `enabled = true`), ou le flag `--experimental`. Pour une base existante sans migrations, établir d'abord la migration initiale avec `npx supabase db pull`, puis exporter les fichiers déclaratifs avec `npx supabase db schema declarative generate --linked`.
+- `declarative generate` sert à exporter un schéma existant ; il ne génère pas de migration. Après modification de `supabase/schemas/`, utiliser `declarative sync`.
+
 ## Code et sécurité
 
+- Avant d'écrire ou de modifier du code serveur utilisant Supabase (endpoints Nitro, authentification, accès aux données, Edge Functions, etc.), lire et appliquer obligatoirement la skill `supabase-server` dans `.agents/skills/supabase-server/SKILL.md`.
 - Suivre les conventions Nuxt dans `app/` : pages, layouts, composables, auto-imports et composants Vue avec `<script setup lang="ts">`.
 - Ne pas ajouter de bibliothèque ni de module sans besoin concret.
 - Préserver le SSR : `useFetch` / `useAsyncData` pour les données, `$fetch` pour les actions, `useState` pour l'état partagé. Aucun état partagé mutable au niveau module ; réserver les APIs navigateur à `onMounted` ou à une garde client.
