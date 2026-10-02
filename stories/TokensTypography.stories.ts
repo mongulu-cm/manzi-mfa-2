@@ -12,7 +12,7 @@ export const Scale: Story = {
   render: () => ({
     template: `
       <div class="flex flex-col gap-5 font-sans">
-        <h1 class="m-0 font-display text-display font-bold">Display 62px</h1>
+        <h1 class="font-display font-bold" style="margin:0;font-size:var(--text-display);line-height:var(--text-display--line-height)">Display 62px</h1>
         <h2 class="m-0 font-display text-h2 font-bold">Heading 45px</h2>
         <h3 class="m-0 font-display text-h3 font-bold">Subheading 22px</h3>
         <p class="m-0 text-base/relaxed">Body 16px — Le pont vers l'emploi dans l'IT grâce à un échange d'une heure avec un senior.</p>
