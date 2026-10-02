@@ -6,9 +6,26 @@ Manzi-mfa (Collectif Mongulu) facilite l'accès à l'emploi IT grâce à un éch
 
 - Lire `README.md` et `DESIGN.md` avant toute modification ; consulter `.github/workflows/ci.yml` pour les contrôles CI.
 - Node et installation : `nvm use` (voir `.nvmrc`), puis `npm ci`. Conserver `package-lock.json`.
-- Développement : `npm run dev`. Production : `npm run build`, puis `npm run preview` ; déploiement : `npm run deploy` (configuration dans `wrangler.jsonc`).
+- Développement : préparer l'environnement Supabase ci-dessous, puis `npm run dev`. Production : `npm run build`, puis `npm run preview` ; déploiement : `npm run deploy` (configuration dans `wrangler.jsonc`).
 - Après modification : `npm run check` (lint, types et build). Ajouter des tests lorsque la logique métier le justifie.
 - Pour les changements UI/stories : `npx playwright install chromium`, `npx storybook build -o storybook-static`, puis `npm run test:stories` (interactions et a11y). Le serveur statique est lancé automatiquement par les tests.
+
+### Supabase avant le démarrage local
+
+Depuis la racine du dépôt, être authentifié via `npx supabase login` (si la session CLI n'est pas déjà active), puis lier le projet avec `npx supabase link --project-ref gdcirvvqangyraxauggy`.
+
+Dans le même terminal, avec `jq` installé :
+
+```sh
+export PROJECT_REF=gdcirvvqangyraxauggy
+export SUPABASE_URL=https://gdcirvvqangyraxauggy.supabase.co
+SUPABASE_KEY="$(
+  npx supabase projects api-keys --project-ref "$PROJECT_REF" --output json \
+    | jq -er '.[] | select(.type == "publishable" and .name == "default") | .api_key'
+)" && test -n "$SUPABASE_KEY" && export SUPABASE_KEY && npm run dev
+```
+
+La clé recherchée a le type `publishable` et le nom `default`, pas le nom `publishable`. Ne pas afficher ni committer sa valeur ; ne jamais lui substituer une clé `secret` ou `service_role`. Le socle actuel démarre avec ces variables exportées mais ne les consomme pas encore : ce lancement ne valide pas à lui seul une intégration Supabase dans l'application.
 
 ## Code et sécurité
 
