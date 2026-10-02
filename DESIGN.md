@@ -15,7 +15,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 ## 2. Color Palette & Roles
 
 ### Primary
-- **Forest Green** (`#576F1F`): Primary call-to-action buttons, links, and active navigation states; represents growth and community engagement. Darkened from `#576F1F` to meet WCAG AA contrast (≥ 4.5 on white and cream), enforced by automated a11y tests
+- **Forest Green** (`#576F1F`): Primary call-to-action buttons, links, and active navigation states; represents growth and community engagement. Darkened from `#6B8E23` to meet WCAG AA contrast (≥ 4.5 on white and cream), enforced by automated a11y tests
 - **Deep Olive** (`#556B2F`): Secondary emphasis and heading text; conveys stability and grounding
 - **Sage Green** (`#9ACD32`): Accent highlights, badges, and secondary interactive states; softer, supporting role
 
@@ -146,7 +146,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 #### Text Input
 - **Background:** `#FFFFFF`
 - **Text Color:** `#1F1F1F`
-- **Border:** `1px solid #D9D9D9`
+- **Border:** `1px solid #949494` (contraste ≥ 3:1 sur fond blanc, WCAG 1.4.11)
 - **Border Radius:** `8px`
 - **Padding:** `12px 16px`
 - **Font Family:** Hanken Grotesk
@@ -154,12 +154,12 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 - **Font Weight:** 400
 - **Line Height:** `26px`
 - **Focus State:** Border color `#576F1F`, box-shadow `0 0 0 3px rgba(87, 111, 31, 0.1)`
-- **Placeholder Color:** `#A9A9A9`
+- **Placeholder Color:** `#767676` (contraste ≥ 4.5:1 sur fond blanc)
 
 #### Textarea
 - **Background:** `#FFFFFF`
 - **Text Color:** `#1F1F1F`
-- **Border:** `1px solid #D9D9D9`
+- **Border:** `1px solid #949494` (contraste ≥ 3:1 sur fond blanc, WCAG 1.4.11)
 - **Border Radius:** `8px`
 - **Padding:** `12px 16px`
 - **Font Family:** Hanken Grotesk

@@ -5,8 +5,7 @@
   "entry": [
     "nuxt.config.ts",
     "app/app.vue",
-    "vitest.config.ts",
-    ".storybook/main.ts"
+    "vitest.config.ts"
   ],
   "ignorePatterns": [
     ".storybook/**",

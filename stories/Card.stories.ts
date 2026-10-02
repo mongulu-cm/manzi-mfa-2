@@ -31,7 +31,7 @@ export const Image: Story = {
   render: () => ({
     template: `
       <div class="card card-image" style="max-width:320px;">
-        <img src="/logo.png" alt="Collectif Mongulu" />
+        <img src="/logo.png" alt="" />
         <h3 style="margin:8px 0;font-family:var(--font-display);font-size:var(--text-h3-size);">Collectif Mongulu</h3>
         <p style="margin:0;">Communauté, croissance, impact.</p>
       </div>`,

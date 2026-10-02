@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/vue3'
+import { onMounted, ref } from 'vue'
 
 const meta = {
   title: 'Tokens/Colors',
@@ -7,36 +8,47 @@ const meta = {
 export default meta
 type Story = StoryObj
 
-const COLORS: Array<[string, string]> = [
-  ['--color-primary', '#6b8e23'],
-  ['--color-primary-hover', '#556b2f'],
-  ['--color-primary-active', '#3d4d1a'],
-  ['--color-accent', '#9acd32'],
-  ['--color-cream', '#f5f1e8'],
-  ['--color-beige', '#e8e4d8'],
-  ['--color-tan', '#d4b896'],
-  ['--color-sage-glass', '#e6f0d6'],
-  ['--color-sage-tint', '#c8dba8'],
-  ['--color-sage-active', '#d0e5b8'],
-  ['--color-charcoal', '#47483b'],
-  ['--color-text', '#1f1f1f'],
-  ['--color-muted', '#6b6b6b'],
-  ['--color-disabled', '#a9a9a9'],
-  ['--color-surface', '#ffffff'],
-  ['--color-card', '#fafaf8'],
-  ['--color-border', '#d9d9d9'],
-  ['--color-divider', '#e0ddd4'],
+const NAMES = [
+  '--color-primary',
+  '--color-primary-hover',
+  '--color-primary-active',
+  '--color-accent',
+  '--color-cream',
+  '--color-beige',
+  '--color-tan',
+  '--color-sage-glass',
+  '--color-sage-tint',
+  '--color-sage-active',
+  '--color-charcoal',
+  '--color-text',
+  '--color-muted',
+  '--color-placeholder',
+  '--color-disabled',
+  '--color-surface',
+  '--color-card',
+  '--color-border',
+  '--color-border-strong',
+  '--color-divider',
 ]
 
-const swatches = COLORS.map(
-  ([name, value]) =>
-    `<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">`
-    + `<span style="width:48px;height:32px;border:1px solid #d9d9d9;border-radius:8px;background:${value}"></span>`
-    + `<code>${name}</code><span style="color:#6b6b6b">${value}</span></div>`,
-).join('')
-
+// Les valeurs sont lues depuis les custom properties réellement appliquées :
+// la doc suit toujours tokens.css, sans duplication à maintenir.
 export const Palette: Story = {
   render: () => ({
-    template: `<div style="font-family:var(--font-sans)">${swatches}</div>`,
+    setup() {
+      const colors = ref<Array<[string, string]>>([])
+      onMounted(() => {
+        const computed = getComputedStyle(document.documentElement)
+        colors.value = NAMES.map(name => [name, computed.getPropertyValue(name).trim() || '(non défini)'])
+      })
+      return { colors }
+    },
+    template: `
+      <div style="font-family:var(--font-sans)">
+        <div v-for="[name, value] in colors" :key="name" style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <span style="width:48px;height:32px;border:1px solid var(--color-border);border-radius:8px;" :style="{ background: value }"></span>
+          <code>{{ name }}</code><span style="color:var(--color-muted)">{{ value }}</span>
+        </div>
+      </div>`,
   }),
 }

@@ -9,6 +9,9 @@ const STORYBOOK_URL = process.env.STORYBOOK_URL ?? 'http://127.0.0.1:6006'
 
 export default defineConfig({
   test: {
+    // Serveur statique partagé (démarré une fois) : le projet storybook
+    // ne dépend plus d'un serveur démarré par un autre projet.
+    globalSetup: ['./tests/a11y/serve-static.setup.ts'],
     projects: [
       {
         plugins: [
@@ -28,7 +31,6 @@ export default defineConfig({
         test: {
           name: 'a11y',
           include: ['tests/a11y/**/*.test.ts'],
-          globalSetup: ['./tests/a11y/serve-static.setup.ts'],
         },
       },
     ],

@@ -93,13 +93,13 @@ a.card:hover, button.card:hover {
   padding: var(--space-3) var(--space-4);
   background: var(--color-surface);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-input);
   font-family: var(--font-sans);
   font-size: var(--text-body-size);
   line-height: var(--text-body-height);
 }
-.input::placeholder { color: var(--color-disabled); }
+.input::placeholder { color: var(--color-placeholder); }
 .input:focus {
   outline: none;
   border-color: var(--color-primary);

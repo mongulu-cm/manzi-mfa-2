@@ -31,7 +31,7 @@ export default async function setup(): Promise<() => Promise<void>> {
     res.writeHead(200, { 'Content-Type': MIME[extname(path)] ?? 'application/octet-stream' })
     res.end(body)
   })
-  await new Promise<void>(resolve => server.listen(PORT, resolve))
+  await new Promise<void>(resolve => server.listen(PORT, '127.0.0.1', resolve))
   return async () => {
     await new Promise<void>((resolve, reject) => {
       server.close((err?: Error) => err ? reject(err) : resolve())
