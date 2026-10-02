@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { type Browser, type Page, chromium } from 'playwright-core'
 import axe from 'axe-core'
+import { COLORS } from '../../stories/tokens'
 import { STATIC_PORT } from './serve-static.setup'
 
 const BASE = process.env.STORYBOOK_URL ?? `http://localhost:${STATIC_PORT}`
@@ -34,7 +35,9 @@ async function violationsFor(page: Page, id: string): Promise<string[]> {
     await page.waitForSelector('#storybook-root > *', { timeout: 15_000 })
   }
   catch {
-    throw new Error(`rendu introuvable pour la story ${id}`)
+    const url = page.url()
+    const body = await page.evaluate(() => document.body?.innerHTML?.slice(0, 500) ?? 'NO-BODY')
+    throw new Error(`rendu introuvable pour la story ${id} (url=${url}, body=${body})`)
   }
   await page.addScriptTag({ content: axe.source })
   // L'addon a11y peut lancer son propre audit en parallèle : réessayer
@@ -74,4 +77,20 @@ describe('accessibilité des stories', () => {
     }
     expect(failures).toEqual([])
   }, 180_000)
+
+  it('tokens : chaque valeur documentée égale le CSS appliqué', async () => {
+    const page = await browser.newPage()
+    try {
+      await page.goto(`${BASE}/iframe.html?id=tokens-colors--palette&viewMode=story`, { waitUntil: 'load' })
+      await page.waitForSelector('#storybook-root > *', { timeout: 15_000 })
+      const resolved = await page.evaluate((names: string[]) => {
+        const computed = getComputedStyle(document.documentElement)
+        return names.map(name => [name, computed.getPropertyValue(name).trim().toLowerCase()] as [string, string])
+      }, COLORS.map(([name]) => name))
+      expect(resolved).toEqual(COLORS)
+    }
+    finally {
+      await page.close()
+    }
+  }, 60_000)
 })

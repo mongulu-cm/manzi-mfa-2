@@ -1,0 +1,12 @@
+<!-- Helper color-mode attendu par @nuxtjs/color-mode (inclus via @nuxt/ui).
+     Le build statique n'injecte pas ce script inline : on le fournit pour
+     éviter le crash du plugin dans l'iframe (tests + dev Storybook). -->
+<script>
+  window.__NUXT_COLOR_MODE__ = {
+    preference: 'light',
+    value: 'light',
+    getColorScheme: function () { return 'light' },
+    addColorScheme: function () {},
+    removeColorScheme: function () {},
+  }
+</script>
