@@ -69,6 +69,6 @@ Previews : URL stable par branche, pattern `https://<nom-branche>.manzi-mfa-2.mo
 
 Le socle conserve le SSR par défaut. Via Workers Builds (repo connecté) :
 push sur `main` déploie la prod, chaque PR crée/met à jour sa Preview
-avec commentaire URL. Domaines configurés dans le dashboard
-(Worker > Domains, Previews Base). Le backend et l'authentification
+avec commentaire URL. Domaine et previews définis dans `wrangler.jsonc`
+(route `previews_enabled`), le dashboard reflète cet état. Le backend et l'authentification
 seront définis avec les besoins produit.

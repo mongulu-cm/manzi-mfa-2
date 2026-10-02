@@ -13,9 +13,8 @@
   "workers_dev": true,
   // Requis par `wrangler preview` (commande de déploiement preview Workers Builds).
   "previews": {},
-  // Domaine prod géré aussi dans le dashboard (Worker > Domains).
-  // Previews : configurées dans le dashboard (Previews Base + domaine previews).
-  // Pattern visé : manzi-mfa-pr-<NUM>.mongulu.cm, prod : manzi-mfa-2.mongulu.cm.
+  // Prod : manzi-mfa-2.mongulu.cm ; previews : <nom-branche>.manzi-mfa-2.mongulu.cm
+  // (Cloudflare crée le wildcard DNS + certificat quand previews_enabled est actif).
   "routes": [
     {
       "pattern": "manzi-mfa-2.mongulu.cm",
