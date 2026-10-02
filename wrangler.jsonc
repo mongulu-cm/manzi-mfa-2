@@ -19,7 +19,9 @@
   "routes": [
     {
       "pattern": "manzi-mfa-2.mongulu.cm",
-      "custom_domain": true
+      "custom_domain": true,
+      // Sert la production ET les previews (<nom-preview>.manzi-mfa-2.mongulu.cm).
+      "previews_enabled": true
     }
   ]
 }
