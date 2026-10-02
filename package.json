@@ -15,18 +15,32 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "nuxt typecheck",
+    "test:stories": "vitest run",
     "check": "npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
     "@fontsource/alegreya": "^5.2.8",
     "@fontsource/hanken-grotesk": "^5.2.8",
+    "@nuxt/ui": "^4.11.3",
     "nuxt": "4.5.2",
+    "tailwindcss": "^4.3.3",
     "vue": "^3.5.43"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
+    "@nuxtjs/storybook": "^10.0.0",
+    "@storybook/addon-a11y": "^10.6.1",
+    "@storybook/addon-vitest": "^10.6.1",
+    "@vitest/browser": "^5.0.3",
+    "@vitest/browser-playwright": "^5.0.3",
+    "axe-core": "^4.13.0",
     "eslint": "^10.11.0",
+    "fallow": "^3.31.0",
+    "playwright": "1.63.0",
+    "playwright-core": "^1.63.0",
+    "storybook": "^10.6.1",
     "typescript": "~5.9.3",
+    "vitest": "^5.0.3",
     "vue-tsc": "^3.3.11",
     "wrangler": "^4.145.0"
   }

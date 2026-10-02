@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-  modules: ['@nuxt/eslint'],
+  modules: ['@nuxt/eslint', '@nuxtjs/storybook', '@nuxt/ui'],
   devtools: { enabled: true },
   app: {
     head: {

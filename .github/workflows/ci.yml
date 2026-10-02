@@ -25,3 +25,33 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  stories:
+    name: Stories, interactions et a11y
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx storybook build -o storybook-static
+      - run: npm run test:stories
+        env:
+          STORYBOOK_URL: http://localhost:6017
+
+  fallow:
+    name: Fallow (dupes, dead code, santé)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx fallow --ci --format compact
