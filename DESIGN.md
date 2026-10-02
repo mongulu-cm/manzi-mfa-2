@@ -36,7 +36,7 @@ The Collectif Mongulu design system embodies a warm, inclusive, and purposeful a
 - **White** (`#FFFFFF`): Card backgrounds and inverse text contexts
 
 ### Surface & Borders
-- **Soft Border** (`#D9D9D9`): Card borders and subtle dividers; low-contrast structural lines. Note : l'implémentation Nuxt UI unifie bordures déco et contrôles à `#949494` (≥ 3:1, WCAG 1.4.11)
+- **Soft Border** (`#D9D9D9`): Card borders and subtle dividers; low-contrast structural lines. Le token Nuxt UI `--ui-border` vaut `#949494`; les séparateurs CSS du site restent à `#E0DDD4`
 - **Card Background** (`#FAFAF8`): Default card surface; near-white with slight warmth
 - **Section Divider** (`#E0DDD4`): Horizontal rules and subtle content separation
 
