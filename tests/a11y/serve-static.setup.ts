@@ -1,6 +1,11 @@
 import { createServer, type Server } from 'node:http'
+import dns from 'node:dns'
 import { readFile } from 'node:fs/promises'
 import { extname, join } from 'node:path'
+
+// 'localhost' peut résoudre vers ::1 en premier : forcer IPv4 pour que les
+// clients (fetch Node, Playwright) rejoignent le listener 127.0.0.1.
+dns.setDefaultResultOrder('ipv4first')
 
 const PORT = 6017
 

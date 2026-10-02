@@ -16,5 +16,5 @@ export const COLORS: Array<[string, string]> = [
   ['--ui-bg', '#f5f1e8'],
   ['--ui-text', '#1f1f1f'],
   ['--ui-text-muted', '#6b6b6b'],
-  ['--ui-border', '#d9d9d9'],
+  ['--ui-border', '#949494'],
 ]
