@@ -13,7 +13,7 @@ La page `/login` présente le futur espace connecté. L'authentification n'est p
 
 ## Confidentialité
 
-[PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Réviser ce texte avant toute nouvelle collecte (comptes, CV, échanges, statistiques ou paiements).
+[PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Réviser ce texte avant toute nouvelle collecte (comptes, CV, échanges, statistiques ou paiements).
 
 ## Démarrage
 

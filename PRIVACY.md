@@ -142,4 +142,4 @@ Cette partie documente le périmètre technique de la version conservée dans le
 
 Le [champ territorial du RGPD](https://www.cnil.fr/reglement-europeen-protection-donnees/chapitre1) dépend notamment de l’établissement, du ciblage de personnes dans l’Union européenne ou du suivi de leur comportement ; une simple accessibilité du site depuis l’Europe ne suffit pas à conclure à son application. Le [chapitre III du RGPD](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre3) décrit les obligations d’information et les droits. Le cadre camerounais comprend la loi n° 2024/017 du 23 décembre 2024 relative à la protection des données à caractère personnel ; ses conditions d’application doivent être prises en compte pour les traitements concernés.
 
-Ce fichier constitue la politique documentée dans le dépôt. Il n’ajoute pas de page aux applications et ne modifie pas leurs fonctionnalités.
+Le texte destiné aux visiteurs (introduction et partie 2) est publié sur la vitrine à `/confidentialite`. Les notes de maintenance restent dans le dépôt. Maintenir le document et la page en accord lors de chaque mise à jour.

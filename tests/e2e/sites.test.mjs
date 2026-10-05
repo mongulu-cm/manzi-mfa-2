@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { after, before, test } from 'node:test'
 import { chromium } from 'playwright'
+import axe from 'axe-core'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const vitrineUrl = 'http://127.0.0.1:3100'
@@ -107,6 +108,47 @@ test('la racine de la plateforme redirige vers login', async () => {
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
+
+test('la confidentialité est accessible sur la vitrine, en SSR et à 320px', async () => {
+  const response = await fetch(`${vitrineUrl}/confidentialite`)
+  assert.equal(response.status, 200)
+  const html = await response.text()
+  assert.match(html, /<h1[^>]*>\s*Politique de confidentialité/)
+  assert.match(html, /mailto:collectif@mongulu.cm/)
+  assert.doesNotMatch(html, /Notes de maintenance du document/)
+
+  const page = await browser.newPage()
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    await page.goto(vitrineUrl)
+    const link = page.locator('footer').getByRole('link', { name: 'Politique de confidentialité' })
+    await link.focus()
+    await page.keyboard.press('Enter')
+    await page.waitForURL(`${vitrineUrl}/confidentialite`)
+    assert.match(await page.title(), /Politique de confidentialité — Manzi-mfa/)
+    assert.equal(await page.locator('article h2').count(), 13)
+
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.reload()
+      await page.getByRole('heading', { level: 1 }).waitFor()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
+      await page.addScriptTag({ content: axe.source })
+      const violations = await page.evaluate(async () => {
+        const results = await window.axe.run()
+        return results.violations.filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id)
+      })
+      assert.deepEqual(violations, [])
+    }
+    await page.getByRole('link', { name: 'Retour à l’accueil' }).click()
+    await page.waitForURL(`${vitrineUrl}/`)
+    await page.goto(`${appUrl}/login`)
+    assert.equal(await page.locator('footer a[href="/confidentialite"]').count(), 0)
+    assert.deepEqual(errors, [])
+  }
+  finally { await page.close() }
+}, { timeout: 60_000 })
 
 test('les deux sites restent utilisables au clavier, à 320px et sur desktop', async () => {
   const page = await browser.newPage()
