@@ -13,7 +13,7 @@ La page `/login` présente le futur espace connecté. L'authentification n'est p
 
 ## Confidentialité
 
-[PRIVACY.md](PRIVACY.md) contient le brouillon de politique commun aux deux sites, son résumé et les notes de validation. Il décrit la collecte technique actuelle et les points à compléter ; il doit être finalisé et relu juridiquement avant d'être publié comme page des applications. Réviser ce texte avant toute nouvelle collecte (comptes, CV, échanges, statistiques ou paiements).
+[PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Réviser ce texte avant toute nouvelle collecte (comptes, CV, échanges, statistiques ou paiements).
 
 ## Démarrage
 
