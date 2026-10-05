@@ -38,7 +38,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx storybook build -o storybook-static
+      - run: npm run build:storybook
       - run: npm run test:stories
         env:
           STORYBOOK_URL: http://localhost:6017
@@ -55,3 +55,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx fallow --ci --format compact
+
+  e2e:
+    name: Navigation vitrine et plateforme
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

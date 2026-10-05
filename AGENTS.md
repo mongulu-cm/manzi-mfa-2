@@ -1,14 +1,14 @@
 # Consignes de contribution
 
-Manzi-mfa (Collectif Mongulu) facilite l'accès à l'emploi IT grâce à un échange avec un senior. Socle : Nuxt 4, Vue 3, TypeScript strict, Nuxt UI et SSR sur Cloudflare Workers.
+Manzi-mfa (Collectif Mongulu) facilite l'accès à l'emploi IT grâce à un échange avec un senior. Socle : monorepo npm, Nuxt 4, Vue 3, TypeScript strict et Nuxt UI sur Cloudflare Workers. La vitrine (`apps/vitrine`) utilise le SSR ; l’espace connecté (`apps/plateforme`) est une SPA. Le thème et les composants communs vivent dans `layers/mongulu`.
 
 ## Repères et commandes
 
 - Lire `README.md` et `DESIGN.md` avant toute modification ; consulter `.github/workflows/ci.yml` pour les contrôles CI.
 - Node et installation : `nvm use` (voir `.nvmrc`), puis `npm ci`. Conserver `package-lock.json`.
-- Développement : préparer l'environnement Supabase ci-dessous, puis `npm run dev`. Production : `npm run build`, puis `npm run preview` ; déploiement : `npm run deploy` (configuration dans `wrangler.jsonc`).
-- Après modification : `npm run check` (lint, types et build). Ajouter des tests lorsque la logique métier le justifie.
-- Pour les changements UI/stories : `npx playwright install chromium`, `npx storybook build -o storybook-static`, puis `npm run test:stories` (interactions et a11y). Le serveur statique est lancé automatiquement par les tests.
+- Développement : préparer l'environnement Supabase ci-dessous, puis `npm run dev:vitrine` et `npm run dev:app` dans deux terminaux ; exporter les URL locales de `.env.example` dans chaque terminal. `npm run dev` reste un alias de la vitrine. Production : `npm run build`, puis `npm run preview:vitrine` / `npm run preview:app` ; déploiement : `npm run deploy:vitrine` / `npm run deploy:app` (configurations dans `apps/*/wrangler.jsonc`).
+- Après modification : `npm run check` (lint, types et builds des deux applications). Ajouter des tests lorsque la logique métier le justifie.
+- Pour les changements UI/stories : `npx playwright install chromium`, `npm run build:storybook`, puis `npm run test:stories` (interactions et a11y). Le serveur statique est lancé automatiquement par les tests.
 
 ### Supabase avant le démarrage local
 
@@ -37,19 +37,19 @@ La clé recherchée a le type `publishable` et le nom `default`, pas le nom `pub
 ## Code et sécurité
 
 - Avant d'écrire ou de modifier du code serveur utilisant Supabase (endpoints Nitro, authentification, accès aux données, Edge Functions, etc.), lire et appliquer obligatoirement la skill `supabase-server` dans `.agents/skills/supabase-server/SKILL.md`.
-- Suivre les conventions Nuxt dans `app/` : pages, layouts, composables, auto-imports et composants Vue avec `<script setup lang="ts">`.
+- Suivre les conventions Nuxt dans les dossiers `app/` de chaque application et de la Layer : pages, layouts, composables, auto-imports et composants Vue avec `<script setup lang="ts">`.
 - Ne pas ajouter de bibliothèque ni de module sans besoin concret.
-- Préserver le SSR : `useFetch` / `useAsyncData` pour les données, `$fetch` pour les actions, `useState` pour l'état partagé. Aucun état partagé mutable au niveau module ; réserver les APIs navigateur à `onMounted` ou à une garde client.
+- Préserver le SSR de la vitrine et la compatibilité SSR des composants communs : `useFetch` / `useAsyncData` pour les données, `$fetch` pour les actions, `useState` pour l'état partagé. Aucun état partagé mutable au niveau module ; réserver les APIs navigateur à `onMounted` ou à une garde client.
 - Garder les secrets côté serveur dans `runtimeConfig` (jamais `runtimeConfig.public`) et hors du dépôt. Ne pas committer `.env` ; documenter les variables dans `.env.example`.
 
 ## UI et composants
 
-- `DESIGN.md` est la source de vérité visuelle (couleurs, typographies, espacements, rayons, bordures, états et responsive), y compris face aux styles par défaut des bibliothèques. Utiliser `public/logo.png` sans le modifier ni le recréer ; toute nouvelle convention visuelle nécessite un besoin explicite.
+- `DESIGN.md` est la source de vérité visuelle (couleurs, typographies, espacements, rayons, bordures, états et responsive), y compris face aux styles par défaut des bibliothèques. Utiliser `layers/mongulu/public/logo.png`, source unique servie à `/logo.png` sur les deux sites, sans le modifier ni le recréer ; toute nouvelle convention visuelle nécessite un besoin explicite.
 - Utiliser les primitives **Nuxt UI**, y compris pour les formulaires, avant toute primitive custom ; ne pas ajouter une autre bibliothèque UI pour un besoin déjà couvert, ni mélanger les bibliothèques sans justification explicite.
 - Avant de créer un composant, vérifier Nuxt UI, les composants métier existants et les patterns de l'application. Si un pattern apparaît au moins trois fois, envisager son extraction.
 - Distinguer primitives Nuxt UI, wrappers nécessaires dans `app/components/ui/` et petits composants métier composables regroupés par domaine dans `app/components/` (mentor, booking, jobs, chat, onboarding selon les besoins).
 - Créer un wrapper seulement pour une variante Mongulu réutilisable, une convention commune ou une simplification significative de l'API ; aucun wrapper purement pass-through.
-- Préférer : thème global Nuxt UI (`app/app.config.ts`), tokens (`app/assets/css/`), classes Tailwind, puis CSS scoped. Éviter valeurs arbitraires répétées, couleurs déjà tokenisées codées en dur, `!important`, styles inline et hacks propres à une page.
+- Préférer : thème global Nuxt UI (`layers/mongulu/app/app.config.ts`), tokens (`layers/mongulu/app/assets/css/`), classes Tailwind, puis CSS scoped. Éviter valeurs arbitraires répétées, couleurs déjà tokenisées codées en dur, `!important`, styles inline et hacks propres à une page.
 - Utiliser une seule famille d'icônes via Nuxt UI / Iconify ; ignorer les icônes décoratives pour les technologies d'assistance et nommer les actions composées uniquement d'une icône.
 
 ## Accessibilité et formulaires
@@ -60,7 +60,7 @@ La clé recherchée a le type `publishable` et le nom `default`, pas le nom `pub
 
 ## Storybook et tests
 
-- Documenter dans `stories/**/*.stories.ts` les composants métier significatifs, compositions complexes et wrappers avec API/variantes propres. Ne pas ajouter de stories dédiées aux primitives Nuxt UI utilisées telles quelles ni retester leur implémentation interne.
+- Documenter dans `layers/*/stories/**/*.stories.ts` et `apps/*/stories/**/*.stories.ts` les composants métier significatifs, compositions complexes et wrappers avec API/variantes propres. Ne pas ajouter de stories dédiées aux primitives Nuxt UI utilisées telles quelles ni retester leur implémentation interne.
 - Couvrir les états pertinents : défaut, loading, empty, error, disabled, selected/active, données longues ou manquantes, variantes métier et mobile.
 - Ajouter des interaction tests pour les comportements utilisateur non triviaux ; les composants purement présentationnels n'en nécessitent pas.
 - Conserver `@storybook/addon-a11y` et le contrôle axe de `tests/a11y/`. Les violations sérieuses doivent faire échouer la CI ; justifier toute exception dans le code ou la PR, sans désactivation globale pour faire passer les tests. Compléter l'automatisation par des vérifications clavier et visuelles des parcours critiques.

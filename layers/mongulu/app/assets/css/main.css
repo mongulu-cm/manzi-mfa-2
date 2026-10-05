@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+/* Thème — source : DESIGN.md (Collectif Mongulu).
+   Couleurs/typo/rayon/ombres via le design system Nuxt UI :
+   - @theme : tokens Tailwind (fonts, échelle forest, tailles de texte)
+   - :root : variables sémantiques Nuxt UI (--ui-*)
+   Référence AA : voir tests a11y (tests/a11y/). */
+@theme static {
+  --font-sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Alegreya', Georgia, serif;
+
+  /* Forest Green, ancré sur #576F1F (AA ≥ 4.5 sur blanc et cream) */
+  --color-forest-50: #F3F5EF;
+  --color-forest-100: #E6E9DD;
+  --color-forest-200: #C9D1B7;
+  --color-forest-300: #A8B48B;
+  --color-forest-400: #839459;
+  --color-forest-500: #576F1F;
+  --color-forest-600: #4B601B;
+  --color-forest-700: #3E4F16;
+  --color-forest-800: #324012;
+  --color-forest-900: #28340F;
+  --color-forest-950: #20290C;
+
+  /* Rôles typographiques DESIGN.md §3 */
+  --text-display: 62px;
+  --text-display--line-height: 60px;
+  --text-h2: 45px;
+  --text-h2--line-height: 46px;
+  --text-h3: 22px;
+  --text-h3--line-height: 25px;
+  --text-button: 16px;
+  --text-button--line-height: 27px;
+  --text-caption: 13px;
+  --text-caption--line-height: 20px;
+}
+
+:root {
+  --ui-radius: 0.5rem;
+  --ui-bg: #f5f1e8;
+  --ui-text: #1f1f1f;
+  --ui-text-muted: #6b6b6b;
+  /* Contrôle + déco unifiés à #949494 (≥ 3:1 sur les fonds clairs, WCAG 1.4.11) */
+  --ui-border: #949494;
+  --ui-container: 75rem;
+  --mongulu-divider: #e0ddd4;
+  --mongulu-button-hover: #556b2f;
+  --mongulu-button-active: #3d4d1a;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ui-bg); color: var(--ui-text); font-family: var(--font-sans); font-size: 16px; line-height: 26px; }
+  a { color: var(--color-forest-600); text-underline-offset: 4px; }
+  a:hover { color: var(--color-forest-700); }
+  :focus-visible { outline: 3px solid var(--color-forest-600); outline-offset: 4px; }
+  h1 { margin: 0 0 2rem; font-family: var(--font-display); font-size: var(--text-display); line-height: var(--text-display--line-height); font-weight: 700; color: var(--color-forest-700); }
+  p { max-width: 65ch; }
+  .muted { color: var(--ui-text-muted); }
+  @media (max-width: 1023px) {
+    h1 { font-size: 44px; line-height: 48px; }
+  }
+  @media (max-width: 639px) {
+    h1 { font-size: 32px; line-height: 40px; }
+  }
+}

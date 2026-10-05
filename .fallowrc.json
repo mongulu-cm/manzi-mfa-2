@@ -3,18 +3,23 @@
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   // Points d'entrée Nuxt : le graphe suit les imports depuis ces fichiers.
   "entry": [
-    "nuxt.config.ts",
-    "app/app.vue",
+    "apps/*/nuxt.config.ts",
+    "apps/*/app/app.vue",
+    "apps/*/app/assets/css/*.css",
+    "layers/*/nuxt.config.ts",
+    "layers/*/stories/**/*.stories.ts",
+    "apps/*/stories/**/*.stories.ts",
+    "tests/e2e/*.test.mjs",
     "vitest.config.ts"
   ],
   "ignorePatterns": [
     ".storybook/**",
-    ".nuxt/**",
-    ".output/**",
-    ".wrangler/**",
+    "**/.nuxt/**",
+    "**/.output/**",
+    "**/.wrangler/**",
     "storybook-static/**",
     "node_modules/**",
-    "public/**"
+    "**/public/**"
   ],
   "duplicates": {
     // Tolérance zéro : chaque paire dupliquée est rapportée.
@@ -24,11 +29,13 @@
     "unused-dependencies": "warn"
   },
   // Usages réels invisibles à l'analyse statique :
-  // - @storybook/addon-a11y : référencé en chaîne dans .storybook/main.ts
+  // - @storybook/addon-a11y et @storybook-vue/nuxt : référencés dans .storybook/,
+  //   exclu du graphe applicatif.
   // - storybook : importé via le sous-chemin 'storybook/test' dans les stories
   // - vue : fourni au runtime par Nuxt, importé directement seulement dans les stories.
   "ignoreDependencies": [
     "@storybook/addon-a11y",
+    "@storybook-vue/nuxt",
     "storybook",
     "vue"
   ]

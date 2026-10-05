@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { type Browser, type Page, chromium } from 'playwright-core'
 import axe from 'axe-core'
-import { COLORS } from '../../stories/tokens'
+import { COLORS } from '../../layers/mongulu/stories/tokens'
 import { STATIC_PORT } from './serve-static.setup'
 
 const BASE = process.env.STORYBOOK_URL ?? `http://localhost:${STATIC_PORT}`
