@@ -6,16 +6,27 @@
     "node": "^22.19.0 || ^24.11.0"
   },
   "scripts": {
-    "dev": "nuxt dev",
-    "build": "nuxt build",
-    "generate": "nuxt generate",
-    "preview": "nuxt preview",
-    "deploy": "nuxt build && wrangler deploy",
-    "postinstall": "nuxt prepare",
+    "dev": "npm run dev:vitrine",
+    "dev:vitrine": "npm run dev --workspace @manzi/vitrine",
+    "dev:app": "npm run dev --workspace @manzi/plateforme",
+    "build": "npm run build:vitrine && npm run build:app",
+    "build:vitrine": "npm run build --workspace @manzi/vitrine",
+    "build:app": "npm run build --workspace @manzi/plateforme",
+    "generate": "npm run generate --workspace @manzi/vitrine",
+    "preview": "npm run preview:vitrine",
+    "preview:vitrine": "npm run preview --workspace @manzi/vitrine",
+    "preview:app": "npm run preview --workspace @manzi/plateforme",
+    "deploy": "npm run deploy:vitrine",
+    "deploy:vitrine": "npm run deploy --workspace @manzi/vitrine",
+    "deploy:app": "npm run deploy --workspace @manzi/plateforme",
+    "postinstall": "npm run prepare --workspaces --if-present",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "nuxt typecheck",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "storybook": "storybook dev -p 6006",
+    "build:storybook": "storybook build -o storybook-static",
     "test:stories": "vitest run",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
@@ -28,7 +39,6 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
-    "@nuxtjs/storybook": "^10.0.0",
     "@storybook/addon-a11y": "^10.6.1",
     "@storybook/addon-vitest": "^10.6.1",
     "@vitest/browser": "^5.0.3",
@@ -42,6 +52,12 @@
     "typescript": "~5.9.3",
     "vitest": "^5.0.3",
     "vue-tsc": "^3.3.11",
-    "wrangler": "^4.145.0"
-  }
+    "wrangler": "^4.145.0",
+    "@storybook-vue/nuxt": "^10.0.0",
+    "@storybook/vue3": "^10.6.1"
+  },
+  "workspaces": [
+    "apps/*",
+    "layers/*"
+  ]
 }

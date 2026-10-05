@@ -1,6 +1,10 @@
-import withNuxt from './.nuxt/eslint.config.mjs'
+import withNuxt from './apps/vitrine/.nuxt/eslint.config.mjs'
 
 export default withNuxt(
-  // Artefacts générés : jamais lintés.
-  { ignores: ['storybook-static/**', '.output/**', '.wrangler/**'] },
+  // Les noms de fichiers des routes et layouts sont imposés par Nuxt.
+  {
+    files: ['apps/*/app/pages/**/*.vue', 'apps/*/app/layouts/**/*.vue'],
+    rules: { 'vue/multi-word-component-names': 'off' },
+  },
+  { ignores: ['**/.nuxt/**', '**/.output/**', '**/.wrangler/**', 'storybook-static/**'] },
 )
