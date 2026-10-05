@@ -11,6 +11,10 @@ Le dépôt contient deux applications Nuxt 4 et une Layer Mongulu commune :
 
 La page `/login` présente le futur espace connecté. L'authentification n'est pas encore intégrée : aucun formulaire ne collecte d'identifiants.
 
+## Confidentialité
+
+[PRIVACY.md](PRIVACY.md) contient le brouillon de politique commun aux deux sites, son résumé et les notes de validation. Il décrit la collecte technique actuelle et les points à compléter ; il doit être finalisé et relu juridiquement avant d'être publié comme page des applications. Réviser ce texte avant toute nouvelle collecte (comptes, CV, échanges, statistiques ou paiements).
+
 ## Démarrage
 
 Node.js 24 LTS et npm. Une version Node 22 >= 22.19 est également supportée.
