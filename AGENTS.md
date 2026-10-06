@@ -34,6 +34,13 @@ La clé recherchée a le type `publishable` et le nom `default`, pas le nom `pub
 - Ce workflow nécessite `pg-delta` activé dans `supabase/config.toml` (`[experimental.pgdelta]`, `enabled = true`), ou le flag `--experimental`. Pour une base existante sans migrations, établir d'abord la migration initiale avec `npx supabase db pull`, puis exporter les fichiers déclaratifs avec `npx supabase db schema declarative generate --linked`.
 - `declarative generate` sert à exporter un schéma existant ; il ne génère pas de migration. Après modification de `supabase/schemas/`, utiliser `declarative sync`.
 
+## Pull requests et restitution du travail
+
+- Créer toute pull request en **Draft** (`gh pr create --draft`).
+- Le passage de **Draft** à **Ready for review** appartient à l’utilisateur. À la fin du travail, lui demander explicitement s’il souhaite ce passage et attendre sa réponse avant de l’effectuer. Une CI verte ou un travail terminé ne vaut pas autorisation ; conserver la PR en Draft tant que l’utilisateur ne l’a pas demandé.
+- Une fois le travail terminé et vérifié, utiliser la skill **`baoyu-infographic`**, après lecture de son `SKILL.md`, pour générer une infographie expliquant le problème, les changements réalisés et leur résultat. La présenter avec le bilan du travail avant la demande de passage en Ready.
+- Pour cette infographie, utiliser uniquement le style **tldraw** : fond blanc, schéma dessiné à la main, traits simples, blocs et flèches lisibles, annotations manuscrites et couleurs sobres. Il n’est pas nécessaire de suivre `DESIGN.md` pour les infographies de restitution ; ce fichier reste la référence pour l’interface des sites. Inclure uniquement des faits vérifiés, sans secrets ni données personnelles.
+
 ## Code et sécurité
 
 - Avant d'écrire ou de modifier du code serveur utilisant Supabase (endpoints Nitro, authentification, accès aux données, Edge Functions, etc.), lire et appliquer obligatoirement la skill `supabase-server` dans `.agents/skills/supabase-server/SKILL.md`.
