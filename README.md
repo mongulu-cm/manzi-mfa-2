@@ -108,6 +108,12 @@ Un changement dans la Layer ou les dépendances déclenche donc les deux builds.
 
 La vitrine conserve ses previews `https://<nom-preview>.manzi-mfa-2.mongulu.cm`. Les previews plateforme utilisent `https://<nom-preview>.app.manzi-mfa-2.mongulu.cm`. Pour relier une paire, configurer `NUXT_PUBLIC_APP_URL` sur la vitrine et `NUXT_PUBLIC_SITE_URL` sur la plateforme avec les URL de preview correspondantes. Sans ces variables, les liens visent volontairement la production ; le nom d'une branche n'est pas déduit automatiquement.
 
+Les réglages de production ne sont pas hérités par les Worker Previews. Sur `manzi-mfa-2-app`, définir `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` dans **Previews Base** pour les nouvelles previews, puis dans chaque preview déjà créée. Ces deux valeurs sont enregistrées comme bindings Cloudflare hors Git ; la clé est publique, jamais secret/service_role. Le build peut garder des valeurs vides : Nitro lit les bindings `NUXT_PUBLIC_*` au runtime.
+
+Pour injecter ces deux bindings avec Wrangler, transmettre uniquement un objet JSON contenant leurs noms et valeurs par stdin à `npx wrangler preview base-config secret bulk --cwd apps/plateforme`, puis à `npx wrangler preview secret bulk --cwd apps/plateforme --name <nom-preview>` pour une preview existante. Une modification de Previews Base ne met pas à jour les previews existantes. Vérifier ensuite que le bouton « Continuer avec LinkedIn » est actif et atteint LinkedIn sur le domaine de preview.
+
+La PR reçoit un commentaire Cloudflare par Worker : l’un concerne la vitrine et l’autre la plateforme. Chaque commentaire contient l’URL stable de la branche et les URL immuables des déploiements. Pour tester la connexion, utiliser l’URL stable plateforme dont le callback est autorisé dans Supabase.
+
 Valider les deux previews avant de publier le nouveau lien en production. Déployer d'abord la plateforme puis la vitrine. Revenir à une version antérieure de chaque Worker séparément si nécessaire.
 
 ## Vérification
