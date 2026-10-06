@@ -135,14 +135,15 @@ Les E2E démarrent leurs propres serveurs sur `127.0.0.1:3100` et `:3101` avec l
 
 La plateforme utilise `@supabase/supabase-js`, uniquement dans un plugin client, avec PKCE, renouvellement automatique et session locale persistante. Le callback `/auth/callback` échange le code une seule fois et nettoie l’URL. Les métadonnées ne servent jamais aux autorisations. Aucun secret LinkedIn ou clé Supabase secret/service_role n’est nécessaire dans le frontend.
 
-Dans Supabase Auth, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm` et autoriser précisément :
+Dans Supabase Auth → **URL Configuration**, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm` et ajouter aux **Redirect URLs** :
 
 - `https://app.manzi-mfa-2.mongulu.cm/auth/callback`
 - `http://localhost:3001/auth/callback`
+- `https://*.app.manzi-mfa-2.mongulu.cm/auth/callback` (previews sur le domaine personnalisé).
 - `https://codex-linkedin-auth.app.manzi-mfa-2.mongulu.cm/auth/callback` (preview de la PR LinkedIn).
 - `https://codex-linkedin-auth-manzi-mfa-2-app.ntomzebiglas-dns.workers.dev/auth/callback` (alias Workers de la même preview).
 
-Ces quatre URL sont autorisées dans le projet Supabase. Pour une nouvelle branche, ajouter ses URL exactes `/auth/callback` avant de tester OAuth ; aucun wildcard n’est autorisé. La plateforme calcule la destination depuis son origine, ce qui conserve le retour sur la preview utilisée.
+Le wildcard couvre un sous-domaine de preview, par exemple `codex-linkedin-auth` ou un identifiant de déploiement, avec le chemin exact `/auth/callback`. Les nouvelles previews sur ce domaine ne nécessitent donc pas d’ajout individuel. Conserver les URL exactes de production et de localhost. Les alias `workers.dev` ne sont pas couverts : autoriser leur callback exact si l’on souhaite les utiliser pour OAuth. La plateforme calcule la destination depuis son origine, ce qui conserve le retour sur la preview utilisée. [Wildcards et redirections Supabase](https://supabase.com/docs/guides/auth/redirect-urls)
 
 Dans LinkedIn Developers, ouvrir l'application puis **Auth → Authorized redirect URLs** et ajouter `https://gdcirvvqangyraxauggy.supabase.co/auth/v1/callback`. Cette URL Supabase est commune au local, à la production et aux previews ; leurs destinations respectives sont autorisées dans Supabase comme indiqué ci-dessus. Activer les permissions OIDC `openid profile email`. Les secrets du fournisseur restent dans Supabase. Configurer les deux variables publiques plateforme dans le build et le runtime Cloudflare ; une configuration absente désactive le bouton de connexion.
 
