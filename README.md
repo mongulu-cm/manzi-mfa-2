@@ -59,6 +59,7 @@ Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`
 | `npm run check` | Lint, types et builds des deux applications |
 | `npm run storybook` / `npm run build:storybook` | Catalogue commun en développement / build statique |
 | `npm run test:stories` | Interactions et contrôle axe des stories |
+| `npm run test:coverage` | Couverture V8 des tests unitaires ; seuils CI : 95 % statements, 85 % branches, 100 % fonctions et lignes |
 | `npm run test:e2e` | SSR, navigation entre sites, SPA, clavier et responsive |
 
 Les workspaces npm (`apps/*`, `layers/*`) utilisent un seul `package-lock.json`. `npm ci` prépare les deux applications. Les sorties `.nuxt/`, `.output/` et `.wrangler/` restent propres à chacune.
@@ -152,6 +153,7 @@ Dans LinkedIn Developers, ouvrir l'application puis **Auth → Authorized redire
 ### Tests auth
 
 - `npm run test:unit` : session, erreurs, concurrence et callback.
+- `npm run test:coverage` : même suite avec les seuils de couverture appliqués ; c’est une gate pour les PR vers `main`.
 - `npm run test:e2e` : OAuth Supabase simulé dans Playwright, restauration, annulation, profil indisponible, déconnexion, mobile et axe. Aucun appel LinkedIn réel en CI.
 - `npx supabase start`, puis `npm run test:db` : trigger, données manquantes, suppression en cascade et accès RLS ; Docker et le client `psql` sont nécessaires. Le runner envoie les assertions pgTAP par stdin à la base locale ; il vérifie le nombre d’assertions et refuse les URL distantes. La CI utilise une base locale jetable.
 - `npm run test:linkedin` : smoke opt-in avec Chromium visible, hors CI. Il consomme les variables locales, attend une intervention humaine pour l’autorisation ou un challenge et vérifie le même compte/profil après rechargement et reconnexion, sans enregistrer de données personnelles.

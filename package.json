@@ -30,6 +30,7 @@
     "test:e2e": "node --test tests/e2e/*.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run build",
     "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:coverage": "vitest run --config vitest.unit.config.ts --coverage",
     "test:db": "node tests/db/run.mjs",
     "test:linkedin": "node tests/smoke/linkedin.mjs"
   },
@@ -51,6 +52,7 @@
     "@supabase/supabase-js": "2.117.2",
     "@vitest/browser": "^5.0.3",
     "@vitest/browser-playwright": "^5.0.3",
+    "@vitest/coverage-v8": "^5.0.3",
     "axe-core": "^4.13.0",
     "eslint": "^10.11.0",
     "fallow": "^3.31.0",
