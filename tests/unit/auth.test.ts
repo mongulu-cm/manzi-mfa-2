@@ -132,6 +132,19 @@ describe('session de la plateforme', () => {
     expect(service.state.signingIn).toBe(false)
   })
 
+  it('une session reçue après le délai efface l’erreur de connexion', async () => {
+    vi.useFakeTimers()
+    const { service, event } = fixture()
+    await service.startLogin('http://localhost:3001')
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(service.state.actionError).toBe(authMessages.connection)
+    event('SIGNED_IN', user)
+    expect(service.state.user?.id).toBe(user.id)
+    expect(service.state.actionError).toBe('')
+    expect(service.state.signingIn).toBe(false)
+    service.dispose()
+  })
+
   it('échange le code une seule fois, sans destination arbitraire', async () => {
     const { service, client } = fixture()
     const params = new URLSearchParams('code=test&next=https://evil.invalid')

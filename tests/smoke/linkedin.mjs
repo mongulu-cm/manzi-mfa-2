@@ -84,6 +84,14 @@ async function validateAccount(initialProvider) {
       coalesce((select nullif(btrim(display_name), '') is not null from profile), false) as has_name,
       coalesce((select avatar_url ~ '^https://[^/@[:space:]]+(/[^[:space:]]*)?$' from profile), false) as has_photo,
       coalesce((select nullif(btrim(email), '') is not null from account), false) as has_email,
+      coalesce((select display_name = nullif(btrim(raw_user_meta_data ->> 'name'), '')
+        from profile cross join account), false) as matches_name,
+      coalesce((select avatar_url = raw_user_meta_data ->> 'picture'
+        from profile cross join account), false) as matches_photo,
+      coalesce((select lower(btrim(email)) = lower(btrim(raw_user_meta_data ->> 'email'))
+        from account), false) as matches_email,
+      (select encode(extensions.digest(jsonb_build_array(display_name, avatar_url)::text, 'sha256'), 'hex')
+        from profile) as profile_fingerprint,
       coalesce((select jsonb_typeof(raw_user_meta_data -> 'name') = 'string'
         and nullif(btrim(raw_user_meta_data ->> 'name'), '') is not null from account), false) as provider_has_name,
       coalesce((select jsonb_typeof(raw_user_meta_data -> 'picture') = 'string'
@@ -93,7 +101,11 @@ async function validateAccount(initialProvider) {
   const result = JSON.parse(execFileSync('npx', ['supabase', 'db', 'query', '--linked', '--project-ref', projectRef, query, '--output', 'json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }))
   const values = result.rows[0]
   assertAccountProfile(values, initialProvider)
-  console.log(JSON.stringify({ ...values, stage }))
+  // Ni les valeurs personnelles ni leur empreinte ne sortent dans les logs.
+  console.log(JSON.stringify({
+    unique_account: values.unique_account, unique_profile: values.unique_profile,
+    has_name: values.has_name, has_photo: values.has_photo, has_email: values.has_email, stage,
+  }))
   return { id, values }
 }
 

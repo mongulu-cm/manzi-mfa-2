@@ -54,7 +54,10 @@ export function createAuthService(client: SupabaseClient | null) {
 
   function setUser(user: User | null) {
     revision++
-    if (user) resetLogin()
+    if (user) {
+      resetLogin()
+      state.actionError = ''
+    }
     if (state.user?.id !== user?.id) {
       profileRequest++
       state.profile = null
