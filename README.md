@@ -131,7 +131,10 @@ Dans Supabase Auth, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm
 
 - `https://app.manzi-mfa-2.mongulu.cm/auth/callback`
 - `http://localhost:3001/auth/callback`
-- Les URL `/auth/callback` des previews explicitement utilisées, sans wildcard de production.
+- `https://codex-linkedin-auth.app.manzi-mfa-2.mongulu.cm/auth/callback` (preview de la PR LinkedIn).
+- `https://codex-linkedin-auth-manzi-mfa-2-app.ntomzebiglas-dns.workers.dev/auth/callback` (alias Workers de la même preview).
+
+Ces quatre URL sont autorisées dans le projet Supabase. Pour une nouvelle branche, ajouter ses URL exactes `/auth/callback` avant de tester OAuth ; aucun wildcard n’est autorisé. La plateforme calcule la destination depuis son origine, ce qui conserve le retour sur la preview utilisée.
 
 Dans LinkedIn, conserver la redirection vers `https://gdcirvvqangyraxauggy.supabase.co/auth/v1/callback` et les permissions OIDC `openid profile email`. Les secrets du fournisseur restent dans Supabase. Configurer les deux variables publiques plateforme dans le build et le runtime Cloudflare ; une configuration absente désactive le bouton de connexion.
 
