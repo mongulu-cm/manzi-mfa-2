@@ -40,6 +40,3 @@ export const Unavailable: Story = {
     await expect(canvas.getByRole('button', { name: 'Continuer avec LinkedIn' })).toBeDisabled()
   },
 }
-export const Mobile: Story = {
-  decorators: [() => ({ template: '<div class="w-80 max-w-full"><story /></div>' })],
-}

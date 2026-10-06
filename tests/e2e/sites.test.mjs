@@ -352,7 +352,7 @@ async function assertLoginActionsAndAccessibility(page) {
   assert.equal(await page.getByRole('link', { name: 'Aide', exact: true }).getAttribute('href'), 'mailto:collectif@mongulu.cm')
   await page.addScriptTag({ content: axe.source })
   const violations = await page.evaluate(async () => (await window.axe.run()).violations
-    .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id))
+    .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ html: n.html, summary: n.failureSummary })) })))
   assert.deepEqual(violations, [])
 }
 
