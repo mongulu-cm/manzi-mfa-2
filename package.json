@@ -19,6 +19,7 @@
     "deploy": "npm run deploy:vitrine",
     "deploy:vitrine": "npm run deploy --workspace @manzi/vitrine",
     "deploy:app": "npm run deploy --workspace @manzi/plateforme",
+    "deploy:preview:app": "npm run deploy:preview --workspace @manzi/plateforme",
     "postinstall": "npm run prepare --workspaces --if-present",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
