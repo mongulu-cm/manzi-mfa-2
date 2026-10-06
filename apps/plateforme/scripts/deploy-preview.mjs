@@ -1,4 +1,7 @@
 import { spawnSync } from 'node:child_process'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 // Le build Cloudflare fournit ces variables ; en local, utiliser uniquement le .env de cette application.
 try {
@@ -14,11 +17,19 @@ if (names.some(name => !bindings[name]?.trim())) {
   throw new Error('Configurer NUXT_PUBLIC_SUPABASE_URL et NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY avant de déployer la preview')
 }
 
-// Réinjecter les deux bindings à chaque déploiement, sans fichier de secrets ni valeurs dans les arguments.
-const result = spawnSync('npx', ['wrangler', 'preview', '--secrets-file', '/dev/stdin', ...process.argv.slice(2)], {
-  cwd: new URL('..', import.meta.url),
-  input: JSON.stringify(bindings),
-  stdio: ['pipe', 'inherit', 'inherit'],
-})
-if (result.error) throw new Error('Impossible de lancer le déploiement de la preview')
-process.exitCode = result.status ?? 1
+// /dev/stdin n'est pas lisible avec les sockets de spawnSync sous Linux.
+// Un fichier privé et éphémère fonctionne aussi dans Workers Builds.
+const directory = mkdtempSync(join(tmpdir(), 'manzi-preview-'))
+try {
+  const filename = join(directory, 'bindings.json')
+  writeFileSync(filename, JSON.stringify(bindings), { mode: 0o600 })
+  const result = spawnSync('npx', ['wrangler', 'preview', '--secrets-file', filename, ...process.argv.slice(2)], {
+    cwd: new URL('..', import.meta.url),
+    stdio: 'inherit',
+  })
+  if (result.error) throw new Error('Impossible de lancer le déploiement de la preview')
+  process.exitCode = result.status ?? 1
+}
+finally {
+  rmSync(directory, { recursive: true, force: true })
+}
