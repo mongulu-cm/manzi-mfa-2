@@ -25,7 +25,7 @@ SUPABASE_KEY="$(
 )" && test -n "$SUPABASE_KEY" && export SUPABASE_KEY && npm run dev
 ```
 
-La clé recherchée a le type `publishable` et le nom `default`, pas le nom `publishable`. Ne pas afficher ni committer sa valeur ; ne jamais lui substituer une clé `secret` ou `service_role`. Le socle actuel démarre avec ces variables exportées mais ne les consomme pas encore : ce lancement ne valide pas à lui seul une intégration Supabase dans l'application.
+La clé recherchée a le type `publishable` et le nom `default`, pas le nom `publishable`. Ne pas afficher ni committer sa valeur ; ne jamais lui substituer une clé `secret` ou `service_role`. Pour la plateforme, exporter aussi `NUXT_PUBLIC_SUPABASE_URL="$SUPABASE_URL"` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$SUPABASE_KEY"`, ou les définir dans `apps/plateforme/.env` ignoré par Git. La plateforme consomme ces variables publiques pour LinkedIn OIDC ; la vitrine ne consomme pas de session Supabase.
 
 ### Schémas et migrations Supabase — obligatoire
 

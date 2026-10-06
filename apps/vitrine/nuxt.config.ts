@@ -1,6 +1,7 @@
 export default defineNuxtConfig({
   extends: ['../../layers/mongulu'],
   modules: ['@nuxt/eslint'],
+  $test: { devtools: { enabled: false } },
   ssr: true,
   devtools: { enabled: true },
   app: {

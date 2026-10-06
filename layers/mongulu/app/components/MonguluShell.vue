@@ -16,7 +16,9 @@
       <slot />
     </main>
     <footer class="border-t border-(--mongulu-divider) py-8 text-muted">
-      Un projet du Collectif Mongulu.
+      <slot name="footer">
+        Un projet du Collectif Mongulu.
+      </slot>
     </footer>
   </div>
 </template>

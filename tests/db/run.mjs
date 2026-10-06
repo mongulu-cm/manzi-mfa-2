@@ -1,0 +1,30 @@
+import { readFileSync, readdirSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { localDatabaseEnvironment, localDatabaseUrl } from './local-url.mjs'
+
+// Exécuter le véritable SQL de données, sans en recopier l’implémentation dans le test.
+const migration = readdirSync('supabase/migrations').find(name => name.endsWith('_backfill_profiles.sql'))
+if (!migration) throw new Error('Migration de données introuvable')
+const sql = readFileSync(`supabase/migrations/${migration}`, 'utf8')
+const dbUrl = localDatabaseUrl(process.env.SUPABASE_TEST_DB_URL)
+const tests = [
+  ...readdirSync('supabase/tests').filter(name => name.endsWith('.test.sql')).sort()
+    .map(name => [name.slice(0, -'.test.sql'.length), readFileSync(`supabase/tests/${name}`, 'utf8')]),
+  ['backfill', readFileSync('tests/db/backfill.template.sql', 'utf8').replaceAll('-- BACKFILL_MIGRATION', () => sql)],
+]
+// Envoyer le SQL par stdin évite les bind mounts macOS soumis aux autorisations Desktop.
+for (const [name, input] of tests) {
+  const result = spawnSync('psql', ['--dbname', dbUrl, '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1'], {
+    input, encoding: 'utf8', env: localDatabaseEnvironment(),
+  })
+  // Une erreur spawn contient les arguments, dont l'URI avec ses identifiants.
+  if (result.error) throw new Error('Impossible de lancer psql pour les tests de la base locale')
+  const plan = result.stdout.match(/^1\.\.(\d+)$/m)
+  const passed = result.stdout.match(/^ok \d+\b/gm) ?? []
+  if (result.status !== 0 || !plan || passed.length !== Number(plan[1]) || /^not ok/m.test(result.stdout)) {
+    process.stdout.write(result.stdout)
+    process.stderr.write(result.stderr)
+    process.exitCode = 1
+  }
+  else console.log(`${name}: ${passed.length} assertions pgTAP réussies`)
+}

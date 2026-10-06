@@ -1,6 +1,7 @@
 export default defineNuxtConfig({
   extends: ['../../layers/mongulu'],
   modules: ['@nuxt/eslint'],
+  $test: { devtools: { enabled: false } },
   ssr: false,
   devtools: { enabled: true },
   app: {
@@ -10,9 +11,13 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
-    public: { siteUrl: 'https://manzi-mfa-2.mongulu.cm' },
+    public: {
+      siteUrl: 'https://manzi-mfa-2.mongulu.cm',
+      supabaseUrl: '',
+      supabasePublishableKey: '',
+    },
   },
-  routeRules: { '/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } } },
+  routeRules: { '/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow', 'Referrer-Policy': 'no-referrer' } } },
   compatibilityDate: '2026-10-01',
   nitro: {
     preset: 'cloudflare_module',

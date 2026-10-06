@@ -9,7 +9,11 @@ Le dépôt contient deux applications Nuxt 4 et une Layer Mongulu commune :
 | `apps/vitrine` | https://manzi-mfa-2.mongulu.cm | SSR, contenu indexable | `manzi-mfa-2` |
 | `apps/plateforme` | https://app.manzi-mfa-2.mongulu.cm | SPA, sans indexation | `manzi-mfa-2-app` |
 
-La page `/login` présente le futur espace connecté. L'authentification n'est pas encore intégrée : aucun formulaire ne collecte d'identifiants.
+La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première connexion crée le compte Supabase et son profil ; `/` affiche le nom, la photo et l’e-mail du compte connecté. L’e-mail reste dans Supabase Auth et les profils ne sont lisibles que par leur propriétaire.
+
+## Confidentialité
+
+[PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Le texte décrit les comptes LinkedIn et les profils Supabase. Réviser ce texte avant toute nouvelle collecte (CV, échanges, statistiques ou paiements).
 
 ## Démarrage
 
@@ -34,10 +38,10 @@ Dans un second terminal, avec les mêmes variables :
 npm run dev:app
 ```
 
-Vitrine : http://localhost:3000. Plateforme : http://localhost:3001, avec redirection vers `/login`.
+Vitrine : http://localhost:3000. Plateforme : http://localhost:3001 ; les visiteurs anonymes sont redirigés vers `/login`.
 `npm run dev` démarre la vitrine. Les variables de `.env.example` sont documentaires : exporter les valeurs ou créer un `.env` dans chaque application. Les valeurs par défaut visent la production.
 
-Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`. Le socle ne consomme pas encore ces variables Supabase ; aucune modification du schéma n'est nécessaire pour les deux sites.
+Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`. La plateforme consomme `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (clé de type publishable, nom default). Les exporter aussi dans le terminal plateforme ou les placer dans `apps/plateforme/.env`, ignoré par Git. Les variables `SUPABASE_URL` / `SUPABASE_KEY` utilisées par le workflow CLI ne les remplacent pas.
 
 ## Commandes
 
@@ -89,7 +93,7 @@ Les réglages Workers Builds sont distincts du déploiement Wrangler : une sessi
 | Répertoire racine | `apps/vitrine` | `apps/plateforme` |
 | Build command | `cd ../.. && npm ci && npm run build:vitrine` | `cd ../.. && npm ci && npm run build:app` |
 | Deploy command | `npx wrangler deploy` | `npx wrangler deploy` |
-| Preview command | `npx wrangler preview` | `npx wrangler preview` |
+| Preview command | `npx wrangler preview` | `npm run deploy:preview` |
 | Branche production | `main` | `main` |
 | Domaine | `manzi-mfa-2.mongulu.cm` | `app.manzi-mfa-2.mongulu.cm` |
 
@@ -104,7 +108,15 @@ Un changement dans la Layer ou les dépendances déclenche donc les deux builds.
 
 La vitrine conserve ses previews `https://<nom-preview>.manzi-mfa-2.mongulu.cm`. Les previews plateforme utilisent `https://<nom-preview>.app.manzi-mfa-2.mongulu.cm`. Pour relier une paire, configurer `NUXT_PUBLIC_APP_URL` sur la vitrine et `NUXT_PUBLIC_SITE_URL` sur la plateforme avec les URL de preview correspondantes. Sans ces variables, les liens visent volontairement la production ; le nom d'une branche n'est pas déduit automatiquement.
 
-Valider les deux previews avant de publier le nouveau lien en production. Déployer d'abord la plateforme puis la vitrine. Revenir à une version antérieure de chaque Worker séparément si nécessaire.
+Avant le premier déploiement de production de `manzi-mfa-2-app`, configurer séparément ses **bindings runtime** dans Cloudflare, **Paramètres → Variables et secrets** : ajouter `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` comme bindings de type **Secret**, hors Git. Leurs valeurs sont publiques et la clé reste de type publishable, jamais secret/service_role ; le type de binding permet à `npx wrangler deploy` de conserver cette configuration lors des déploiements suivants. Les **variables de Workers Builds** alimentent seulement les commandes de build et de déploiement : les définir ne crée pas ces bindings runtime de production.
+
+Les réglages de production ne sont pas hérités par les Worker Previews. Configurer aussi les deux valeurs dans les **variables de Workers Builds**, pour la production et les previews, hors Git. Utiliser `npm run deploy:preview` comme commande de preview : le script transmet uniquement ces deux valeurs à Wrangler dans un fichier temporaire privé (permissions `0600`), supprimé après la commande même en cas d'échec, et les réinjecte comme bindings à chaque déploiement. Pour une preview déjà créée, sélectionner aussi cette preview dans Cloudflare et actualiser ses propres réglages **Paramètres → Compilations** : la commande et les variables copiées à sa création ne sont pas actualisées par un changement de Base. En local, après `npm run build:app`, lancer `npm run deploy:preview:app` depuis la racine ; le script lit le `.env` de la plateforme et refuse de déployer si une valeur manque.
+
+Previews Base peut fournir les secrets aux nouvelles previews, mais une modification de Base ne met pas à jour les previews existantes. `wrangler preview secret bulk` corrige seulement le déploiement courant ; dans la version utilisée, le prochain `wrangler preview` peut remplacer ces bindings. La commande dédiée ci-dessus évite cette perte. La plateforme reste une SPA servie par Nitro : celui-ci transmet sa configuration publique au navigateur dans le HTML, même avec `ssr: false`. Vérifier le HTML de `/login` et le bouton « Continuer avec LinkedIn » après **chaque redéploiement**, puis vérifier qu’il atteint LinkedIn sur le domaine de preview. [Configuration des Worker Previews](https://developers.cloudflare.com/workers/previews/configuration/)
+
+La PR reçoit un commentaire Cloudflare par Worker : l’un concerne la vitrine et l’autre la plateforme. Chaque commentaire contient l’URL stable de la branche et les URL immuables des déploiements. Pour tester la connexion, utiliser l’URL stable plateforme dont le callback est autorisé dans Supabase.
+
+Valider les deux previews avant de publier le nouveau lien en production. Pour la migration initiale vers deux sites, déployer la plateforme avant d'ajouter son lien sur la vitrine. Pour la version avec connexion LinkedIn, suivre l'ordre de publication décrit ci-dessous : migrations, confidentialité sur la vitrine, puis plateforme. Revenir à une version antérieure de chaque Worker séparément si nécessaire.
 
 ## Vérification
 
@@ -118,3 +130,30 @@ npx fallow --ci --format compact
 ```
 
 Les E2E démarrent leurs propres serveurs sur `127.0.0.1:3100` et `:3101` avec les URL correspondantes. Ils vérifient le HTML SSR et les métadonnées de la vitrine, l'accès direct à `/login`, l'absence de rendu serveur de la plateforme, le logo, le thème commun, la navigation dans le même onglet, le clavier et les largeurs 320px et desktop.
+
+## Connexion LinkedIn et profils
+
+La plateforme utilise `@supabase/supabase-js`, uniquement dans un plugin client, avec PKCE, renouvellement automatique et session locale persistante. Le callback `/auth/callback` échange le code une seule fois et nettoie l’URL. Les métadonnées ne servent jamais aux autorisations. Aucun secret LinkedIn ou clé Supabase secret/service_role n’est nécessaire dans le frontend.
+
+Dans Supabase Auth, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm` et autoriser précisément :
+
+- `https://app.manzi-mfa-2.mongulu.cm/auth/callback`
+- `http://localhost:3001/auth/callback`
+- `https://codex-linkedin-auth.app.manzi-mfa-2.mongulu.cm/auth/callback` (preview de la PR LinkedIn).
+- `https://codex-linkedin-auth-manzi-mfa-2-app.ntomzebiglas-dns.workers.dev/auth/callback` (alias Workers de la même preview).
+
+Ces quatre URL sont autorisées dans le projet Supabase. Pour une nouvelle branche, ajouter ses URL exactes `/auth/callback` avant de tester OAuth ; aucun wildcard n’est autorisé. La plateforme calcule la destination depuis son origine, ce qui conserve le retour sur la preview utilisée.
+
+Dans LinkedIn Developers, ouvrir l'application puis **Auth → Authorized redirect URLs** et ajouter `https://gdcirvvqangyraxauggy.supabase.co/auth/v1/callback`. Cette URL Supabase est commune au local, à la production et aux previews ; leurs destinations respectives sont autorisées dans Supabase comme indiqué ci-dessus. Activer les permissions OIDC `openid profile email`. Les secrets du fournisseur restent dans Supabase. Configurer les deux variables publiques plateforme dans le build et le runtime Cloudflare ; une configuration absente désactive le bouton de connexion.
+
+`supabase/schemas/` est la source de vérité. Lors de cette initialisation, `db pull` a confirmé que le projet distant était déjà en phase avec la baseline vide : aucun objet applicatif préexistant n’était à migrer. Les déclarations des extensions et privilèges ont été exportées du projet. Pour les évolutions, établir la référence depuis le projet lié avant de générer une modification avec `npx supabase db schema declarative sync -f nom --no-apply`. Les migrations de données sont distinctes des déclarations de structure. Le trigger privé crée un profil à l’inscription ; les comptes existants sont repris sans écrasement. Le nom et l’URL HTTPS de la photo sont capturés à la création, sans synchronisation à chaque login ni édition dans cette version. Supprimer le compte Auth supprime le profil associé.
+
+### Tests auth
+
+- `npm run test:unit` : session, erreurs, concurrence et callback.
+- `npm run test:e2e` : OAuth Supabase simulé dans Playwright, restauration, annulation, profil indisponible, déconnexion, mobile et axe. Aucun appel LinkedIn réel en CI.
+- `npx supabase start`, puis `npm run test:db` : trigger, données manquantes, suppression en cascade et accès RLS ; Docker et le client `psql` sont nécessaires. Le runner envoie les assertions pgTAP par stdin à la base locale ; il vérifie le nombre d’assertions et refuse les URL distantes. La CI utilise une base locale jetable.
+- `npm run test:linkedin` : smoke opt-in avec Chromium visible, hors CI. Il consomme les variables locales, attend une intervention humaine pour l’autorisation ou un challenge et vérifie le même compte/profil après rechargement et reconnexion, sans enregistrer de données personnelles.
+- Test réel manuel : lancer la plateforme avec les variables publiques du projet, cliquer « Continuer avec LinkedIn », vérifier le profil, recharger, se déconnecter puis se reconnecter. Vérifier qu’un seul compte et profil existent. Les variables locales `E2E_LINKEDIN_USERNAME` / `E2E_LINKEDIN_PASSWORD` peuvent servir au smoke test autorisé ; ne jamais les committer, enregistrer de trace contenant les identifiants ou les ajouter à la CI. Une validation MFA ou un challenge LinkedIn nécessite une intervention humaine.
+
+Pour publier la connexion LinkedIn, déployer d'abord les migrations Supabase, puis la confidentialité sur la vitrine, puis la plateforme pour activer l'interface de connexion. En cas de problème, revenir à la version précédente du Worker sans supprimer les comptes ni les profils ; corriger la base par une migration suivante.
