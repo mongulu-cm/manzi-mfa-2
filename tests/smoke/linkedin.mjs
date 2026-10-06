@@ -50,11 +50,11 @@ async function linkedinStep(state) {
     throw new Error('redirect_registration')
   }
   if (!state.submitted) state.submitted = await submitCredentials()
-  if (!state.submitted) notifyManual(state)
+  notifyManual(state)
 }
 async function connect() {
   await page.getByRole('button', { name: 'Continuer avec LinkedIn', exact: true }).click()
-  const deadline = Date.now() + 180_000
+  const deadline = Date.now() + 600_000
   const state = { submitted: false, notified: false }
   while (Date.now() < deadline) {
     const step = await screen()
