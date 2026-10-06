@@ -16,6 +16,11 @@ const bindings = Object.fromEntries(names.map(name => [name, process.env[name]])
 if (names.some(name => !bindings[name]?.trim())) {
   throw new Error('Configurer NUXT_PUBLIC_SUPABASE_URL et NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY avant de déployer la preview')
 }
+if (!URL.canParse(bindings.NUXT_PUBLIC_SUPABASE_URL)
+  || new URL(bindings.NUXT_PUBLIC_SUPABASE_URL).protocol !== 'https:'
+  || !bindings.NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.startsWith('sb_publishable_')) {
+  throw new Error('La configuration de preview exige une URL Supabase HTTPS et une clé publishable valide')
+}
 
 // /dev/stdin n'est pas lisible avec les sockets de spawnSync sous Linux.
 // Un fichier privé et éphémère fonctionne aussi dans Workers Builds.
@@ -28,6 +33,7 @@ try {
     stdio: 'inherit',
   })
   if (result.error) throw new Error('Impossible de lancer le déploiement de la preview')
+  if (result.signal) console.error(`Déploiement de la preview interrompu par ${result.signal}`)
   process.exitCode = result.status ?? 1
 }
 finally {

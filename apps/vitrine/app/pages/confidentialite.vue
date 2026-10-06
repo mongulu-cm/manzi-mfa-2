@@ -91,13 +91,16 @@ useSeoMeta({
       5. Fondements des traitements
     </h2>
     <p>
+      Lorsque le RGPD s’applique, la création et la gestion du compte, l’authentification, le maintien de la session et l’affichage du profil reposent sur l’exécution du contrat conclu avec l’utilisateur pour fournir l’espace connecté demandé (article 6, paragraphe 1, point b). Ce fondement couvre les traitements nécessaires à la fourniture de ce service.
+    </p>
+    <p>
       Les traitements techniques nécessaires au fonctionnement et à la sécurité du site, ainsi que la réponse aux demandes générales, reposent sur l’intérêt légitime du collectif à fournir un service disponible et sûr et à répondre à ses interlocuteurs, dans les conditions permises par le droit applicable. Cet intérêt doit être mis en balance avec vos droits et la nécessité du traitement.
     </p>
     <p>
       Le traitement des demandes d’exercice de droits repose sur les obligations de protection des données applicables au collectif. Une conservation ou une communication imposée par la loi repose sur l’obligation légale correspondante.
     </p>
     <p>
-      La simple consultation du site ne constitue pas un consentement général à l’utilisation de vos données. Un éventuel traitement futur nécessitant votre consentement fera l’objet d’un choix préalable, spécifique et révocable. La création et la gestion du compte servent à fournir l’accès à l’espace connecté demandé par l’utilisateur. Les données du compte ne sont pas utilisées pour la publicité ou pour évaluer une candidature.
+      La simple consultation du site ne constitue pas un consentement général à l’utilisation de vos données. Un éventuel traitement futur nécessitant votre consentement fera l’objet d’un choix préalable, spécifique et révocable. Les données du compte ne sont pas utilisées pour la publicité ou pour évaluer une candidature.
     </p>
     <h2 id="section-6">
       6. Destinataires et prestataires

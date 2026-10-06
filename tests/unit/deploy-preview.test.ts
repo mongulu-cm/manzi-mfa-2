@@ -7,7 +7,11 @@ import { expect, it } from 'vitest'
 
 const deployment = fileURLToPath(new URL('../../apps/plateforme/scripts/deploy-preview.mjs', import.meta.url))
 
-it.each([0, 65])('transmet les bindings via un fichier privé puis le supprime, même avec un échec (%s)', (exitCode) => {
+it.each([
+  { exitCode: 0, signal: '' },
+  { exitCode: 65, signal: '' },
+  { exitCode: 1, signal: 'SIGTERM' },
+])('supprime le fichier privé après le déploiement ($exitCode, $signal)', ({ exitCode, signal }) => {
   const fixture = mkdtempSync(join(tmpdir(), 'manzi-deploy-test-'))
   const report = join(fixture, 'report.json')
   try {
@@ -20,7 +24,8 @@ fs.writeFileSync(process.env.TEST_REPORT, JSON.stringify({
   args, filename, mode: fs.statSync(filename).mode & 0o777,
   bindings: JSON.parse(fs.readFileSync(filename, 'utf8')),
 }));
-process.exit(Number(process.env.TEST_EXIT_CODE));
+if (process.env.TEST_SIGNAL) process.kill(process.pid, process.env.TEST_SIGNAL);
+else process.exit(Number(process.env.TEST_EXIT_CODE));
 `, { mode: 0o700 })
     const result = spawnSync(process.execPath, [deployment, '--name', 'test-preview'], {
       encoding: 'utf8',
@@ -28,8 +33,9 @@ process.exit(Number(process.env.TEST_EXIT_CODE));
         PATH: `${fixture}:${process.env.PATH}`,
         TEST_REPORT: report,
         TEST_EXIT_CODE: String(exitCode),
+        TEST_SIGNAL: signal,
         NUXT_PUBLIC_SUPABASE_URL: 'https://test-project.supabase.co',
-        NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'test-publishable-key',
+        NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
       },
     })
     expect(result.status).toBe(exitCode)
@@ -39,12 +45,26 @@ process.exit(Number(process.env.TEST_EXIT_CODE));
     expect(observed.mode).toBe(0o600)
     expect(observed.bindings).toEqual({
       NUXT_PUBLIC_SUPABASE_URL: 'https://test-project.supabase.co',
-      NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'test-publishable-key',
+      NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test',
     })
     expect(existsSync(dirname(observed.filename))).toBe(false)
-    expect(result.stdout + result.stderr).not.toContain('test-publishable-key')
+    expect(result.stdout + result.stderr).not.toContain('sb_publishable_test')
+    if (signal) expect(result.stderr).toContain(`interrompu par ${signal}`)
   }
   finally {
     rmSync(fixture, { recursive: true, force: true })
   }
+})
+
+it('refuse les placeholders de configuration avant de lancer Wrangler', () => {
+  const result = spawnSync(process.execPath, [deployment], {
+    encoding: 'utf8',
+    env: {
+      NUXT_PUBLIC_SUPABASE_URL: 'masked-value',
+      NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'masked-value',
+    },
+  })
+  expect(result.status).not.toBe(0)
+  expect(result.stderr).toContain('une URL Supabase HTTPS et une clé publishable valide')
+  expect(result.stderr).not.toContain('masked-value')
 })
