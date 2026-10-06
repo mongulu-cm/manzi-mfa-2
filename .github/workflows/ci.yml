@@ -27,6 +27,20 @@ jobs:
       - run: npm run check
       - run: npm run test:unit
 
+  coverage:
+    name: Couverture des tests unitaires
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+
   stories:
     name: Stories, interactions et a11y
     runs-on: ubuntu-latest
