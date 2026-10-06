@@ -199,7 +199,7 @@ test('LinkedIn simulé : PKCE, accueil, restauration et déconnexion', async () 
     await page.goto(appUrl)
     await page.waitForURL(`${appUrl}/login`)
     await page.goBack()
-    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Bienvenue', exact: true }).waitFor()
     assert.equal(await page.getByText(authUser.email, { exact: true }).count(), 0)
   }
   finally { await page.close() }
@@ -257,7 +257,7 @@ test('la vitrine livre son contenu SEO en SSR et la plateforme une SPA', async (
   const appResponse = await fetch(`${appUrl}/login`)
   assert.equal(appResponse.status, 200)
   assert.match(appResponse.headers.get('x-robots-tag') ?? '', /noindex/)
-  assert.doesNotMatch(await appResponse.text(), /Bienvenue dans votre espace/)
+  assert.doesNotMatch(await appResponse.text(), /Connectez-vous pour continuer/)
 
   for (const url of [vitrineUrl, appUrl]) {
     const logo = await fetch(`${url}/logo.png`)
@@ -277,7 +277,7 @@ test('le lien de connexion ouvre la plateforme dans le même onglet puis permet 
     assert.notEqual(await login.getAttribute('target'), '_blank')
     await login.click()
     await page.waitForURL(`${appUrl}/login`)
-    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Bienvenue', exact: true }).waitFor()
     assert.match(await page.title(), /Se connecter — Manzi-mfa/)
     await page.getByRole('link', { name: 'Retour au site' }).click()
     await page.waitForURL(`${vitrineUrl}/`)
@@ -292,7 +292,7 @@ test('la racine de la plateforme redirige vers login', async () => {
   try {
     await page.goto(appUrl)
     await page.waitForURL(`${appUrl}/login`)
-    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Bienvenue', exact: true }).waitFor()
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
@@ -359,6 +359,19 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
         assert.equal(measurements.overflow, false)
         assert.ok(measurements.brand >= 44)
         assert.equal(measurements.primary.toLowerCase(), '#576f1f')
+        if (url === `${appUrl}/login`) {
+          assert.equal(await page.getByRole('button').count(), 1, 'LinkedIn reste le seul fournisseur proposé')
+          const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+          const bounds = await connect.boundingBox()
+          assert.ok(bounds.width >= 44 && bounds.height >= 44)
+          const privacy = page.getByRole('link', { name: 'Confidentialité', exact: true })
+          assert.equal(await privacy.getAttribute('href'), `${vitrineUrl}/confidentialite`)
+          assert.equal(await page.getByRole('link', { name: 'Aide', exact: true }).getAttribute('href'), 'mailto:collectif@mongulu.cm')
+          await page.addScriptTag({ content: axe.source })
+          const violations = await page.evaluate(async () => (await window.axe.run()).violations
+            .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id))
+          assert.deepEqual(violations, [])
+        }
       }
       await page.goto(vitrineUrl)
       await page.keyboard.press('Tab')

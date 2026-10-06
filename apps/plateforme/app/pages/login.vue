@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ layout: false })
+
 const config = useRuntimeConfig()
 const auth = useAuth()
 const connect = () => auth.startLogin(window.location.origin)
