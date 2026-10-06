@@ -80,16 +80,22 @@ function authSession() {
 }
 async function mockAuth(page, options = {}) {
   const calls = { exchanges: 0, authorizations: 0 }
+  await page.route(`${appUrl}/api/auth/linkedin`, async (route) => {
+    calls.authorizations++
+    assert.equal(route.request().method(), 'POST')
+    assert.match(route.request().postDataJSON().codeChallenge, /^[A-Za-z0-9_-]{43}$/)
+    if (options.authorizationError) {
+      await route.fulfill({ status: 502, json: { message: 'private-upstream-detail' } })
+      return
+    }
+    await route.fulfill({ json: { url: 'https://www.linkedin.com/oauth/v2/authorization?state=test-state' } })
+  })
+  await page.route('https://www.linkedin.com/oauth/v2/authorization?**', route => route.fulfill({
+    status: 302, headers: { location: `${appUrl}/auth/callback?code=test-code&next=https://evil.invalid` },
+  }))
   await page.route('https://supabase.test.invalid/**', async (route) => {
     const url = new URL(route.request().url())
     const handlers = {
-      '/auth/v1/authorize': async () => {
-        calls.authorizations++
-        assert.equal(url.searchParams.get('provider'), 'linkedin_oidc')
-        assert.equal(url.searchParams.get('redirect_to'), `${appUrl}/auth/callback`)
-        assert.ok(url.searchParams.get('code_challenge'))
-        await route.fulfill({ status: 302, headers: { location: `${appUrl}/auth/callback?code=test-code&next=https://evil.invalid` } })
-      },
       '/auth/v1/token': async () => {
         calls.exchanges++
         if (options.invalidCode) {
@@ -114,6 +120,33 @@ async function mockAuth(page, options = {}) {
   })
   return calls
 }
+
+test('le départ LinkedIn refuse les challenges invalides sans cache', async () => {
+  const response = await fetch(`${appUrl}/api/auth/linkedin`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codeChallenge: 'invalid' }),
+  })
+  assert.equal(response.status, 400)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+})
+
+test('un échec du départ LinkedIn garde le bouton disponible pour réessayer', async () => {
+  const page = await browser.newPage()
+  try {
+    const options = { authorizationError: true }
+    await mockAuth(page, options)
+    await page.goto(`${appUrl}/login`)
+    const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+    await connect.click()
+    await page.getByRole('alert').getByText(/La connexion a échoué/).waitFor()
+    assert.doesNotMatch(await page.locator('main').textContent(), /private-upstream-detail/)
+    assert.equal(await connect.isEnabled(), true)
+    options.authorizationError = false
+    await connect.click()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('heading', { name: 'Bienvenue, Membre Test' }).waitFor()
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
 
 function normalizedPolicyText(text) {
   return text.normalize('NFC').replace(/\s+/gu, ' ').trim()
