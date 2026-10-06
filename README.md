@@ -136,6 +136,8 @@ Les E2E démarrent leurs propres serveurs sur `127.0.0.1:3100` et `:3101` avec l
 
 La plateforme utilise `@supabase/supabase-js`, uniquement dans un plugin client, avec PKCE, renouvellement automatique et session locale persistante. Le callback `/auth/callback` échange le code une seule fois et nettoie l’URL. Les métadonnées ne servent jamais aux autorisations. Aucun secret LinkedIn ou clé Supabase secret/service_role n’est nécessaire dans le frontend.
 
+Le départ utilise `POST /api/auth/linkedin`. Le SDK conserve le vérificateur PKCE dans le navigateur ; l’endpoint transmet son challenge S256 à l’API publique du projet Supabase configuré et récupère sa redirection sans la suivre. Il conserve le fournisseur `linkedin_oidc`, l’état généré par Supabase, le client LinkedIn et son callback, puis utilise `www.linkedin.com/oauth/v2/authorization`, l’adresse officielle de LinkedIn. Le domaine `api.linkedin.com` utilisé par le fournisseur intégré ne réutilise pas la session web dans le parcours vérifié. Les destinations inattendues sont refusées ; les réponses ne sont ni mises en cache ni journalisées. Aucune modification des comptes ou du schéma n’est nécessaire. [Configuration OIDC LinkedIn](https://www.linkedin.com/oauth/.well-known/openid-configuration)
+
 Dans Supabase Auth → **URL Configuration**, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm` et ajouter aux **Redirect URLs** :
 
 - `https://app.manzi-mfa-2.mongulu.cm/auth/callback`

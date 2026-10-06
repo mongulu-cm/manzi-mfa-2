@@ -27,7 +27,7 @@ export function safeAvatarUrl(value: unknown): string | undefined {
 }
 
 // Une instance par application, créée par le plugin client ; aucun état global.
-export function createAuthService(client: SupabaseClient | null) {
+export function createAuthService(client: SupabaseClient | null, redirectOAuth: (url: string) => Promise<void>) {
   const state = reactive({
     configured: Boolean(client),
     ready: false,
@@ -141,11 +141,12 @@ export function createAuthService(client: SupabaseClient | null) {
     }
     state.signingIn = true
     try {
-      const { error } = await client.auth.signInWithOAuth({
+      const { data, error } = await client.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
-        options: { redirectTo: `${origin}/auth/callback`, scopes: 'openid profile email' },
+        options: { redirectTo: `${origin}/auth/callback`, scopes: 'openid profile email', skipBrowserRedirect: true },
       })
-      if (error) throw error
+      if (error || !data.url) throw new Error('OAuth unavailable')
+      await redirectOAuth(data.url)
       // Garder le verrou pendant le départ, mais permettre de réessayer si la page reste ouverte.
       if (state.signingIn) {
         loginRecovery = setTimeout(() => {

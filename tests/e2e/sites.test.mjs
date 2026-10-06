@@ -80,16 +80,22 @@ function authSession() {
 }
 async function mockAuth(page, options = {}) {
   const calls = { exchanges: 0, authorizations: 0 }
+  await page.route(`${appUrl}/api/auth/linkedin`, async (route) => {
+    calls.authorizations++
+    assert.equal(route.request().method(), 'POST')
+    assert.match(route.request().postDataJSON().codeChallenge, /^[A-Za-z0-9_-]{43}$/)
+    if (options.authorizationError) {
+      await route.fulfill({ status: 502, json: { message: 'private-upstream-detail' } })
+      return
+    }
+    await route.fulfill({ json: { url: 'https://www.linkedin.com/oauth/v2/authorization?state=test-state' } })
+  })
+  await page.route('https://www.linkedin.com/oauth/v2/authorization?**', route => route.fulfill({
+    status: 302, headers: { location: `${appUrl}/auth/callback?code=test-code&next=https://evil.invalid` },
+  }))
   await page.route('https://supabase.test.invalid/**', async (route) => {
     const url = new URL(route.request().url())
     const handlers = {
-      '/auth/v1/authorize': async () => {
-        calls.authorizations++
-        assert.equal(url.searchParams.get('provider'), 'linkedin_oidc')
-        assert.equal(url.searchParams.get('redirect_to'), `${appUrl}/auth/callback`)
-        assert.ok(url.searchParams.get('code_challenge'))
-        await route.fulfill({ status: 302, headers: { location: `${appUrl}/auth/callback?code=test-code&next=https://evil.invalid` } })
-      },
       '/auth/v1/token': async () => {
         calls.exchanges++
         if (options.invalidCode) {
@@ -114,6 +120,33 @@ async function mockAuth(page, options = {}) {
   })
   return calls
 }
+
+test('le départ LinkedIn refuse les challenges invalides sans cache', async () => {
+  const response = await fetch(`${appUrl}/api/auth/linkedin`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codeChallenge: 'invalid' }),
+  })
+  assert.equal(response.status, 400)
+  assert.equal(response.headers.get('cache-control'), 'no-store')
+})
+
+test('un échec du départ LinkedIn garde le bouton disponible pour réessayer', async () => {
+  const page = await browser.newPage()
+  try {
+    const options = { authorizationError: true }
+    await mockAuth(page, options)
+    await page.goto(`${appUrl}/login`)
+    const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+    await connect.click()
+    await page.getByRole('alert').getByText(/La connexion a échoué/).waitFor()
+    assert.doesNotMatch(await page.locator('main').textContent(), /private-upstream-detail/)
+    assert.equal(await connect.isEnabled(), true)
+    options.authorizationError = false
+    await connect.click()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('heading', { name: 'Bienvenue, Membre Test' }).waitFor()
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
 
 function normalizedPolicyText(text) {
   return text.normalize('NFC').replace(/\s+/gu, ' ').trim()
@@ -199,7 +232,7 @@ test('LinkedIn simulé : PKCE, accueil, restauration et déconnexion', async () 
     await page.goto(appUrl)
     await page.waitForURL(`${appUrl}/login`)
     await page.goBack()
-    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Bienvenue', exact: true }).waitFor()
     assert.equal(await page.getByText(authUser.email, { exact: true }).count(), 0)
   }
   finally { await page.close() }
@@ -257,7 +290,7 @@ test('la vitrine livre son contenu SEO en SSR et la plateforme une SPA', async (
   const appResponse = await fetch(`${appUrl}/login`)
   assert.equal(appResponse.status, 200)
   assert.match(appResponse.headers.get('x-robots-tag') ?? '', /noindex/)
-  assert.doesNotMatch(await appResponse.text(), /Bienvenue dans votre espace/)
+  assert.doesNotMatch(await appResponse.text(), /Connectez-vous pour continuer/)
 
   for (const url of [vitrineUrl, appUrl]) {
     const logo = await fetch(`${url}/logo.png`)
@@ -277,7 +310,7 @@ test('le lien de connexion ouvre la plateforme dans le même onglet puis permet 
     assert.notEqual(await login.getAttribute('target'), '_blank')
     await login.click()
     await page.waitForURL(`${appUrl}/login`)
-    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Bienvenue', exact: true }).waitFor()
     assert.match(await page.title(), /Se connecter — Manzi-mfa/)
     await page.getByRole('link', { name: 'Retour au site' }).click()
     await page.waitForURL(`${vitrineUrl}/`)
@@ -292,7 +325,7 @@ test('la racine de la plateforme redirige vers login', async () => {
   try {
     await page.goto(appUrl)
     await page.waitForURL(`${appUrl}/login`)
-    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Bienvenue', exact: true }).waitFor()
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
@@ -338,6 +371,25 @@ test('la confidentialité est accessible sur la vitrine, en SSR et à 320px', as
   finally { await page.close() }
 }, { timeout: 60_000 })
 
+function assertTouchTarget(bounds) {
+  assert.ok(bounds, 'L’élément doit être visible et dimensionné')
+  assert.ok(bounds.width >= 44 && bounds.height >= 44)
+}
+
+async function assertLoginActionsAndAccessibility(page) {
+  assert.equal(await page.getByRole('button').count(), 1, 'LinkedIn reste le seul fournisseur proposé')
+  const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+  const bounds = await connect.boundingBox()
+  assertTouchTarget(bounds)
+  const privacy = page.getByRole('link', { name: 'Confidentialité', exact: true })
+  assert.equal(await privacy.getAttribute('href'), `${vitrineUrl}/confidentialite`)
+  assert.equal(await page.getByRole('link', { name: 'Aide', exact: true }).getAttribute('href'), 'mailto:collectif@mongulu.cm')
+  await page.addScriptTag({ content: axe.source })
+  const violations = await page.evaluate(async () => (await window.axe.run()).violations
+    .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ html: n.html, summary: n.failureSummary })) })))
+  assert.deepEqual(violations, [])
+}
+
 test('les deux sites restent utilisables au clavier, à 320px et sur desktop', async () => {
   const page = await browser.newPage()
   try {
@@ -359,6 +411,9 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
         assert.equal(measurements.overflow, false)
         assert.ok(measurements.brand >= 44)
         assert.equal(measurements.primary.toLowerCase(), '#576f1f')
+        if (url === `${appUrl}/login`) {
+          await assertLoginActionsAndAccessibility(page)
+        }
       }
       await page.goto(vitrineUrl)
       await page.keyboard.press('Tab')
@@ -366,7 +421,7 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
       await page.keyboard.press('Tab')
       assert.equal(await page.locator(':focus').textContent(), 'Se connecter')
       const bounds = await page.locator(':focus').boundingBox()
-      assert.ok(bounds.width >= 44 && bounds.height >= 44)
+      assertTouchTarget(bounds)
     }
   }
   finally { await page.close() }

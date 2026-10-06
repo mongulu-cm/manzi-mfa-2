@@ -15,7 +15,7 @@ function fixture() {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { user } }, error: null }),
       getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }),
-      signInWithOAuth: vi.fn().mockResolvedValue({ error: null }),
+      signInWithOAuth: vi.fn().mockResolvedValue({ data: { url: 'https://supabase.test.invalid/auth/v1/authorize?code_challenge=test' }, error: null }),
       exchangeCodeForSession: vi.fn().mockResolvedValue({ data: { user }, error: null }),
       signOut: vi.fn().mockResolvedValue({ error: null }),
       onAuthStateChange: vi.fn((callback) => {
@@ -25,8 +25,9 @@ function fixture() {
     },
     from: vi.fn(() => query),
   }
+  const redirectOAuth = vi.fn().mockResolvedValue(undefined)
   return {
-    client, query, service: createAuthService(client as unknown as SupabaseClient),
+    client, query, redirectOAuth, service: createAuthService(client as unknown as SupabaseClient, redirectOAuth),
     event: (event: AuthChangeEvent, next: User | null) => listener(event, next ? { user: next } as Session : null),
   }
 }
@@ -44,7 +45,7 @@ describe('session de la plateforme', () => {
   })
 
   it('reste disponible sans configuration mais interdit OAuth', async () => {
-    const service = createAuthService(null)
+    const service = createAuthService(null, vi.fn())
     await service.initialize()
     await service.startLogin('http://localhost:3001')
     expect(service.state.ready).toBe(true)
@@ -58,7 +59,7 @@ describe('session de la plateforme', () => {
     await Promise.all([service.startLogin('http://localhost:3001'), service.startLogin('http://localhost:3001')])
     expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(1)
     expect(client.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'linkedin_oidc', options: { redirectTo: 'http://localhost:3001/auth/callback', scopes: 'openid profile email' },
+      provider: 'linkedin_oidc', options: { redirectTo: 'http://localhost:3001/auth/callback', scopes: 'openid profile email', skipBrowserRedirect: true },
     })
     await vi.advanceTimersByTimeAsync(14_999)
     await service.startLogin('http://localhost:3001')
@@ -91,6 +92,19 @@ describe('session de la plateforme', () => {
     expect(vi.getTimerCount()).toBe(0)
     await service.startLogin('http://localhost:3001')
     expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(2)
+    service.dispose()
+  })
+
+  it('un échec de résolution LinkedIn permet de réessayer sans exposer l’erreur', async () => {
+    const { service, client, redirectOAuth } = fixture()
+    redirectOAuth.mockRejectedValueOnce(new Error('private-upstream-detail'))
+    await service.startLogin('http://localhost:3001')
+    expect(service.state.signingIn).toBe(false)
+    expect(service.state.actionError).toBe(authMessages.connection)
+    await service.startLogin('http://localhost:3001')
+    expect(redirectOAuth).toHaveBeenCalledTimes(2)
+    expect(redirectOAuth).toHaveBeenLastCalledWith((await client.auth.signInWithOAuth.mock.results[1]!.value).data.url)
+    expect(service.state.signingIn).toBe(true)
     service.dispose()
   })
 
