@@ -339,6 +339,7 @@ test('la confidentialité est accessible sur la vitrine, en SSR et à 320px', as
 }, { timeout: 60_000 })
 
 function assertTouchTarget(bounds) {
+  assert.ok(bounds, 'L’élément doit être visible et dimensionné')
   assert.ok(bounds.width >= 44 && bounds.height >= 44)
 }
 
