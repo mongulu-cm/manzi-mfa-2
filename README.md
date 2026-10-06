@@ -9,11 +9,11 @@ Le dépôt contient deux applications Nuxt 4 et une Layer Mongulu commune :
 | `apps/vitrine` | https://manzi-mfa-2.mongulu.cm | SSR, contenu indexable | `manzi-mfa-2` |
 | `apps/plateforme` | https://app.manzi-mfa-2.mongulu.cm | SPA, sans indexation | `manzi-mfa-2-app` |
 
-La page `/login` présente le futur espace connecté. L'authentification n'est pas encore intégrée : aucun formulaire ne collecte d'identifiants.
+La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première connexion crée le compte Supabase et son profil ; `/` affiche le nom, la photo et l’e-mail du compte connecté. L’e-mail reste dans Supabase Auth et les profils ne sont lisibles que par leur propriétaire.
 
 ## Confidentialité
 
-[PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Réviser ce texte avant toute nouvelle collecte (comptes, CV, échanges, statistiques ou paiements).
+[PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Le texte décrit les comptes LinkedIn et les profils Supabase. Réviser ce texte avant toute nouvelle collecte (CV, échanges, statistiques ou paiements).
 
 ## Démarrage
 
@@ -38,10 +38,10 @@ Dans un second terminal, avec les mêmes variables :
 npm run dev:app
 ```
 
-Vitrine : http://localhost:3000. Plateforme : http://localhost:3001, avec redirection vers `/login`.
+Vitrine : http://localhost:3000. Plateforme : http://localhost:3001 ; les visiteurs anonymes sont redirigés vers `/login`.
 `npm run dev` démarre la vitrine. Les variables de `.env.example` sont documentaires : exporter les valeurs ou créer un `.env` dans chaque application. Les valeurs par défaut visent la production.
 
-Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`. Le socle ne consomme pas encore ces variables Supabase ; aucune modification du schéma n'est nécessaire pour les deux sites.
+Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`. La plateforme consomme `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (clé de type publishable, nom default). Les exporter aussi dans le terminal plateforme ou les placer dans `apps/plateforme/.env`, ignoré par Git. Les variables `SUPABASE_URL` / `SUPABASE_KEY` utilisées par le workflow CLI ne les remplacent pas.
 
 ## Commandes
 
@@ -122,3 +122,27 @@ npx fallow --ci --format compact
 ```
 
 Les E2E démarrent leurs propres serveurs sur `127.0.0.1:3100` et `:3101` avec les URL correspondantes. Ils vérifient le HTML SSR et les métadonnées de la vitrine, l'accès direct à `/login`, l'absence de rendu serveur de la plateforme, le logo, le thème commun, la navigation dans le même onglet, le clavier et les largeurs 320px et desktop.
+
+## Connexion LinkedIn et profils
+
+La plateforme utilise `@supabase/supabase-js`, uniquement dans un plugin client, avec PKCE, renouvellement automatique et session locale persistante. Le callback `/auth/callback` échange le code une seule fois et nettoie l’URL. Les métadonnées ne servent jamais aux autorisations. Aucun secret LinkedIn ou clé Supabase secret/service_role n’est nécessaire dans le frontend.
+
+Dans Supabase Auth, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm` et autoriser précisément :
+
+- `https://app.manzi-mfa-2.mongulu.cm/auth/callback`
+- `http://localhost:3001/auth/callback`
+- Les URL `/auth/callback` des previews explicitement utilisées, sans wildcard de production.
+
+Dans LinkedIn, conserver la redirection vers `https://gdcirvvqangyraxauggy.supabase.co/auth/v1/callback` et les permissions OIDC `openid profile email`. Les secrets du fournisseur restent dans Supabase. Configurer les deux variables publiques plateforme dans le build et le runtime Cloudflare ; une configuration absente désactive le bouton de connexion.
+
+`supabase/schemas/` est la source de vérité. Lors de cette initialisation, `db pull` a confirmé que le projet distant était déjà en phase avec la baseline vide : aucun objet applicatif préexistant n’était à migrer. Les déclarations des extensions et privilèges ont été exportées du projet. Pour les évolutions, établir la référence depuis le projet lié avant de générer une modification avec `npx supabase db schema declarative sync -f nom --no-apply`. Les migrations de données sont distinctes des déclarations de structure. Le trigger privé crée un profil à l’inscription ; les comptes existants sont repris sans écrasement. Le nom et l’URL HTTPS de la photo sont capturés à la création, sans synchronisation à chaque login ni édition dans cette version. Supprimer le compte Auth supprime le profil associé.
+
+### Tests auth
+
+- `npm run test:unit` : session, erreurs, concurrence et callback.
+- `npm run test:e2e` : OAuth Supabase simulé dans Playwright, restauration, annulation, profil indisponible, déconnexion, mobile et axe. Aucun appel LinkedIn réel en CI.
+- `npx supabase start`, puis `npm run test:db` : trigger, données manquantes, suppression en cascade et accès RLS ; Docker et le client `psql` sont nécessaires. Le runner envoie les assertions pgTAP par stdin à la base locale ; il vérifie le nombre d’assertions et refuse les URL distantes. La CI utilise une base locale jetable.
+- `npm run test:linkedin` : smoke opt-in avec Chromium visible, hors CI. Il consomme les variables locales, attend une intervention humaine pour l’autorisation ou un challenge et vérifie le même compte/profil après rechargement et reconnexion, sans enregistrer de données personnelles.
+- Test réel manuel : lancer la plateforme avec les variables publiques du projet, cliquer « Continuer avec LinkedIn », vérifier le profil, recharger, se déconnecter puis se reconnecter. Vérifier qu’un seul compte et profil existent. Les variables locales `E2E_LINKEDIN_USERNAME` / `E2E_LINKEDIN_PASSWORD` peuvent servir au smoke test autorisé ; ne jamais les committer, enregistrer de trace contenant les identifiants ou les ajouter à la CI. Une validation MFA ou un challenge LinkedIn nécessite une intervention humaine.
+
+Déployer les migrations et la confidentialité sur la vitrine avant la plateforme. En cas de problème, revenir à la version précédente du Worker sans supprimer les comptes ni les profils ; corriger la base par une migration suivante.

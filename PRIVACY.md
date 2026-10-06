@@ -1,6 +1,6 @@
 # Politique de confidentialité — Manzi-mfa
 
-**Version du 5 octobre 2026.**
+**Version du 6 octobre 2026.**
 
 Le Collectif Mongulu explique ici comment les informations sont traitées lors de la consultation de Manzi-mfa et des échanges avec le collectif. Pour toute question ou demande concernant vos données, écrivez à [collectif@mongulu.cm](mailto:collectif@mongulu.cm).
 
@@ -11,10 +11,10 @@ Le Collectif Mongulu explique ici comment les informations sont traitées lors d
 | Responsable | Collectif Mongulu — collectif@mongulu.cm |
 | Service | Manzi-mfa facilite l’accès à l’emploi IT grâce à un échange avec un senior ; cette fonctionnalité n’est pas encore ouverte sur les sites |
 | Sites concernés | https://manzi-mfa-2.mongulu.cm et https://app.manzi-mfa-2.mongulu.cm |
-| Données | Informations techniques de consultation, éventuelle préférence d’affichage et contenu des courriels que vous nous adressez |
-| Utilisation | Affichage des pages, sécurité, diagnostic et réponse à vos demandes |
-| Prestataire web | Cloudflare pour l’hébergement, la distribution et la protection du trafic |
-| Conservation | Journaux Workers : 3 ou 7 jours selon l’offre ; préférence locale jusqu’à son effacement ; correspondance pendant le traitement de la demande et la durée nécessaire à sa justification |
+| Données | Informations techniques, identifiant de compte, nom, e-mail, URL de photo, session locale, préférence d’affichage et courriels |
+| Utilisation | Affichage des pages et du profil, connexion et maintien de session, sécurité, diagnostic et réponse à vos demandes |
+| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos |
+| Conservation | Compte et profil tant que le compte existe ; session jusqu’à déconnexion ou effacement local ; journaux Workers : 3 ou 7 jours selon l’offre ; préférence locale jusqu’à son effacement ; correspondance pendant le traitement de la demande et la durée nécessaire à sa justification |
 | Droits | Accès, rectification, effacement et autres droits selon la législation applicable ; demande par courriel au collectif |
 | Cadre juridique | Les règles de protection des données applicables au traitement, notamment le droit camerounais et, lorsque ses critères territoriaux sont remplis, le RGPD |
 
@@ -30,7 +30,7 @@ Notre contact pour la confidentialité et l’exercice de vos droits est [collec
 
 Cette politique couvre la vitrine à l’adresse https://manzi-mfa-2.mongulu.cm et la plateforme à l’adresse https://app.manzi-mfa-2.mongulu.cm, ainsi que vos demandes relatives à ces sites.
 
-La plateforme présente actuellement le futur espace connecté. Sa page `/login` ne permet pas encore de créer un compte ou de saisir des identifiants. Les pages actuelles ne proposent ni dépôt de CV, ni réservation, ni messagerie, ni paiement.
+La plateforme permet de se connecter avec LinkedIn. La première connexion crée automatiquement un compte Manzi-mfa ; les suivantes permettent de retrouver ce compte. L’accueil connecté affiche votre profil et permet de vous déconnecter. Les sites ne proposent ni dépôt de CV, ni réservation, ni messagerie, ni paiement.
 
 Avant l’ouverture de nouvelles fonctions, cette politique sera actualisée pour expliquer les données concernées, leurs finalités, leurs destinataires et leurs durées de conservation.
 
@@ -40,13 +40,17 @@ Avant l’ouverture de nouvelles fonctions, cette politique sera actualisée pou
 
 **Diagnostic technique.** Les journaux d’exécution des Workers sont activés. Ils peuvent contenir l’horodatage, la méthode et l’adresse de la requête, le résultat de l’exécution et les erreurs. Tous les en-têtes et toutes les adresses IP ne sont pas nécessairement enregistrés dans chaque journal. Évitez d’inscrire des informations confidentielles dans les adresses de pages ou leurs paramètres.
 
+**Compte LinkedIn.** Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification ; le nom et l’URL de la photo sont enregistrés dans votre profil à sa création. Cette version ne les synchronise pas à chaque connexion.
+
 **Préférence d’affichage.** Le module de thème peut lire ou mémoriser une préférence sous la clé `nuxt-color-mode` dans le stockage local de votre navigateur. Cette valeur concerne l’affichage et ne constitue pas un identifiant de compte.
 
 **Courriels.** Si vous écrivez à collectif@mongulu.cm, nous recevons votre adresse électronique, le contenu de votre message et les pièces jointes que vous choisissez d’envoyer. Fournissez uniquement les informations nécessaires à votre demande et évitez de transmettre des documents sensibles sans nécessité.
 
-Les pages actuelles ne demandent pas de nom, mot de passe, CV ou coordonnées de paiement. Elles ne sollicitent pas votre localisation précise, votre caméra ou votre microphone. Le code des applications ne comporte pas d’outil publicitaire, de mesure d’audience, de profilage de candidats ou de décision automatisée de recrutement.
+Le nom, la photo et l’adresse e-mail peuvent être fournis par LinkedIn lors de la connexion. Votre mot de passe LinkedIn est saisi uniquement chez LinkedIn et n’est pas reçu par Manzi-mfa. Les pages ne demandent ni CV ni coordonnées de paiement. Elles ne sollicitent pas votre localisation précise, votre caméra ou votre microphone. Le code des applications ne comporte pas d’outil publicitaire, de mesure d’audience, de profilage de candidats ou de décision automatisée de recrutement.
 
 ### 4. Finalités
+
+Les données du compte permettent de vous authentifier, de maintenir votre session et d’afficher votre nom, votre photo et votre e-mail dans votre espace.
 
 Les informations techniques servent à afficher les pages et leurs ressources, maintenir leur disponibilité, protéger les sites contre les requêtes abusives et diagnostiquer les erreurs. La préférence locale sert à conserver un affichage cohérent.
 
@@ -60,7 +64,7 @@ Les traitements techniques nécessaires au fonctionnement et à la sécurité du
 
 Le traitement des demandes d’exercice de droits repose sur les obligations de protection des données applicables au collectif. Une conservation ou une communication imposée par la loi repose sur l’obligation légale correspondante.
 
-La simple consultation du site ne constitue pas un consentement général à l’utilisation de vos données. Un éventuel traitement futur nécessitant votre consentement fera l’objet d’un choix préalable, spécifique et révocable. Aucun contrat de compte utilisateur n’est actuellement conclu sur les sites.
+La simple consultation du site ne constitue pas un consentement général à l’utilisation de vos données. Un éventuel traitement futur nécessitant votre consentement fera l’objet d’un choix préalable, spécifique et révocable. La création et la gestion du compte servent à fournir l’accès à l’espace connecté demandé par l’utilisateur. Les données du compte ne sont pas utilisées pour la publicité ou pour évaluer une candidature.
 
 ### 6. Destinataires et prestataires
 
@@ -68,13 +72,13 @@ Les personnes du collectif habilitées à administrer le service ou à traiter v
 
 Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
 
-Les polices Alegreya et Hanken Grotesk et le logo sont servis par nos sites : leur chargement ne nécessite pas de requête vers Google Fonts. Les pages et endpoints actuels n’utilisent pas Supabase pour collecter des données de visiteurs.
+Les polices Alegreya et Hanken Grotesk et le logo sont servis par nos sites : leur chargement ne nécessite pas de requête vers Google Fonts. Supabase héberge les comptes, les sessions et les profils. LinkedIn assure la connexion et fournit les informations autorisées. Les photos restent hébergées à l’adresse fournie par LinkedIn : leur affichage entraîne une requête de votre navigateur vers cet hébergeur, sans transmettre l’adresse de la page Manzi-mfa comme référent.
 
 Les informations relatives aux traitements de Cloudflare figurent dans sa [politique de confidentialité](https://www.cloudflare.com/privacypolicy/) et son [accord de traitement des données](https://www.cloudflare.com/cloudflare-customer-dpa/). Vous pouvez nous demander des précisions sur les prestataires intervenant dans le traitement de votre demande.
 
 ### 7. Traitements internationaux
 
-Cloudflare exploite une infrastructure internationale et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
+Cloudflare, Supabase et LinkedIn utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
 
 Les transferts doivent respecter les conditions du droit applicable. Lorsque le RGPD s’applique, les transferts hors de l’Espace économique européen nécessitent un mécanisme autorisé, tel qu’une décision d’adéquation ou des clauses contractuelles types, selon le transfert concerné. Pour obtenir des informations sur les garanties concernant vos données, contactez collectif@mongulu.cm.
 
@@ -90,11 +94,11 @@ Les transferts doivent respecter les conditions du droit applicable. Lorsque le 
 
 La [documentation Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) précise les durées propres à ce service. Elles peuvent évoluer avec l’offre du prestataire. Contactez-nous pour connaître les conditions applicables à une demande particulière.
 
-Aucune donnée de compte, CV, réservation ou paiement n’est collectée par les fonctions actuelles.
+Le compte et son profil sont conservés tant que le compte existe. Pour demander leur suppression ou leur rectification, écrivez à collectif@mongulu.cm. La suppression du compte supprime le profil associé ; des sauvegardes ou journaux peuvent rester conservés selon les règles du prestataire et les obligations applicables. Aucun CV, réservation ou paiement n’est collecté par les fonctions actuelles.
 
 ### 9. Cookies et stockage local
 
-Le code applicatif ne dépose pas de cookie publicitaire ou de mesure d’audience. La préférence éventuelle de thème est conservée dans le stockage local, distinct des cookies.
+Le code applicatif ne dépose pas de cookie publicitaire ou de mesure d’audience. La préférence éventuelle de thème est conservée dans le stockage local, distinct des cookies. Sur la plateforme, Supabase conserve également les éléments de session dans ce stockage pour maintenir votre connexion et renouveler les jetons expirés. Ils sont retirés à la déconnexion ou lorsque vous effacez les données du site dans votre navigateur.
 
 Cloudflare peut utiliser des cookies de sécurité selon les protections activées. Sa [documentation sur les cookies](https://developers.cloudflare.com/fundamentals/reference/policies-compliances/cloudflare-cookies/) décrit leurs fonctions et leurs durées ; cette liste générale ne signifie pas que tous ces cookies sont présents sur nos sites.
 
@@ -114,7 +118,7 @@ Vous pouvez saisir l’autorité de protection des données compétente. Lorsque
 
 ### 11. Sécurité
 
-Les deux sites utilisent HTTPS, qui chiffre les échanges entre votre navigateur et le point de terminaison du service. Cloudflare fournit l’hébergement et les protections techniques du trafic. L’absence actuelle de formulaires limite les informations demandées sur les pages.
+Les deux sites utilisent HTTPS, qui chiffre les échanges entre votre navigateur et le point de terminaison du service. Cloudflare fournit l’hébergement et les protections techniques du trafic. Les profils ne sont pas publics : chaque utilisateur connecté peut lire uniquement son propre profil. La création des profils est effectuée par la base de données, sans autoriser leur modification depuis le navigateur.
 
 Aucun système ne garantit une sécurité absolue. Si vous constatez une divulgation ou un problème concernant vos données, signalez-le à collectif@mongulu.cm en évitant de communiquer davantage d’informations sensibles que nécessaire.
 
@@ -134,11 +138,12 @@ Les deux sites Manzi-mfa sont couverts par le même texte. Les services tiers ac
 
 Cette partie documente le périmètre technique de la version conservée dans le dépôt. Elle accompagne la politique sans constituer une certification de conformité ou de validation juridique.
 
-- L’inventaire du 5 octobre 2026 couvre les sources de `apps/vitrine`, `apps/plateforme` et `layers/mongulu`, ainsi que les pages publiques. Il ne constitue pas un audit exhaustif des réglages Cloudflare ni de la messagerie.
+- L’inventaire du 6 octobre 2026 couvre les sources de `apps/vitrine`, `apps/plateforme` et `layers/mongulu`, ainsi que les pages publiques. Il ne constitue pas un audit exhaustif des réglages Cloudflare ni de la messagerie.
 - Les configurations Wrangler activent l’observabilité. La durée de Workers Logs dépend de l’offre ; Cloudflare annonce une évolution de son dispositif au 1er décembre 2026. Actualiser la section 8 si la rétention change.
-- Les polices sont locales, le logo est commun aux deux sites et le module de thème utilise `localStorage` avec la clé `nuxt-color-mode`. Aucun appel métier à Supabase n’est présent dans les applications examinées.
+- Les polices sont locales, le logo est commun aux deux sites et le module de thème utilise `localStorage` avec la clé `nuxt-color-mode`. La plateforme utilise Supabase Auth et une table privée par utilisateur pour les profils. L’e-mail reste dans Auth ; le profil contient le nom et l’URL de photo. Les permissions LinkedIn sont limitées à openid, profile et email.
+- Faire relire les fondements juridiques, garanties de transfert et durées des sauvegardes par une personne qualifiée ; cette mise à jour ne constitue pas une validation juridique.
 - Le contact désigné pour cette version est `collectif@mongulu.cm`. Les demandes et leurs justificatifs doivent être gérés selon les finalités et critères de conservation décrits ci-dessus.
-- Actualiser la politique et l’inventaire avant l’activation de comptes, CV, réservations, échanges, statistiques, paiements ou nouveaux prestataires. Les bases juridiques, garanties de transfert et règles relatives aux mineurs doivent correspondre aux traitements effectivement mis en œuvre.
+- Actualiser la politique et l’inventaire avant l’activation de CV, réservations, échanges, statistiques, paiements ou nouveaux prestataires. Les bases juridiques, garanties de transfert et règles relatives aux mineurs doivent correspondre aux traitements effectivement mis en œuvre.
 
 Le [champ territorial du RGPD](https://www.cnil.fr/reglement-europeen-protection-donnees/chapitre1) dépend notamment de l’établissement, du ciblage de personnes dans l’Union européenne ou du suivi de leur comportement ; une simple accessibilité du site depuis l’Europe ne suffit pas à conclure à son application. Le [chapitre III du RGPD](https://www.cnil.fr/fr/reglement-europeen-protection-donnees/chapitre3) décrit les obligations d’information et les droits. Le cadre camerounais comprend la loi n° 2024/017 du 23 décembre 2024 relative à la protection des données à caractère personnel ; ses conditions d’application doivent être prises en compte pour les traitements concernés.
 

@@ -10,7 +10,10 @@
     "layers/*/stories/**/*.stories.ts",
     "apps/*/stories/**/*.stories.ts",
     "tests/e2e/*.test.mjs",
-    "vitest.config.ts"
+    "tests/db/run.mjs",
+    "tests/smoke/linkedin.mjs",
+    "vitest.config.ts",
+    "vitest.unit.config.ts"
   ],
   "ignorePatterns": [
     ".storybook/**",
@@ -33,9 +36,12 @@
   //   exclu du graphe applicatif.
   // - storybook : importé via le sous-chemin 'storybook/test' dans les stories
   // - vue : fourni au runtime par Nuxt, importé directement seulement dans les stories.
+  // - @supabase/server : dépendance déjà ajoutée par l’utilisateur, conservée pour
+  //   le futur backend ; cette intégration SPA utilise supabase-js côté navigateur.
   "ignoreDependencies": [
     "@storybook/addon-a11y",
     "@storybook-vue/nuxt",
+    "@supabase/server",
     "storybook",
     "vue"
   ]

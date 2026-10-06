@@ -4,6 +4,9 @@ export default defineAppConfig({
       primary: 'forest',
       neutral: 'stone',
     },
+    alert: {
+      compoundVariants: [{ variant: 'soft', class: { title: 'text-default', description: 'text-default' } }],
+    },
     button: {
       slots: {
         base: 'min-h-11 rounded-full font-semibold',

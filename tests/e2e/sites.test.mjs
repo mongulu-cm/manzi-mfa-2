@@ -34,9 +34,14 @@ async function startServer(app, port) {
   const child = spawn(process.execPath, [
     'node_modules/nuxt/bin/nuxt.mjs', 'dev', `apps/${app}`,
     '--host', '127.0.0.1', '--port', String(port),
+    '--envName', 'test',
   ], {
     cwd: root,
-    env: { ...process.env, NUXT_PUBLIC_APP_URL: appUrl, NUXT_PUBLIC_SITE_URL: vitrineUrl },
+    env: {
+      ...process.env, NUXT_PUBLIC_APP_URL: appUrl, NUXT_PUBLIC_SITE_URL: vitrineUrl,
+      NUXT_PUBLIC_SUPABASE_URL: 'https://supabase.test.invalid',
+      NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   servers.push(child)
@@ -57,6 +62,136 @@ after(async () => {
   await browser?.close()
   for (const server of servers) server.kill('SIGTERM')
 })
+
+// OAuth simulé : aucun appel à LinkedIn ni donnée réelle dans ces tests CI.
+const authUser = {
+  id: 'a0000000-0000-0000-0000-000000000001', aud: 'authenticated', role: 'authenticated',
+  email: 'membre@example.invalid', user_metadata: { name: 'Membre Test' },
+  app_metadata: { provider: 'linkedin_oidc', providers: ['linkedin_oidc'] },
+  identities: [], created_at: '2026-10-06T00:00:00Z',
+}
+function authSession() {
+  const exp = Math.floor(Date.now() / 1000) + 3600
+  const access_token = [
+    { alg: 'HS256', typ: 'JWT' }, { sub: authUser.id, exp, aud: 'authenticated' },
+  ].map(value => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.') + '.test'
+  return { access_token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'test-refresh-token', user: authUser }
+}
+async function mockAuth(page, options = {}) {
+  const calls = { exchanges: 0, authorizations: 0 }
+  await page.route('https://supabase.test.invalid/**', async (route) => {
+    const url = new URL(route.request().url())
+    const handlers = {
+      '/auth/v1/authorize': async () => {
+        calls.authorizations++
+        assert.equal(url.searchParams.get('provider'), 'linkedin_oidc')
+        assert.equal(url.searchParams.get('redirect_to'), `${appUrl}/auth/callback`)
+        assert.ok(url.searchParams.get('code_challenge'))
+        await route.fulfill({ status: 302, headers: { location: `${appUrl}/auth/callback?code=test-code&next=https://evil.invalid` } })
+      },
+      '/auth/v1/token': async () => {
+        calls.exchanges++
+        if (options.invalidCode) {
+          await route.fulfill({ status: 400, json: { error_code: 'bad_code_verifier', msg: 'private-provider-detail' } })
+          return
+        }
+        assert.equal(url.searchParams.get('grant_type'), 'pkce')
+        const body = route.request().postDataJSON()
+        assert.equal(body.auth_code, 'test-code')
+        assert.ok(body.code_verifier)
+        await route.fulfill({ json: authSession() })
+      },
+      '/auth/v1/user': () => route.fulfill({ json: authUser }),
+      '/auth/v1/logout': () => route.fulfill({ status: 204 }),
+      '/rest/v1/profiles': async () => {
+        assert.equal(url.searchParams.get('id'), `eq.${authUser.id}`)
+        if (options.profileError) await route.fulfill({ status: 500, json: { message: 'database unavailable' } })
+        else await route.fulfill({ json: { id: authUser.id, display_name: 'Membre Test', avatar_url: null, created_at: authUser.created_at } })
+      },
+    }
+    await (handlers[url.pathname]?.() ?? route.abort())
+  })
+  return calls
+}
+
+test('LinkedIn simulé : PKCE, accueil, restauration et déconnexion', async () => {
+  const page = await browser.newPage()
+  try {
+    const calls = await mockAuth(page)
+    await page.goto(`${appUrl}/login`)
+    const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+    await connect.focus()
+    await page.keyboard.press('Enter')
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('heading', { name: 'Bienvenue, Membre Test' }).waitFor()
+    await page.getByText(authUser.email, { exact: true }).waitFor()
+    assert.equal(calls.exchanges, 1)
+    assert.equal(calls.authorizations, 1)
+    assert.doesNotMatch(page.url(), /code=|token=/)
+
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.reload()
+      await page.getByRole('heading', { name: 'Bienvenue, Membre Test' }).waitFor()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
+      await page.addScriptTag({ content: axe.source })
+      const violations = await page.evaluate(async () => (await window.axe.run()).violations
+        .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ html: n.html, summary: n.failureSummary })) })))
+      assert.deepEqual(violations, [])
+    }
+    await page.goto(`${appUrl}/login`)
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('button', { name: 'Se déconnecter' }).click()
+    await page.waitForURL(`${appUrl}/login`)
+    await page.goto(appUrl)
+    await page.waitForURL(`${appUrl}/login`)
+    await page.goBack()
+    await page.getByRole('heading', { name: 'Se connecter', exact: true }).waitFor()
+    assert.equal(await page.getByText(authUser.email, { exact: true }).count(), 0)
+  }
+  finally { await page.close() }
+}, { timeout: 60_000 })
+
+test('un retour OAuth annulé, vide ou expiré propose une nouvelle connexion', async () => {
+  for (const query of ['error=access_denied&error_description=private-provider-detail', '', 'code=test-code&next=https://evil.invalid']) {
+    const page = await browser.newPage()
+    try {
+      const options = { invalidCode: true }
+      await mockAuth(page, options)
+      if (query.startsWith('code=')) {
+        await page.goto(`${appUrl}/login`)
+        await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+      }
+      else await page.goto(`${appUrl}/auth/callback?${query}`)
+      await page.waitForURL(`${appUrl}/login`)
+      await page.getByRole('alert').getByText(/La connexion a été annulée ou a expiré/).waitFor()
+      assert.doesNotMatch(await page.locator('main').textContent(), /private-provider-detail/)
+      assert.equal(page.url(), `${appUrl}/login`)
+      options.invalidCode = false
+      await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+      await page.waitForURL(`${appUrl}/`)
+      await page.getByRole('heading', { name: 'Bienvenue, Membre Test' }).waitFor()
+    }
+    finally { await page.close() }
+  }
+}, { timeout: 60_000 })
+
+test('un échec du profil conserve la session et permet de réessayer', async () => {
+  const page = await browser.newPage()
+  try {
+    const options = { profileError: true }
+    await mockAuth(page, options)
+    await page.goto(`${appUrl}/login`)
+    await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('alert').getByText(/Impossible de charger votre profil/).waitFor()
+    options.profileError = false
+    await page.getByRole('button', { name: 'Réessayer' }).click()
+    await page.getByRole('heading', { name: 'Bienvenue, Membre Test' }).waitFor()
+    assert.equal(page.url(), `${appUrl}/`)
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
 
 test('la vitrine livre son contenu SEO en SSR et la plateforme une SPA', async () => {
   const response = await fetch(vitrineUrl)
