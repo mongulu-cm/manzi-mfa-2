@@ -338,6 +338,24 @@ test('la confidentialité est accessible sur la vitrine, en SSR et à 320px', as
   finally { await page.close() }
 }, { timeout: 60_000 })
 
+function assertTouchTarget(bounds) {
+  assert.ok(bounds.width >= 44 && bounds.height >= 44)
+}
+
+async function assertLoginActionsAndAccessibility(page) {
+  assert.equal(await page.getByRole('button').count(), 1, 'LinkedIn reste le seul fournisseur proposé')
+  const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+  const bounds = await connect.boundingBox()
+  assertTouchTarget(bounds)
+  const privacy = page.getByRole('link', { name: 'Confidentialité', exact: true })
+  assert.equal(await privacy.getAttribute('href'), `${vitrineUrl}/confidentialite`)
+  assert.equal(await page.getByRole('link', { name: 'Aide', exact: true }).getAttribute('href'), 'mailto:collectif@mongulu.cm')
+  await page.addScriptTag({ content: axe.source })
+  const violations = await page.evaluate(async () => (await window.axe.run()).violations
+    .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id))
+  assert.deepEqual(violations, [])
+}
+
 test('les deux sites restent utilisables au clavier, à 320px et sur desktop', async () => {
   const page = await browser.newPage()
   try {
@@ -360,17 +378,7 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
         assert.ok(measurements.brand >= 44)
         assert.equal(measurements.primary.toLowerCase(), '#576f1f')
         if (url === `${appUrl}/login`) {
-          assert.equal(await page.getByRole('button').count(), 1, 'LinkedIn reste le seul fournisseur proposé')
-          const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
-          const bounds = await connect.boundingBox()
-          assert.ok(bounds.width >= 44 && bounds.height >= 44)
-          const privacy = page.getByRole('link', { name: 'Confidentialité', exact: true })
-          assert.equal(await privacy.getAttribute('href'), `${vitrineUrl}/confidentialite`)
-          assert.equal(await page.getByRole('link', { name: 'Aide', exact: true }).getAttribute('href'), 'mailto:collectif@mongulu.cm')
-          await page.addScriptTag({ content: axe.source })
-          const violations = await page.evaluate(async () => (await window.axe.run()).violations
-            .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id))
-          assert.deepEqual(violations, [])
+          await assertLoginActionsAndAccessibility(page)
         }
       }
       await page.goto(vitrineUrl)
@@ -379,7 +387,7 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
       await page.keyboard.press('Tab')
       assert.equal(await page.locator(':focus').textContent(), 'Se connecter')
       const bounds = await page.locator(':focus').boundingBox()
-      assert.ok(bounds.width >= 44 && bounds.height >= 44)
+      assertTouchTarget(bounds)
     }
   }
   finally { await page.close() }
