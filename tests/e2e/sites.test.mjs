@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { after, before, test } from 'node:test'
 import { chromium } from 'playwright'
@@ -113,6 +114,58 @@ async function mockAuth(page, options = {}) {
   })
   return calls
 }
+
+function normalizedPolicyText(text) {
+  return text.normalize('NFC').replace(/\s+/gu, ' ').trim()
+}
+
+function markdownPolicyText(text) {
+  return normalizedPolicyText(text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*|`/g, ''))
+}
+
+function policyTableBlocks(block) {
+  const rows = block.split('\n')
+  assert.match(rows[1], /^\|\s*-+/)
+  return rows.slice(2).flatMap(row => row.split('|').slice(1, -1)
+    .map((cell, index) => ({ tag: index === 0 ? 'dt' : 'dd', text: markdownPolicyText(cell) })))
+}
+
+function policyHeadingBlock(heading) {
+  assert.ok(['#', '###'].includes(heading[1]), 'Les titres publics sont le titre principal et les sections numérotées')
+  return [{ tag: heading[1] === '#' ? 'h1' : 'h2', text: markdownPolicyText(heading[2].replace(/ — Manzi-mfa$/, '')) }]
+}
+
+function policyMarkdownBlock(block) {
+  if (block.startsWith('|')) return policyTableBlocks(block)
+  if (block.startsWith('- ')) {
+    return block.split('\n').map(line => ({ tag: 'li', text: markdownPolicyText(line.replace(/^- /, '')) }))
+  }
+  const heading = /^(#{1,3}) (.+)$/.exec(block)
+  if (heading) return policyHeadingBlock(heading)
+  return [{ tag: 'p', text: markdownPolicyText(block) }]
+}
+
+function publicPolicyBlocks(markdown) {
+  const parts = /^([\s\S]+?)^## Partie 1 — Résumé\n[\s\S]+?^## Partie 2 — Politique de confidentialité\n([\s\S]+?)^## Partie 3 — Notes de maintenance du document/m.exec(markdown)
+  assert.ok(parts, 'Le document doit distinguer le texte public, le résumé et les notes de maintenance')
+  return `${parts[1]}\n${parts[2]}`.trim().split(/\n\s*\n/).flatMap(policyMarkdownBlock)
+}
+
+test('la confidentialité SSR reste identique au texte public de PRIVACY.md', async () => {
+  const markdown = await readFile(new URL('../../PRIVACY.md', import.meta.url), 'utf8')
+  const expected = publicPolicyBlocks(markdown)
+  const context = await browser.newContext({ javaScriptEnabled: false })
+  const page = await context.newPage()
+  try {
+    const response = await page.goto(`${vitrineUrl}/confidentialite`)
+    assert.equal(response.status(), 200)
+    const actual = await page.locator('article.privacy-policy').locator('h1, h2, p, li, dt, dd')
+      .evaluateAll(blocks => blocks.map(block => ({ tag: block.tagName.toLowerCase(), text: block.textContent })))
+    assert.deepEqual(actual.map(block => ({ ...block, text: normalizedPolicyText(block.text) })), expected,
+      'Chaque titre, paragraphe, élément de liste et durée de conservation doit correspondre au document public')
+  }
+  finally { await context.close() }
+}, { timeout: 30_000 })
 
 test('LinkedIn simulé : PKCE, accueil, restauration et déconnexion', async () => {
   const page = await browser.newPage()

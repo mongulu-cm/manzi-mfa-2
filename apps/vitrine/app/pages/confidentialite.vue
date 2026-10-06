@@ -19,7 +19,7 @@ useSeoMeta({
     <h1 id="privacy-title">
       Politique de confidentialité
     </h1>
-    <!-- Texte public issu de PRIVACY.md ; conserver les deux versions en accord. -->
+    <!-- Texte public issu de PRIVACY.md ; le test E2E vérifie la parité du HTML SSR. -->
     <p>
       <strong>Version du 6 octobre 2026.</strong>
     </p>
@@ -63,7 +63,7 @@ useSeoMeta({
       <strong>Diagnostic technique.</strong> Les journaux d’exécution des Workers sont activés. Ils peuvent contenir l’horodatage, la méthode et l’adresse de la requête, le résultat de l’exécution et les erreurs. Tous les en-têtes et toutes les adresses IP ne sont pas nécessairement enregistrés dans chaque journal. Évitez d’inscrire des informations confidentielles dans les adresses de pages ou leurs paramètres.
     </p>
     <p>
-      <strong>Compte LinkedIn.</strong> Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification ; le nom et l’URL de la photo sont enregistrés dans votre profil à sa création. Cette version ne les synchronise pas à chaque connexion.
+      <strong>Compte LinkedIn.</strong> Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification Supabase Auth. Le nom et l’URL de la photo sont conservés dans les métadonnées de ce compte et copiés dans votre profil applicatif à sa création. Cette version ne synchronise pas le profil applicatif à chaque connexion ; les métadonnées d’authentification peuvent être actualisées par Supabase lors d’une connexion ultérieure.
     </p>
     <p>
       <strong>Préférence d’affichage.</strong> Le module de thème peut lire ou mémoriser une préférence sous la clé <code>nuxt-color-mode</code> dans le stockage local de votre navigateur. Cette valeur concerne l’affichage et ne constitue pas un identifiant de compte.

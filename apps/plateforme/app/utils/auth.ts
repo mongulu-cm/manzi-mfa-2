@@ -44,9 +44,17 @@ export function createAuthService(client: SupabaseClient | null) {
   let profileRequest = 0
   let initialization: Promise<void> | undefined
   let callback: Promise<boolean> | undefined
+  let loginRecovery: ReturnType<typeof setTimeout> | undefined
+
+  function resetLogin() {
+    if (loginRecovery !== undefined) clearTimeout(loginRecovery)
+    loginRecovery = undefined
+    state.signingIn = false
+  }
 
   function setUser(user: User | null) {
     revision++
+    if (user) resetLogin()
     if (state.user?.id !== user?.id) {
       profileRequest++
       state.profile = null
@@ -83,11 +91,6 @@ export function createAuthService(client: SupabaseClient | null) {
     if (event === 'INITIAL_SESSION') return
     setUser(session?.user ?? null)
     state.sessionError = ''
-    if (state.user) {
-      setTimeout(() => {
-        void loadProfile()
-      }, 0)
-    }
   }).data.subscription
 
   async function restoredUser(): Promise<User | null> {
@@ -140,10 +143,17 @@ export function createAuthService(client: SupabaseClient | null) {
         options: { redirectTo: `${origin}/auth/callback`, scopes: 'openid profile email' },
       })
       if (error) throw error
+      // Garder le verrou pendant le départ, mais permettre de réessayer si la page reste ouverte.
+      if (state.signingIn) {
+        loginRecovery = setTimeout(() => {
+          resetLogin()
+          state.actionError = authMessages.connection
+        }, 15_000)
+      }
     }
     catch {
       state.actionError = authMessages.connection
-      state.signingIn = false
+      resetLogin()
     }
   }
 
@@ -188,6 +198,9 @@ export function createAuthService(client: SupabaseClient | null) {
 
   return {
     state: readonly(state), initialize, retrySession, startLogin, completeCallback, loadProfile, logout,
-    dispose: () => subscription?.unsubscribe(),
+    dispose: () => {
+      resetLogin()
+      subscription?.unsubscribe()
+    },
   }
 }

@@ -1,5 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+-- Assertion functions are available to test roles only until this transaction rolls back.
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated;
 SET search_path = public, extensions;
 SELECT plan(21);
 

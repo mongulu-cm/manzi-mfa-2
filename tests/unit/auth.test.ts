@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AuthChangeEvent, Session, SupabaseClient, User } from '@supabase/supabase-js'
 import { authMessages, createAuthService, safeAvatarUrl } from '../../apps/plateforme/app/utils/auth'
 import { createBrowserClient } from '../../apps/plateforme/app/utils/supabase'
@@ -32,6 +32,10 @@ function fixture() {
 }
 
 describe('session de la plateforme', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('initialise une seule fois et valide le compte restauré', async () => {
     const { service, client } = fixture()
     await Promise.all([service.initialize(), service.initialize()])
@@ -49,12 +53,83 @@ describe('session de la plateforme', () => {
   })
 
   it('empêche les départs OAuth multiples et utilise le callback fixe', async () => {
+    vi.useFakeTimers()
     const { service, client } = fixture()
     await Promise.all([service.startLogin('http://localhost:3001'), service.startLogin('http://localhost:3001')])
     expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(1)
     expect(client.auth.signInWithOAuth).toHaveBeenCalledWith({
       provider: 'linkedin_oidc', options: { redirectTo: 'http://localhost:3001/auth/callback', scopes: 'openid profile email' },
     })
+    await vi.advanceTimersByTimeAsync(14_999)
+    await service.startLogin('http://localhost:3001')
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(1)
+    expect(service.state.signingIn).toBe(true)
+    service.dispose()
+  })
+
+  it('permet de réessayer si le départ OAuth ne quitte pas la page', async () => {
+    vi.useFakeTimers()
+    const { service, client } = fixture()
+    await service.startLogin('http://localhost:3001')
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(service.state.signingIn).toBe(false)
+    expect(service.state.actionError).toBe(authMessages.connection)
+    await service.startLogin('http://localhost:3001')
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(2)
+    expect(service.state.signingIn).toBe(true)
+    expect(service.state.actionError).toBe('')
+    service.dispose()
+  })
+
+  it('un échec OAuth libère le bouton et ne laisse aucun temporisateur', async () => {
+    vi.useFakeTimers()
+    const { service, client } = fixture()
+    client.auth.signInWithOAuth.mockResolvedValueOnce({ error: { message: 'sensitive' } })
+    await service.startLogin('http://localhost:3001')
+    expect(service.state.signingIn).toBe(false)
+    expect(service.state.actionError).toBe(authMessages.connection)
+    expect(vi.getTimerCount()).toBe(0)
+    await service.startLogin('http://localhost:3001')
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(2)
+    service.dispose()
+  })
+
+  it('la destruction du service annule la récupération OAuth', async () => {
+    vi.useFakeTimers()
+    const { service } = fixture()
+    await service.startLogin('http://localhost:3001')
+    expect(vi.getTimerCount()).toBe(1)
+    service.dispose()
+    expect(vi.getTimerCount()).toBe(0)
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(service.state.signingIn).toBe(false)
+    expect(service.state.actionError).toBe('')
+  })
+
+  it.each(['SIGNED_IN', 'TOKEN_REFRESHED'] as const)('%s ne charge pas le profil et annule la récupération OAuth', async (authEvent) => {
+    vi.useFakeTimers()
+    const { service, query, event } = fixture()
+    await service.startLogin('http://localhost:3001')
+    event(authEvent, user)
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(query.maybeSingle).not.toHaveBeenCalled()
+    expect(service.state.signingIn).toBe(false)
+    expect(service.state.actionError).toBe('')
+    expect(vi.getTimerCount()).toBe(0)
+    await service.loadProfile()
+    expect(query.maybeSingle).toHaveBeenCalledTimes(1)
+    expect(service.state.profile).toEqual(profile)
+  })
+
+  it('un échange de code réussi annule la récupération OAuth', async () => {
+    vi.useFakeTimers()
+    const { service } = fixture()
+    await service.startLogin('http://localhost:3001')
+    expect(await service.completeCallback(new URLSearchParams('code=test'))).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(service.state.actionError).toBe('')
+    expect(service.state.signingIn).toBe(false)
   })
 
   it('échange le code une seule fois, sans destination arbitraire', async () => {
@@ -124,6 +199,25 @@ describe('session de la plateforme', () => {
     expect(service.state.profile).toBeNull()
     expect(service.state.user?.id).toBe('user-b')
     service.dispose()
+  })
+
+  it('ignore le profil de l’ancien compte pendant un changement de compte', async () => {
+    const { service, query, event } = fixture()
+    await service.initialize()
+    let resolve: (value: unknown) => void = () => {}
+    query.maybeSingle.mockReturnValueOnce(new Promise((r) => {
+      resolve = r
+    }))
+    const pending = service.loadProfile()
+    event('SIGNED_IN', { ...user, id: 'user-b' })
+    resolve({ data: profile, error: null })
+    await pending
+    expect(service.state.profile).toBeNull()
+    const nextProfile = { ...profile, id: 'user-b', display_name: 'Autre compte' }
+    query.maybeSingle.mockResolvedValueOnce({ data: nextProfile, error: null })
+    await service.loadProfile()
+    expect(service.state.profile).toEqual(nextProfile)
+    expect(query.eq).toHaveBeenLastCalledWith('id', 'user-b')
   })
 
   it('une erreur de déconnexion garde le compte et permet de réessayer', async () => {

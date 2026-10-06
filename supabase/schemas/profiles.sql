@@ -11,6 +11,7 @@ CREATE TABLE public.profiles (
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.profiles FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.profiles TO authenticated;
+GRANT ALL ON TABLE public.profiles TO service_role;
 
 CREATE POLICY profiles_read_own ON public.profiles
   FOR SELECT TO authenticated

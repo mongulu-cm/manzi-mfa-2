@@ -5,7 +5,7 @@ export default defineAppConfig({
       neutral: 'stone',
     },
     alert: {
-      compoundVariants: [{ variant: 'soft', class: { title: 'text-default', description: 'text-default' } }],
+      compoundVariants: [{ color: 'error', variant: 'soft', class: { title: 'text-default', description: 'text-default' } }],
     },
     button: {
       slots: {

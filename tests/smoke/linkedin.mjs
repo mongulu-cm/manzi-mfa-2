@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
+import { assertAccountProfile } from './profile-check.mjs'
 
 // Smoke opt-in, hors CI. Aucune trace, capture, session ou donnée personnelle sauvegardée.
 try {
@@ -69,36 +70,49 @@ async function connect() {
   throw new Error('manual_validation_timeout')
 }
 
-async function validateAccount() {
+async function validateAccount(initialProvider) {
   const id = await page.evaluate((ref) => {
     const value = localStorage.getItem(`sb-${ref}-auth-token`)
     return value ? JSON.parse(value).user?.id : null
   }, projectRef)
   assert.match(id ?? '', /^[0-9a-f-]{36}$/i)
-  const query = `select (select count(*) from auth.users where id='${id}'::uuid)=1 as unique_account, (select count(*) from public.profiles where id='${id}'::uuid)=1 as unique_profile, (select display_name is not null from public.profiles where id='${id}'::uuid) as has_name, (select avatar_url is not null from public.profiles where id='${id}'::uuid) as has_photo, (select email is not null from auth.users where id='${id}'::uuid) as has_email`
+  const query = `
+    with account as (select email, raw_user_meta_data from auth.users where id='${id}'::uuid),
+      profile as (select display_name, avatar_url from public.profiles where id='${id}'::uuid)
+    select (select count(*) from account)=1 as unique_account,
+      (select count(*) from profile)=1 as unique_profile,
+      coalesce((select nullif(btrim(display_name), '') is not null from profile), false) as has_name,
+      coalesce((select avatar_url ~ '^https://[^/@[:space:]]+(/[^[:space:]]*)?$' from profile), false) as has_photo,
+      coalesce((select nullif(btrim(email), '') is not null from account), false) as has_email,
+      coalesce((select jsonb_typeof(raw_user_meta_data -> 'name') = 'string'
+        and nullif(btrim(raw_user_meta_data ->> 'name'), '') is not null from account), false) as provider_has_name,
+      coalesce((select jsonb_typeof(raw_user_meta_data -> 'picture') = 'string'
+        and (raw_user_meta_data ->> 'picture') ~ '^https://[^/@[:space:]]+(/[^[:space:]]*)?$' from account), false) as provider_has_photo,
+      coalesce((select jsonb_typeof(raw_user_meta_data -> 'email') = 'string'
+        and nullif(btrim(raw_user_meta_data ->> 'email'), '') is not null from account), false) as provider_has_email`
   const result = JSON.parse(execFileSync('npx', ['supabase', 'db', 'query', '--linked', '--project-ref', projectRef, query, '--output', 'json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }))
   const values = result.rows[0]
-  assert.equal(values.unique_account, true)
-  assert.equal(values.unique_profile, true)
+  assertAccountProfile(values, initialProvider)
   console.log(JSON.stringify({ ...values, stage }))
-  return id
+  return { id, values }
 }
 
 try {
   await page.goto(`${appUrl}/login`)
   stage = 'première connexion'
   await connect()
-  const id = await validateAccount()
+  // Le profil est figé à sa création : garder ces attentes si LinkedIn change ensuite ses métadonnées.
+  const account = await validateAccount()
   stage = 'restauration'
   await page.reload()
   await page.getByRole('button', { name: 'Se déconnecter', exact: true }).waitFor()
   await page.locator('main dd').waitFor()
-  assert.equal(await validateAccount(), id)
+  assert.equal((await validateAccount(account.values)).id, account.id)
   await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click()
   await page.waitForURL(`${appUrl}/login`)
   stage = 'reconnexion'
   await connect()
-  assert.equal(await validateAccount(), id)
+  assert.equal((await validateAccount(account.values)).id, account.id)
   await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click()
   await page.waitForURL(`${appUrl}/login`)
   console.log('Smoke LinkedIn réel réussi : même compte et profil, session restaurée, déconnexion vérifiée.')

@@ -114,7 +114,7 @@ Pour injecter ces deux bindings avec Wrangler, transmettre uniquement un objet J
 
 La PR reçoit un commentaire Cloudflare par Worker : l’un concerne la vitrine et l’autre la plateforme. Chaque commentaire contient l’URL stable de la branche et les URL immuables des déploiements. Pour tester la connexion, utiliser l’URL stable plateforme dont le callback est autorisé dans Supabase.
 
-Valider les deux previews avant de publier le nouveau lien en production. Déployer d'abord la plateforme puis la vitrine. Revenir à une version antérieure de chaque Worker séparément si nécessaire.
+Valider les deux previews avant de publier le nouveau lien en production. Pour la migration initiale vers deux sites, déployer la plateforme avant d'ajouter son lien sur la vitrine. Pour la version avec connexion LinkedIn, suivre l'ordre de publication décrit ci-dessous : migrations, confidentialité sur la vitrine, puis plateforme. Revenir à une version antérieure de chaque Worker séparément si nécessaire.
 
 ## Vérification
 
@@ -142,7 +142,7 @@ Dans Supabase Auth, définir la Site URL sur `https://app.manzi-mfa-2.mongulu.cm
 
 Ces quatre URL sont autorisées dans le projet Supabase. Pour une nouvelle branche, ajouter ses URL exactes `/auth/callback` avant de tester OAuth ; aucun wildcard n’est autorisé. La plateforme calcule la destination depuis son origine, ce qui conserve le retour sur la preview utilisée.
 
-Dans LinkedIn, conserver la redirection vers `https://gdcirvvqangyraxauggy.supabase.co/auth/v1/callback` et les permissions OIDC `openid profile email`. Les secrets du fournisseur restent dans Supabase. Configurer les deux variables publiques plateforme dans le build et le runtime Cloudflare ; une configuration absente désactive le bouton de connexion.
+Dans LinkedIn Developers, ouvrir l'application puis **Auth → Authorized redirect URLs** et ajouter `https://gdcirvvqangyraxauggy.supabase.co/auth/v1/callback`. Cette URL Supabase est commune au local, à la production et aux previews ; leurs destinations respectives sont autorisées dans Supabase comme indiqué ci-dessus. Activer les permissions OIDC `openid profile email`. Les secrets du fournisseur restent dans Supabase. Configurer les deux variables publiques plateforme dans le build et le runtime Cloudflare ; une configuration absente désactive le bouton de connexion.
 
 `supabase/schemas/` est la source de vérité. Lors de cette initialisation, `db pull` a confirmé que le projet distant était déjà en phase avec la baseline vide : aucun objet applicatif préexistant n’était à migrer. Les déclarations des extensions et privilèges ont été exportées du projet. Pour les évolutions, établir la référence depuis le projet lié avant de générer une modification avec `npx supabase db schema declarative sync -f nom --no-apply`. Les migrations de données sont distinctes des déclarations de structure. Le trigger privé crée un profil à l’inscription ; les comptes existants sont repris sans écrasement. Le nom et l’URL HTTPS de la photo sont capturés à la création, sans synchronisation à chaque login ni édition dans cette version. Supprimer le compte Auth supprime le profil associé.
 
@@ -154,4 +154,4 @@ Dans LinkedIn, conserver la redirection vers `https://gdcirvvqangyraxauggy.supab
 - `npm run test:linkedin` : smoke opt-in avec Chromium visible, hors CI. Il consomme les variables locales, attend une intervention humaine pour l’autorisation ou un challenge et vérifie le même compte/profil après rechargement et reconnexion, sans enregistrer de données personnelles.
 - Test réel manuel : lancer la plateforme avec les variables publiques du projet, cliquer « Continuer avec LinkedIn », vérifier le profil, recharger, se déconnecter puis se reconnecter. Vérifier qu’un seul compte et profil existent. Les variables locales `E2E_LINKEDIN_USERNAME` / `E2E_LINKEDIN_PASSWORD` peuvent servir au smoke test autorisé ; ne jamais les committer, enregistrer de trace contenant les identifiants ou les ajouter à la CI. Une validation MFA ou un challenge LinkedIn nécessite une intervention humaine.
 
-Déployer les migrations et la confidentialité sur la vitrine avant la plateforme. En cas de problème, revenir à la version précédente du Worker sans supprimer les comptes ni les profils ; corriger la base par une migration suivante.
+Pour publier la connexion LinkedIn, déployer d'abord les migrations Supabase, puis la confidentialité sur la vitrine, puis la plateforme pour activer l'interface de connexion. En cas de problème, revenir à la version précédente du Worker sans supprimer les comptes ni les profils ; corriger la base par une migration suivante.
