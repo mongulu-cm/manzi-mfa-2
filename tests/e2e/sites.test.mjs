@@ -426,3 +426,42 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
   }
   finally { await page.close() }
 }, { timeout: 60_000 })
+
+test('la landing page vitrine rend ses 4 sections en SSR sans JavaScript', async () => {
+  const response = await fetch(vitrineUrl)
+  assert.equal(response.status, 200)
+  const html = await response.text()
+  assert.match(html, /<h1[^>]*>\s*Manzi-mfa\s*<\/h1>/)
+  for (const title of ['Comment ça marche', 'Conçu pour grandir ensemble', 'Prêt à franchir le cap']) {
+    assert.match(html, new RegExp(`<h2[^>]*>\\s*${title}`), `Titre manquant dans le HTML SSR : ${title}`)
+  }
+})
+
+test('la landing page vitrine est accessible et sans débordement à 320px et 1280px', async () => {
+  const page = await browser.newPage()
+  try {
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto(vitrineUrl)
+      await page.getByRole('heading', { name: 'Manzi-mfa', exact: true }).waitFor()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
+      await page.addScriptTag({ content: axe.source })
+      const violations = await page.evaluate(async () => (await window.axe.run()).violations
+        .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ html: n.html, summary: n.failureSummary })) })))
+      assert.deepEqual(violations, [])
+    }
+  }
+  finally { await page.close() }
+}, { timeout: 60_000 })
+
+test('le CTA de la landing page redirige vers la connexion de la plateforme', async () => {
+  const page = await browser.newPage()
+  try {
+    await page.goto(vitrineUrl)
+    const cta = page.getByRole('link', { name: 'Rejoindre la plateforme', exact: true })
+    assert.equal(await cta.getAttribute('href'), `${appUrl}/login`)
+    await cta.click()
+    await page.waitForURL(`${appUrl}/login`)
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
