@@ -16,7 +16,10 @@ function mockClient(result: { data: unknown, error: unknown }) {
   const calls: Record<string, unknown[][]> = {}
   const chain: Record<string, unknown> = {}
   for (const m of ['select', 'eq', 'update', 'maybeSingle', 'single']) {
-    chain[m] = vi.fn((...args: unknown[]) => { (calls[m] ??= []).push(args); return chain })
+    chain[m] = vi.fn((...args: unknown[]) => {
+      (calls[m] ??= []).push(args)
+      return chain
+    })
   }
   chain.then = (resolve: (v: unknown) => unknown) => resolve(result)
   const client = { from: vi.fn(() => chain) } as unknown as SupabaseClient

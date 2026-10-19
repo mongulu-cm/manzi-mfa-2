@@ -55,7 +55,7 @@ function isLinkedinUrl(value: unknown): boolean {
   }
 }
 
-export function validateProfileUpdateInput(input: unknown): { valid: boolean; errors: string[] } {
+export function validateProfileUpdateInput(input: unknown): { valid: boolean, errors: string[] } {
   const errors: string[] = []
   if (typeof input !== 'object' || input === null || Array.isArray(input)) {
     return { valid: false, errors: ['input must be an object'] }
