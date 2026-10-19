@@ -64,6 +64,17 @@ Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`
 
 Les workspaces npm (`apps/*`, `layers/*`) utilisent un seul `package-lock.json`. `npm ci` prépare les deux applications. Les sorties `.nuxt/`, `.output/` et `.wrangler/` restent propres à chacune.
 
+## Instructions des dépendances pour les agents
+
+[TanStack Intent](https://tanstack.com/intent/latest) est installé comme dépendance de développement à la racine. Le bloc géré dans `AGENTS.md` indique aux agents comment découvrir et charger les skills livrées avec les paquets installés.
+
+```sh
+npm run intent -- list
+npm run intent -- load @supabase/server#supabase-server
+```
+
+Exécuter ces commandes depuis la racine du monorepo pour inclure ses dépendances et outils partagés. La liste `intent.skills` de `package.json` autorise les skills de `@supabase/server` et de `fallow`, deux dépendances directes du projet. Pour modifier les sources autorisées, utiliser `npm run intent -- install --review` ou éditer cette liste. `npm run intent -- install` régénère le bloc géré dans `AGENTS.md` sans remplacer les consignes du projet. Ces commandes utilisent la version locale verrouillée dans `package-lock.json`.
+
 ## Structure et partage
 
 - `apps/vitrine/app/` : pages et layout du site public, bouton « Se connecter », CSS propre à la vitrine.

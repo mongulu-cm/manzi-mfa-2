@@ -32,7 +32,8 @@
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:coverage": "vitest run --config vitest.unit.config.ts --coverage",
     "test:db": "node tests/db/run.mjs",
-    "test:linkedin": "node tests/smoke/linkedin.mjs"
+    "test:linkedin": "node tests/smoke/linkedin.mjs",
+    "intent": "intent"
   },
   "dependencies": {
     "@fontsource/alegreya": "^5.2.8",
@@ -50,6 +51,7 @@
     "@storybook/addon-vitest": "^10.6.1",
     "@storybook/vue3": "^10.6.1",
     "@supabase/supabase-js": "2.117.2",
+    "@tanstack/intent": "0.5.6",
     "@vitest/browser": "^5.0.3",
     "@vitest/browser-playwright": "^5.0.3",
     "@vitest/coverage-v8": "^5.0.3",
@@ -68,5 +70,11 @@
   "workspaces": [
     "apps/*",
     "layers/*"
-  ]
+  ],
+  "intent": {
+    "skills": [
+      "@supabase/server",
+      "fallow"
+    ]
+  }
 }
