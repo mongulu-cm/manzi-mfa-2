@@ -82,6 +82,7 @@ describe('fetchActiveMentors', () => {
   it('filters and maps mentors', async () => {
     const { client, calls } = mockClient({ data: [row, { ...row, id: 'u2', display_name: null, headline: null, company_or_school: null, years_of_experience: null, skills: null }], error: null })
     const m = await fetchActiveMentors(client)
+    expect(calls.select).toEqual([['id, display_name, avatar_url, headline, company_or_school, years_of_experience, skills, bio']])
     expect(calls.eq).toEqual([['role', 'mentor'], ['is_active', true], ['is_onboarded', true]])
     expect(m[0]).toMatchObject({ id: 'u1', displayName: 'Ada', headline: 'Eng' })
     expect(m[1]).toMatchObject({ displayName: '', headline: '', companyOrSchool: '', yearsOfExperience: 0, skills: [] })

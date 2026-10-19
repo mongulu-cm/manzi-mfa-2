@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Assertion functions are available to test roles only until this transaction rolls back.
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated;
 SET search_path = public, extensions;
-SELECT plan(32);
+SELECT plan(35);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
   ('a0000000-0000-0000-0000-000000000001', 'a@example.invalid', '{"name":"  Membre Test  ","picture":"https://image.example.invalid/photo.png"}'),
@@ -38,6 +38,9 @@ SELECT throws_ok($$UPDATE public.profiles SET years_of_experience=71 WHERE id = 
 SELECT throws_ok($$UPDATE public.profiles SET years_of_experience=-1 WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Expérience négative refusée');
 SELECT throws_ok($$UPDATE public.profiles SET linkedin_url='https://example.com/in/x' WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'URL LinkedIn invalide refusée');
 SELECT lives_ok($$UPDATE public.profiles SET role='mentee', years_of_experience=10, linkedin_url='https://www.linkedin.com/in/test' WHERE id = (SELECT auth.uid())$$, 'Valeurs valides acceptées');
+SELECT throws_ok($$UPDATE public.profiles SET created_at = now() WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'created_at non modifiable');
+SELECT throws_ok($$UPDATE public.profiles SET id = gen_random_uuid() WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'id non modifiable');
+SELECT throws_ok($$UPDATE public.profiles SET is_active = false WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'is_active non modifiable');
 SELECT throws_ok($$DELETE FROM public.profiles$$, '42501', NULL, 'Suppression cliente interdite');
 SELECT throws_ok($$SELECT private.create_profile()$$, '42501', NULL, 'Fonction privée inaccessible');
 RESET ROLE;

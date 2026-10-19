@@ -3,7 +3,7 @@ ALTER TABLE "public"."profiles"
   ADD COLUMN IF NOT EXISTS "headline" text,
   ADD COLUMN IF NOT EXISTS "company_or_school" text,
   ADD COLUMN IF NOT EXISTS "years_of_experience" integer CHECK ("years_of_experience" >= 0 AND "years_of_experience" <= 70),
-  ADD COLUMN IF NOT EXISTS "linkedin_url" text CHECK ("linkedin_url" IS NULL OR "linkedin_url" ~ '^https://([a-z]{2,3}\.)?linkedin\.com/.*$'),
+  ADD COLUMN IF NOT EXISTS "linkedin_url" text CHECK ("linkedin_url" IS NULL OR "linkedin_url" ~* '^https://([a-z0-9-]+\.)*linkedin\.com(/.*)?$'),
   ADD COLUMN IF NOT EXISTS "skills" text[] DEFAULT '{}'::text[],
   ADD COLUMN IF NOT EXISTS "bio" text,
   ADD COLUMN IF NOT EXISTS "resume_url" text,
@@ -31,4 +31,28 @@ CREATE POLICY "profiles_read_active_mentors" ON "public"."profiles"
   TO "authenticated"
   USING ("role" = 'mentor' AND "is_active" = true AND "is_onboarded" = true);
 
-GRANT UPDATE ON TABLE "public"."profiles" TO "authenticated";
+REVOKE ALL ON TABLE "public"."profiles" FROM "authenticated";
+GRANT SELECT ON TABLE "public"."profiles" TO "authenticated";
+GRANT UPDATE ("display_name", "headline", "company_or_school", "years_of_experience", "linkedin_url", "skills", "bio", "resume_url", "role", "is_onboarded") ON TABLE "public"."profiles" TO "authenticated";
+
+CREATE OR REPLACE FUNCTION private.set_updated_at()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO ''
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  NEW.created_at = OLD.created_at;
+  NEW.id = OLD.id;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION private.set_updated_at() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS tr_profiles_set_updated_at ON public.profiles;
+CREATE TRIGGER tr_profiles_set_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION private.set_updated_at();

@@ -12,10 +12,12 @@ ON CONFLICT (id) DO UPDATE SET
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
 -- Politiques RLS pour avatars
-CREATE POLICY "avatars_select_public" ON storage.objects
+-- Les avatars sont servis via /object/public/avatars/* sans SELECT anonyme sur storage.objects
+-- (évite le listing des dossiers utilisateurs).
+CREATE POLICY "avatars_select_own" ON storage.objects
   FOR SELECT
-  TO public
-  USING (bucket_id = 'avatars');
+  TO authenticated
+  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
 
 CREATE POLICY "avatars_insert_own" ON storage.objects
   FOR INSERT

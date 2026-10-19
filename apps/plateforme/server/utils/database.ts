@@ -44,7 +44,7 @@ function toProfile(row: ProfileRow): Profile {
   }
 }
 
-function toMentor(row: ProfileRow): MentorPublicProfile {
+function toMentor(row: Pick<ProfileRow, 'id' | 'display_name' | 'avatar_url' | 'headline' | 'company_or_school' | 'years_of_experience' | 'skills' | 'bio'>): MentorPublicProfile {
   return {
     id: row.id,
     displayName: row.display_name ?? '',
@@ -93,8 +93,9 @@ export async function updateUserProfile(
 }
 
 export async function fetchActiveMentors(client: SupabaseClient): Promise<MentorPublicProfile[]> {
-  const { data, error } = await client.from('profiles').select('*')
+  const { data, error } = await client.from('profiles')
+    .select('id, display_name, avatar_url, headline, company_or_school, years_of_experience, skills, bio')
     .eq('role', 'mentor').eq('is_active', true).eq('is_onboarded', true)
   if (error) throw new Error('Unable to load mentors')
-  return ((data ?? []) as ProfileRow[]).map(toMentor)
+  return ((data ?? []) as Pick<ProfileRow, 'id' | 'display_name' | 'avatar_url' | 'headline' | 'company_or_school' | 'years_of_experience' | 'skills' | 'bio'>[]).map(toMentor)
 }

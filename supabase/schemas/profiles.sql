@@ -10,7 +10,7 @@ CREATE TABLE public.profiles (
   headline text,
   company_or_school text,
   years_of_experience integer CHECK (years_of_experience >= 0 AND years_of_experience <= 70),
-  linkedin_url text CHECK (linkedin_url IS NULL OR linkedin_url ~ '^https://([a-z]{2,3}\.)?linkedin\.com/.*$'),
+  linkedin_url text CHECK (linkedin_url IS NULL OR linkedin_url ~* '^https://([a-z0-9-]+\.)*linkedin\.com(/.*)?$'),
   skills text[] DEFAULT '{}'::text[],
   bio text,
   resume_url text,
@@ -25,7 +25,8 @@ CREATE INDEX idx_profiles_skills ON public.profiles USING GIN (skills);
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.profiles FROM PUBLIC, anon, authenticated;
-GRANT SELECT, UPDATE ON TABLE public.profiles TO authenticated;
+GRANT SELECT ON TABLE public.profiles TO authenticated;
+GRANT UPDATE (display_name, headline, company_or_school, years_of_experience, linkedin_url, skills, bio, resume_url, role, is_onboarded) ON TABLE public.profiles TO authenticated;
 GRANT ALL ON TABLE public.profiles TO service_role;
 
 CREATE POLICY profiles_read_own ON public.profiles
@@ -40,6 +41,28 @@ CREATE POLICY profiles_update_own ON public.profiles
 CREATE POLICY profiles_read_active_mentors ON public.profiles
   FOR SELECT TO authenticated
   USING (role = 'mentor' AND is_active = true AND is_onboarded = true);
+
+CREATE OR REPLACE FUNCTION private.set_updated_at()
+  RETURNS TRIGGER
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO ''
+AS $function$
+BEGIN
+  NEW.updated_at = now();
+  NEW.created_at = OLD.created_at;
+  NEW.id = OLD.id;
+  RETURN NEW;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION private.set_updated_at() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS tr_profiles_set_updated_at ON public.profiles;
+CREATE TRIGGER tr_profiles_set_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION private.set_updated_at();
 
 -- Auth crée le compte sans JWT utilisateur : NEW.id est la source de l’identité.
 -- Aucune métadonnée LinkedIn ne participe aux autorisations.

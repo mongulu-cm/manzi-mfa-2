@@ -47,6 +47,33 @@ describe('validateProfileUpdateInput', () => {
     }
   })
 
+  it('accepts case-insensitive and trailing-slash linkedin URLs', () => {
+    for (const u of ['HTTPS://WWW.LinkedIn.com/in/x', 'https://linkedin.com', 'https://fr.linkedin.com/']) {
+      expect(validateProfileUpdateInput({ linkedinUrl: u }).valid).toBe(true)
+    }
+  })
+
+  it('validates text field lengths', () => {
+    for (const k of ['headline', 'companyOrSchool']) {
+      expect(validateProfileUpdateInput({ [k]: 'a'.repeat(120) }).valid).toBe(true)
+      expect(validateProfileUpdateInput({ [k]: 'a'.repeat(121) }).errors[0]).toContain(k)
+      expect(validateProfileUpdateInput({ [k]: 5 }).errors[0]).toContain(k)
+    }
+    expect(validateProfileUpdateInput({ bio: 'a'.repeat(1000) }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ bio: null }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ bio: 'a'.repeat(1001) }).errors[0]).toContain('bio')
+    expect(validateProfileUpdateInput({ resumeUrl: 'a'.repeat(500) }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ resumeUrl: null }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ resumeUrl: 'a'.repeat(501) }).errors[0]).toContain('resumeUrl')
+    expect(validateProfileUpdateInput({ resumeUrl: 3 }).errors[0]).toContain('resumeUrl')
+  })
+
+  it('enforces skills count and length limits', () => {
+    expect(validateProfileUpdateInput({ skills: Array.from({ length: 30 }, () => 'a') }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ skills: Array.from({ length: 31 }, () => 'a') }).valid).toBe(false)
+    expect(validateProfileUpdateInput({ skills: ['a'.repeat(51)] }).valid).toBe(false)
+  })
+
   it('rejects invalid skills', () => {
     for (const s of ['ts', ['ts', ''], ['  '], [1]]) {
       const r = validateProfileUpdateInput({ skills: s })
