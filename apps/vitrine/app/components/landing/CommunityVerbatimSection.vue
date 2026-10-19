@@ -47,21 +47,24 @@
             <div class="flex -space-x-3 overflow-hidden">
               <img
                 src="/images/landing/avatar-1.svg"
-                alt="Membre de la communauté"
+                alt=""
+                aria-hidden="true"
                 width="40"
                 height="40"
                 class="inline-block h-10 w-10 rounded-full ring-2 ring-white"
               >
               <img
                 src="/images/landing/avatar-2.svg"
-                alt="Membre de la communauté"
+                alt=""
+                aria-hidden="true"
                 width="40"
                 height="40"
                 class="inline-block h-10 w-10 rounded-full ring-2 ring-white"
               >
               <img
                 src="/images/landing/avatar-3.svg"
-                alt="Membre de la communauté"
+                alt=""
+                aria-hidden="true"
                 width="40"
                 height="40"
                 class="inline-block h-10 w-10 rounded-full ring-2 ring-white"

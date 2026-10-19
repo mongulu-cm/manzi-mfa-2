@@ -126,6 +126,7 @@ const mentors: Mentor[] = [
               :to="loginUrl"
               :external="isAppConfigured"
               variant="outline"
+              :aria-label="'Voir le profil de ' + mentor.name"
               class="min-h-11 w-full justify-center rounded-full border-[#576F1F] text-[#576F1F] hover:bg-[#E6F0D6]"
             >
               Voir profil

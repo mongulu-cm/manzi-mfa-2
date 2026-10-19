@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveAppUrl, useAppNavigation } from '../../apps/vitrine/app/composables/useAppNavigation'
 
 describe('résolution d’URL applicative', () => {
@@ -18,6 +18,10 @@ describe('résolution d’URL applicative', () => {
 })
 
 describe('composable useAppNavigation', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('fournit l’URL de login et indique que l’app est configurée', () => {
     vi.stubGlobal('useRuntimeConfig', () => ({ public: { appUrl: 'http://localhost:3001' } }))
     vi.stubGlobal('computed', (fn: () => unknown) => ({ value: fn() }))
@@ -26,8 +30,6 @@ describe('composable useAppNavigation', () => {
     expect(nav.isAppConfigured.value).toBe(true)
     expect(nav.getLoginUrl()).toBe('http://localhost:3001/login')
     expect(nav.supportEmail).toBe('collectif@mongulu.cm')
-
-    vi.unstubAllGlobals()
   })
 
   it('fournit le lien de contact de repli si l’app n’est pas configurée', () => {
@@ -37,7 +39,5 @@ describe('composable useAppNavigation', () => {
     const nav = useAppNavigation()
     expect(nav.isAppConfigured.value).toBe(false)
     expect(nav.getLoginUrl()).toBe('mailto:collectif@mongulu.cm?subject=Contact%20Manzi-mfa')
-
-    vi.unstubAllGlobals()
   })
 })

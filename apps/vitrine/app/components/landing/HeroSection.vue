@@ -17,7 +17,7 @@ const loginUrl = computed(() => getLoginUrl())
         >
           Trouvez le mentor tech qui vous aidera à avancer
         </h1>
-        <p class="mt-6 text-base text-[#555555] sm:text-lg">
+        <p class="mt-6 text-base text-[#47483B] sm:text-lg">
           Accélérez votre carrière grâce à des échanges de 15-30 minutes avec des professionnels chevronnés de la tech africaine et de sa diaspora.
         </p>
 
