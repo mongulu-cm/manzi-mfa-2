@@ -282,9 +282,9 @@ test('un échec du profil conserve la session et permet de réessayer', async ()
 test('la vitrine livre son contenu SEO en SSR et la plateforme une SPA', async () => {
   const response = await fetch(vitrineUrl)
   const html = await response.text()
-  assert.match(html, /<h1[^>]*>\s*Manzi-mfa/)
+  assert.match(html, /<h1[^>]*>\s*Trouvez le mentor tech qui vous aidera à avancer/)
   assert.match(html, /name="description"/)
-  assert.match(html, /Le pont vers l&#39;emploi|Le pont vers l'emploi/)
+  assert.match(html, /Accélérez votre carrière grâce à des échanges/)
   assert.match(html, new RegExp(`href="${appUrl}/login"`))
 
   const appResponse = await fetch(`${appUrl}/login`)
@@ -314,7 +314,7 @@ test('le lien de connexion ouvre la plateforme dans le même onglet puis permet 
     assert.match(await page.title(), /Se connecter — Manzi-mfa/)
     await page.getByRole('link', { name: 'Retour au site' }).click()
     await page.waitForURL(`${vitrineUrl}/`)
-    await page.getByRole('heading', { name: 'Manzi-mfa', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Trouvez le mentor tech qui vous aidera à avancer' }).waitFor()
     assert.deepEqual(errors, [])
   }
   finally { await page.close() }
@@ -427,13 +427,16 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
   finally { await page.close() }
 }, { timeout: 60_000 })
 
-test('la landing page vitrine rend ses 4 sections en SSR sans JavaScript', async () => {
+test('la landing page vitrine rend ses sections en SSR sans JavaScript', async () => {
   const response = await fetch(vitrineUrl)
   assert.equal(response.status, 200)
   const html = await response.text()
-  assert.match(html, /<h1[^>]*>\s*Manzi-mfa\s*<\/h1>/)
-  for (const title of ['Comment ça marche', 'Conçu pour grandir ensemble', 'Prêt à franchir le cap']) {
+  assert.match(html, /<h1[^>]*>\s*Trouvez le mentor tech qui vous aidera à avancer/)
+  for (const title of ['Comment ça marche \\?', 'Mentors à la une', 'Une communauté engagée et gratuite']) {
     assert.match(html, new RegExp(`<h2[^>]*>\\s*${title}`), `Titre manquant dans le HTML SSR : ${title}`)
+  }
+  for (const name of ['Aïcha', 'Patrick', 'Emmanuel', 'Sarah']) {
+    assert.ok(html.includes(name), `Mentor manquant dans le HTML SSR : ${name}`)
   }
 })
 
@@ -443,7 +446,7 @@ test('la landing page vitrine est accessible et sans débordement à 320px et 12
     for (const width of [320, 1280]) {
       await page.setViewportSize({ width, height: 900 })
       await page.goto(vitrineUrl)
-      await page.getByRole('heading', { name: 'Manzi-mfa', exact: true }).waitFor()
+      await page.getByRole('heading', { name: 'Trouvez le mentor tech qui vous aidera à avancer' }).waitFor()
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
       await page.addScriptTag({ content: axe.source })
       const violations = await page.evaluate(async () => (await window.axe.run()).violations
@@ -458,7 +461,7 @@ test('le CTA de la landing page redirige vers la connexion de la plateforme', as
   const page = await browser.newPage()
   try {
     await page.goto(vitrineUrl)
-    const cta = page.getByRole('link', { name: 'Rejoindre la plateforme', exact: true })
+    const cta = page.getByRole('link', { name: 'Trouver un mentor', exact: true })
     assert.equal(await cta.getAttribute('href'), `${appUrl}/login`)
     await cta.click()
     await page.waitForURL(`${appUrl}/login`)
