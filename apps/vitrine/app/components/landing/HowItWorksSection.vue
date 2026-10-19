@@ -2,18 +2,18 @@
 const steps = [
   {
     number: '1',
-    title: 'Trouvez votre mentor',
-    description: 'Explorez des profils seniors vérifiés selon votre domaine (Frontend, Backend, DevOps, Data) et vos aspirations professionnelles.',
+    title: 'Créez votre profil',
+    description: 'Présentez votre parcours, vos objectifs et vos besoins d\'accompagnement.',
   },
   {
     number: '2',
-    title: 'Réservez un échange',
-    description: 'Sélectionnez un créneau de 15 à 30 minutes sans friction ni intermédiaire, synchronisé avec les disponibilités du mentor.',
+    title: 'Choisissez votre mentor',
+    description: 'Explorez les profils selon votre stack et réservez selon vos disponibilités.',
   },
   {
     number: '3',
-    title: 'Accélérez votre carrière',
-    description: 'Recevez des conseils personnalisés, affinez votre CV et préparez vos simulations d’entretien technique en toute confiance.',
+    title: 'Book Quick Chat',
+    description: 'Échangez pendant 15-30 minutes en direct avec un senior bienveillant.',
   },
 ]
 </script>
@@ -28,10 +28,10 @@ const steps = [
         id="how-it-works-title"
         class="font-serif text-2xl font-bold text-[#1F1F1F] sm:text-4xl"
       >
-        Comment ça marche
+        Comment ça marche ?
       </h2>
       <p class="mt-2 text-base text-[#6B6B6B] sm:text-lg">
-        Trois étapes simples pour transformer votre recherche d'emploi dans l'IT.
+        Trois étapes simples pour booster votre parcours.
       </p>
     </div>
 
