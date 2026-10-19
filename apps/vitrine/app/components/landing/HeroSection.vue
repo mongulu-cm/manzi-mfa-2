@@ -59,7 +59,7 @@ const loginUrl = computed(() => getLoginUrl())
             height="460"
             class="h-auto w-full object-cover"
             loading="eager"
-          />
+          >
         </div>
 
         <!-- Badge flottant Mentors Certifiés -->
@@ -70,13 +70,27 @@ const loginUrl = computed(() => getLoginUrl())
             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#576F1F] text-white"
             aria-hidden="true"
           >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
           <div>
-            <p class="text-sm font-bold text-[#1F1F1F]">Mentors Certifiés</p>
-            <p class="text-xs text-[#6B6B6B]">+500 experts dispos</p>
+            <p class="text-sm font-bold text-[#1F1F1F]">
+              Mentors Certifiés
+            </p>
+            <p class="text-xs text-[#6B6B6B]">
+              +500 experts dispos
+            </p>
           </div>
         </div>
       </div>

@@ -91,7 +91,7 @@ const mentors: Mentor[] = [
             height="224"
             class="h-full w-full object-cover"
             loading="lazy"
-          />
+          >
         </div>
 
         <div class="flex flex-1 flex-col p-5">
