@@ -37,7 +37,7 @@ const loginUrl = computed(() => getLoginUrl())
             size="xl"
             class="min-h-11 rounded-full border border-[#576F1F] px-8 py-3 font-semibold text-[#576F1F] hover:bg-[#E6F0D6]"
           >
-            Devenir mentor
+            {{ isAppConfigured ? 'Devenir mentor' : 'Nous contacter' }}
           </UButton>
         </div>
 
@@ -54,7 +54,7 @@ const loginUrl = computed(() => getLoginUrl())
         <div class="overflow-hidden rounded-3xl shadow-sm">
           <img
             src="/images/landing/hero-mentor.svg"
-            alt="Mentorée échangeant sur son parcours professionnel"
+            alt="Illustration d’une mentorée échangeant sur son parcours professionnel"
             width="560"
             height="460"
             class="h-auto w-full object-cover"
@@ -62,7 +62,7 @@ const loginUrl = computed(() => getLoginUrl())
           >
         </div>
 
-        <!-- Badge flottant Mentors Certifiés -->
+        <!-- Badge flottant de profil illustratif -->
         <div
           class="absolute -bottom-4 left-4 flex items-center gap-3 rounded-2xl border border-[#E0DDD4] bg-white p-3.5 shadow-md sm:left-6 sm:p-4"
         >
@@ -86,10 +86,10 @@ const loginUrl = computed(() => getLoginUrl())
           </div>
           <div>
             <p class="text-sm font-bold text-[#1F1F1F]">
-              Mentors Certifiés
+              Exemple de mentor
             </p>
             <p class="text-xs text-[#6B6B6B]">
-              +500 experts dispos
+              Profil illustratif
             </p>
           </div>
         </div>

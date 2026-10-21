@@ -63,7 +63,7 @@ const mentors: Mentor[] = [
           Mentors à la une
         </h2>
         <p class="mt-2 text-base text-[#6B6B6B]">
-          Apprenez des meilleurs de l'écosystème.
+          Exemples de profils fictifs pour illustrer les échanges de mentoring.
         </p>
       </div>
 
@@ -72,7 +72,7 @@ const mentors: Mentor[] = [
         :external="isAppConfigured"
         class="inline-flex min-h-11 items-center gap-1 font-semibold text-[#1F1F1F] hover:text-[#576F1F]"
       >
-        <span>Voir tous les mentors</span>
+        <span>{{ isAppConfigured ? 'Accéder à l’application' : 'Nous contacter' }}</span>
         <span aria-hidden="true">&rarr;</span>
       </ULink>
     </div>
@@ -86,7 +86,7 @@ const mentors: Mentor[] = [
         <div class="relative h-56 w-full overflow-hidden bg-[#FAFAF8]">
           <img
             :src="mentor.avatar"
-            :alt="`Photo de profil de ${mentor.name}`"
+            :alt="`Illustration du profil fictif de ${mentor.name}`"
             width="320"
             height="224"
             class="h-full w-full object-cover"
@@ -103,7 +103,7 @@ const mentors: Mentor[] = [
               v-if="mentor.isPro"
               class="rounded-full bg-[#E6F0D6] px-2.5 py-0.5 text-xs font-bold text-[#3D4D1A]"
             >
-              PRO
+              PRO (exemple)
             </span>
           </div>
 
@@ -126,10 +126,9 @@ const mentors: Mentor[] = [
               :to="loginUrl"
               :external="isAppConfigured"
               variant="outline"
-              :aria-label="'Voir le profil de ' + mentor.name"
               class="min-h-11 w-full justify-center rounded-full border-[#576F1F] text-[#576F1F] hover:bg-[#E6F0D6]"
             >
-              Voir profil
+              {{ isAppConfigured ? 'Accéder à l’application' : 'Nous contacter' }}
             </UButton>
           </div>
         </div>

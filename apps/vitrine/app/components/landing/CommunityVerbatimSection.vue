@@ -1,6 +1,6 @@
 <template>
   <section
-    class="community-verbatim-section rounded-3xl bg-[#D2E6BA] p-6 sm:p-10 lg:p-14"
+    class="community-verbatim-section rounded-3xl bg-[#E6F0D6] p-6 sm:p-10 lg:p-14"
     aria-labelledby="community-title"
   >
     <div class="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
@@ -12,8 +12,8 @@
         >
           Une communauté engagée et gratuite
         </h2>
-        <p class="mt-4 text-base leading-relaxed text-[#47483B] sm:text-lg">
-          Manzi-mfa est un service porté par le collectif Mongulu. Notre mission est de démocratiser l'accès au savoir technologique. Les sessions "Quick Chat" sont gratuites pour tous les membres de la communauté.
+        <p class="mt-4 text-base leading-relaxed text-[#3D4D1A] sm:text-lg">
+          Manzi-mfa est un service porté par le collectif Mongulu. Notre mission est de démocratiser l'accès au savoir technologique. Les sessions « Quick Chat » sont gratuites pour tous les membres de la communauté.
         </p>
 
         <div class="mt-8 flex items-center gap-3 font-semibold text-[#1F1F1F]">
@@ -35,7 +35,7 @@
               />
             </svg>
           </div>
-          <span>+2500 membres actifs</span>
+          <span>+2500 membres actifs (exemple)</span>
         </div>
       </div>
 
@@ -71,16 +71,19 @@
               >
             </div>
             <span class="ml-3 rounded-full bg-[#3D4D1A] px-3 py-1 text-xs font-bold text-white">
-              +2k
+              +2k (exemple)
             </span>
           </div>
 
-          <blockquote class="mt-6">
+          <p class="mt-6 text-sm font-semibold text-[#3D4D1A]">
+            Témoignage fictif
+          </p>
+          <blockquote class="mt-2">
             <p class="font-serif text-xl font-bold leading-snug text-[#1F1F1F] sm:text-2xl">
-              "Manzi-mfa a changé ma vision de la tech. Merci aux mentors !"
+              « Manzi-mfa a changé ma vision de la tech. Merci aux mentors ! »
             </p>
-            <footer class="mt-4 text-sm font-medium text-[#47483B]">
-              &mdash; Sekou, Junior Web Dev
+            <footer class="mt-4 text-sm font-medium text-[#3D4D1A]">
+              &mdash; Sekou, personnage fictif
             </footer>
           </blockquote>
         </div>

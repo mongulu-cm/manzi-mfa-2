@@ -7,8 +7,8 @@ const loginUrl = computed(() => getLoginUrl())
   <UButton
     :to="loginUrl"
     :external="isAppConfigured"
-    label="Se connecter"
+    :label="isAppConfigured ? 'Se connecter' : 'Nous contacter'"
     variant="outline"
-    class="min-h-11 rounded-full border-[#3D5016] px-5 text-sm font-semibold text-[#3D5016] hover:bg-[#E6F0D6]"
+    class="min-h-11 rounded-full border-primary px-5 text-sm font-semibold text-primary hover:bg-[#E6F0D6]"
   />
 </template>

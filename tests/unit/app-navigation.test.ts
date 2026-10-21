@@ -15,6 +15,11 @@ describe('résolution d’URL applicative', () => {
   it('renvoie null si la base est une URL invalide', () => {
     expect(resolveAppUrl('not-a-valid-url', '/login')).toBeNull()
   })
+
+  it('refuse les protocoles autres que HTTP et HTTPS', () => {
+    expect(resolveAppUrl('ftp://app.example.com', '/login')).toBeNull()
+    expect(resolveAppUrl('file:///tmp/app', '/login')).toBeNull()
+  })
 })
 
 describe('composable useAppNavigation', () => {
@@ -32,8 +37,8 @@ describe('composable useAppNavigation', () => {
     expect(nav.supportEmail).toBe('collectif@mongulu.cm')
   })
 
-  it('fournit le lien de contact de repli si l’app n’est pas configurée', () => {
-    vi.stubGlobal('useRuntimeConfig', () => ({ public: { appUrl: undefined } }))
+  it.each([undefined, '', 'not-a-valid-url', 'ftp://app.example.com'])('fournit le lien de contact pour une configuration inutilisable : %s', (appUrl) => {
+    vi.stubGlobal('useRuntimeConfig', () => ({ public: { appUrl } }))
     vi.stubGlobal('computed', (fn: () => unknown) => ({ value: fn() }))
 
     const nav = useAppNavigation()

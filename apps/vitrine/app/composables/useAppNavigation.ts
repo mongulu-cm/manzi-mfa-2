@@ -3,7 +3,11 @@ export function resolveAppUrl(baseUrl: string | undefined | null, path: string =
     return null
   }
   try {
-    return new URL(path, baseUrl).href
+    const url = new URL(path, baseUrl)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null
+    }
+    return url.href
   }
   catch {
     return null

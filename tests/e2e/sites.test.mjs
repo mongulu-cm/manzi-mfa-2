@@ -30,7 +30,7 @@ async function waitForServer(app, port, child, getOutput) {
   throw new Error(`Démarrage de ${app} trop long : ${getOutput()}`)
 }
 
-async function startServer(app, port) {
+async function startServer(app, port, env = {}) {
   let output = ''
   const child = spawn(process.execPath, [
     'node_modules/nuxt/bin/nuxt.mjs', 'dev', `apps/${app}`,
@@ -42,6 +42,7 @@ async function startServer(app, port) {
       ...process.env, NUXT_PUBLIC_APP_URL: appUrl, NUXT_PUBLIC_SITE_URL: vitrineUrl,
       NUXT_PUBLIC_SUPABASE_URL: 'https://supabase.test.invalid',
       NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
+      ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -468,3 +469,41 @@ test('le CTA de la landing page redirige vers la connexion de la plateforme', as
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
+
+test('les cartes illustratives annoncent la connexion sans promettre un profil individuel', async () => {
+  const page = await browser.newPage()
+  try {
+    await page.goto(vitrineUrl)
+    const section = page.locator('.featured-mentors-section')
+    await section.getByText(/illustrati|fictif|exemple/i).first().waitFor()
+    assert.equal(await section.getByRole('link', { name: /Voir profil|Voir le profil/ }).count(), 0)
+    const entry = section.locator('article').first().getByRole('link', { name: 'Accéder à l’application', exact: true })
+    assert.equal(await entry.getAttribute('href'), `${appUrl}/login`)
+    await entry.click()
+    await page.waitForURL(`${appUrl}/login`)
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+test('une adresse FTP propose un contact explicite sur tous les liens applicatifs', async () => {
+  // Nuxt verrouille un serveur de développement par application : ce dernier
+  // scénario redémarre la vitrine avec une configuration volontairement invalide.
+  const vitrineServer = servers.find(server => server.spawnargs.includes('apps/vitrine'))
+  const stopped = new Promise(resolve => vitrineServer.once('exit', resolve))
+  vitrineServer.kill('SIGTERM')
+  await stopped
+  await startServer('vitrine', 3100, { NUXT_PUBLIC_APP_URL: 'ftp://app.example.com' })
+  const page = await browser.newPage()
+  try {
+    await page.goto(vitrineUrl)
+    await page.getByText(/L'accès direct est momentanément indisponible/).waitFor()
+    const contacts = page.getByRole('link', { name: 'Nous contacter', exact: true })
+    assert.ok(await contacts.count() > 0)
+    for (const contact of await contacts.all()) {
+      assert.match(await contact.getAttribute('href'), /^mailto:collectif@mongulu\.cm\?/)
+    }
+    assert.equal(await page.locator('a[href^="ftp:"]').count(), 0)
+    assert.equal(await page.getByRole('link', { name: /Se connecter|Devenir mentor|Trouver un mentor|Accéder à l’application/ }).count(), 0)
+  }
+  finally { await page.close() }
+}, { timeout: 150_000 })

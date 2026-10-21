@@ -4,7 +4,7 @@
 
 **Goal:** Mettre à jour la landing page publique de la vitrine Manzi-mfa pour l'aligner fidèlement sur la maquette officielle Stitch issue #8 : Hero 2 colonnes avec visuel et badge flottant, étapes numérotées, grille de 4 mentors à la une, et bandeau vert mission / verbatim communautaire.
 
-**Architecture:** Quatre composants modulaires sous `apps/vitrine/app/components/landing/`, assets graphiques locaux servis en statique sous `apps/vitrine/public/images/landing/`, intégration du composable `useAppNavigation` pour les liens applicatifs, stories Storybook avec validation `axe-core`, et mise à jour des tests E2E Playwright.
+**Architecture:** Quatre composants modulaires sous `apps/vitrine/app/components/landing/`, assets graphiques locaux servis en statique sous `layers/mongulu/public/images/landing/`, intégration du composable `useAppNavigation` pour les liens applicatifs, stories Storybook avec validation `axe-core`, et mise à jour des tests E2E Playwright.
 
 **Tech Stack:** Nuxt 4 (SSR), Vue 3, Nuxt UI, Tailwind CSS v4, TypeScript strict, Storybook 8, Vitest (V8 coverage), Playwright, axe-core.
 
@@ -12,15 +12,21 @@
 
 ## Global Constraints
 
-- Respect strict des tokens et couleurs de `DESIGN.md` : Vert primaire `#576F1F` (WCAG AA ≥ 4.5:1), fond crème `#F5F1E8`, fond vert sage `#D4E4BA` / `#E6F0D6`, fond carte `#FFFFFF`, bordures `#D9D9D9` (hover `#C8DBA8`), texte `#1F1F1F`.
+- Respect strict des tokens et couleurs de `DESIGN.md` : Vert primaire `#576F1F` (WCAG AA ≥ 4.5:1), fond crème `#F5F1E8`, fond vert sage `#E6F0D6`, fond carte `#FFFFFF`, bordures `#D9D9D9` (hover `#C8DBA8`), texte `#1F1F1F`.
 - Typographie : Alegreya 700 pour les titres H1/H2/H3, Hanken Grotesk 400/600 pour le texte courant et boutons.
 - Responsive mobile-first : Aucun débordement horizontal dès 320px (`scrollWidth <= innerWidth`).
 - Accessibilité : Cibles tactiles ≥ 44×44px, 0 violation critique ou sérieuse avec `axe-core`.
 - Qualité & CI : Maintien des seuils de couverture unitaire Vitest (95% statements, 85% branches, 100% functions/lines) et zéro code mort (`fallow`).
 
+## Données de démonstration et navigation
+
+Les noms, employeurs, badges de profils, statistiques (+2500, +2k) et le témoignage attribué à Sekou sont des données illustratives de la maquette, sans validation de leur authenticité. Les signaler dans l’interface comme exemples ou témoignage fictif. Ils ne constituent pas des statistiques de production, des certifications ni des recommandations vérifiées. Toute substitution par des données réelles nécessite une vérification préalable.
+
+Les deux CTA du hero utilisent volontairement la connexion commune `/login` : cette version n’a pas d’onboarding mentor distinct. Les cartes illustratives ne proposent pas de profil individuel ; leurs boutons et le lien de section annoncent « Accéder à l’application », ou « Nous contacter » en mode de repli.
+
 ## Review Focus
 
-- Absence de variable d'environnement `NUXT_PUBLIC_APP_URL` ou URL invalide : tous les boutons vers la plateforme se replient vers `mailto:collectif@mongulu.cm` sans erreur.
+- `NUXT_PUBLIC_APP_URL` attend une origine HTTP(S), par exemple `https://app.manzi-mfa-2.mongulu.cm`, sans préfixe de chemin. En son absence, la valeur par défaut de `nuxt.config.ts` vise la production. Une URL effective vide, invalide ou utilisant un autre protocole déclenche le contact `mailto:collectif@mongulu.cm` ; ce mécanisme ne détecte pas les pannes réseau ou serveur de l’application.
 - Défilement horizontal à 320px sur la grille des mentors et le bloc verbatim : `overflow-x: clip` actif, marges et paddings adaptés.
 - Accessibilité des images locales : attributs `alt` pertinents pour l'image du Hero et les avatars des mentors, masquage `aria-hidden="true"` sur les icônes décoratives.
 - Contraste des textes sur le bandeau vert « Une communauté engagée et gratuite » : texte foncé `#1F1F1F` ou `#3D4D1A` garantissant un ratio ≥ 4.5:1.
@@ -28,36 +34,31 @@
 
 ---
 
-### Task 1: Préparation des assets graphiques locaux pour la landing page
+### Task 1: Réutilisation des assets graphiques locaux pour la landing page
 
 **Files:**
-- Create: `apps/vitrine/public/images/landing/hero-mentor.svg`
-- Create: `apps/vitrine/public/images/landing/mentor-aicha.svg`
-- Create: `apps/vitrine/public/images/landing/mentor-patrick.svg`
-- Create: `apps/vitrine/public/images/landing/mentor-emmanuel.svg`
-- Create: `apps/vitrine/public/images/landing/mentor-sarah.svg`
-- Create: `apps/vitrine/public/images/landing/avatar-1.svg`
-- Create: `apps/vitrine/public/images/landing/avatar-2.svg`
-- Create: `apps/vitrine/public/images/landing/avatar-3.svg`
+- Reuse: `layers/mongulu/public/images/landing/hero-mentor.svg`
+- Reuse: `layers/mongulu/public/images/landing/mentor-aicha.svg`
+- Reuse: `layers/mongulu/public/images/landing/mentor-patrick.svg`
+- Reuse: `layers/mongulu/public/images/landing/mentor-emmanuel.svg`
+- Reuse: `layers/mongulu/public/images/landing/mentor-sarah.svg`
+- Reuse: `layers/mongulu/public/images/landing/avatar-1.svg`
+- Reuse: `layers/mongulu/public/images/landing/avatar-2.svg`
+- Reuse: `layers/mongulu/public/images/landing/avatar-3.svg`
 
 **Interfaces:**
-- Produces: Assets statiques vectoriels locaux représentant fidèlement les profils et visuels de la maquette Stitch sans dépendre d'un CDN externe en CI.
+- Consumes: Les huit assets SVG existants de la Layer Mongulu, servis sous `/images/landing/`, sans copie dans la vitrine ni dépendance à un CDN externe en CI.
 
-- [ ] **Step 1: Créer les assets SVG locaux sous `apps/vitrine/public/images/landing/`**
+- [ ] **Step 1: Réutiliser les assets SVG existants sous `layers/mongulu/public/images/landing/`**
 
-Générer des illustrations SVG soignées et stylisées reprenant les palettes et visages de la maquette (femme avec ordinateur pour le hero, portraits stylisés pour Aïcha, Patrick, Emmanuel, Sarah, et 3 avatars pour le verbatim).
+Conserver la source unique dans la Layer : une illustration hero, quatre portraits illustratifs (Aïcha, Patrick, Emmanuel et Sarah) et trois avatars décoratifs. Ne pas créer de doublons sous `apps/vitrine/public/`.
 
-- [ ] **Step 2: Vérifier la disponibilité des assets via le serveur statique Nuxt**
+- [ ] **Step 2: Vérifier les huit sources et leur publication par Nuxt**
 
-Run: `ls -la apps/vitrine/public/images/landing/`
-Expected: 8 fichiers présents.
+Run: `git ls-files layers/mongulu/public/images/landing/`
+Expected: 8 fichiers SVG suivis par Git. Avec la vitrine démarrée, vérifier une réponse HTTP 200 pour chacun des chemins `/images/landing/<nom>.svg`.
 
-- [ ] **Step 3: Commit**
-
-```bash
-git add apps/vitrine/public/images/landing/
-git commit -m "feat(assets): ajouter les visuels vectoriels locaux pour la landing page"
-```
+Aucun commit d’assets supplémentaire n’est nécessaire pour leur réutilisation.
 
 ---
 
@@ -69,7 +70,7 @@ git commit -m "feat(assets): ajouter les visuels vectoriels locaux pour la landi
 
 **Interfaces:**
 - Consumes: `useAppNavigation()`
-- Produces: Composant Hero responsive sur 2 colonnes avec texte, 2 CTAs, image hero et badge flottant « Mentors Certifiés ».
+- Produces: Composant Hero responsive sur 2 colonnes avec texte, 2 CTAs, image hero et badge flottant « Exemple de mentor ».
 
 - [ ] **Step 1: Écrire le composant `HeroSection.vue` mis à jour**
 
@@ -113,7 +114,7 @@ const loginUrl = computed(() => getLoginUrl())
             size="xl"
             class="min-h-11 rounded-full border border-[#576F1F] px-8 py-3 font-semibold text-[#576F1F] hover:bg-[#E6F0D6]"
           >
-            Devenir mentor
+            {{ isAppConfigured ? 'Devenir mentor' : 'Nous contacter' }}
           </UButton>
         </div>
 
@@ -130,7 +131,7 @@ const loginUrl = computed(() => getLoginUrl())
         <div class="overflow-hidden rounded-3xl shadow-sm">
           <img
             src="/images/landing/hero-mentor.svg"
-            alt="Mentorée échangeant sur son parcours professionnel"
+            alt="Illustration d’une mentorée échangeant sur son parcours professionnel"
             width="560"
             height="460"
             class="h-auto w-full object-cover"
@@ -138,7 +139,7 @@ const loginUrl = computed(() => getLoginUrl())
           />
         </div>
 
-        <!-- Badge flottant Mentors Certifiés -->
+        <!-- Badge flottant Exemple de mentor -->
         <div
           class="absolute -bottom-4 left-4 flex items-center gap-3 rounded-2xl border border-[#E0DDD4] bg-white p-3.5 shadow-md sm:left-6 sm:p-4"
         >
@@ -151,8 +152,8 @@ const loginUrl = computed(() => getLoginUrl())
             </svg>
           </div>
           <div>
-            <p class="text-sm font-bold text-[#1F1F1F]">Mentors Certifiés</p>
-            <p class="text-xs text-[#6B6B6B]">+500 experts dispos</p>
+            <p class="text-sm font-bold text-[#1F1F1F]">Exemple de mentor</p>
+            <p class="text-xs text-[#6B6B6B]">Profil illustratif</p>
           </div>
         </div>
       </div>
@@ -193,7 +194,7 @@ git commit -m "feat(landing): aligner HeroSection sur le layout 2 colonnes avec 
 Ajuster le titre « Comment ça marche ? », le sous-titre « Trois étapes simples pour booster votre parcours. », et les 3 étapes :
 1. « Créez votre profil » — Présentez votre parcours, vos objectifs et vos besoins d'accompagnement.
 2. « Choisissez votre mentor » — Explorez les profils selon votre stack et réservez selon vos disponibilités.
-3. « Book Quick Chat » — Échangez pendant 15-30 minutes en direct avec un senior bienveillant.
+3. « Réservez un Quick Chat » — Échangez pendant 15-30 minutes en direct avec un senior bienveillant.
 
 - [ ] **Step 2: Mettre à jour la story Storybook `HowItWorksSection.stories.ts`**
 
@@ -218,7 +219,7 @@ git commit -m "feat(landing): aligner HowItWorksSection sur les libellés de la 
 - Create: `apps/vitrine/stories/landing/FeaturedMentorsSection.stories.ts`
 
 **Interfaces:**
-- Consumes: `useAppNavigation()` pour les liens « Voir profil » et « Voir tous les mentors → »
+- Consumes: `useAppNavigation()` pour les liens « Accéder à l’application » et « Accéder à l’application → »
 - Produces: Composant affichant la grille des 4 mentors vedettes (Aïcha, Patrick, Emmanuel, Sarah) avec tags, badges et boutons.
 
 - [ ] **Step 1: Créer `FeaturedMentorsSection.vue`**
@@ -227,6 +228,7 @@ git commit -m "feat(landing): aligner HowItWorksSection sur les libellés de la 
 <script setup lang="ts">
 const { getLoginUrl, isAppConfigured } = useAppNavigation()
 const loginUrl = computed(() => getLoginUrl())
+const appEntryLabel = computed(() => isAppConfigured.value ? 'Accéder à l’application' : 'Nous contacter')
 
 interface Mentor {
   id: string
@@ -289,7 +291,7 @@ const mentors: Mentor[] = [
           Mentors à la une
         </h2>
         <p class="mt-2 text-base text-[#6B6B6B]">
-          Apprenez des meilleurs de l'écosystème.
+          Exemples de profils fictifs pour illustrer les échanges de mentoring.
         </p>
       </div>
 
@@ -298,7 +300,7 @@ const mentors: Mentor[] = [
         :external="isAppConfigured"
         class="inline-flex min-h-11 items-center gap-1 font-semibold text-[#1F1F1F] hover:text-[#576F1F]"
       >
-        <span>Voir tous les mentors</span>
+        <span>{{ appEntryLabel }}</span>
         <span aria-hidden="true">&rarr;</span>
       </ULink>
     </div>
@@ -312,7 +314,7 @@ const mentors: Mentor[] = [
         <div class="relative h-56 w-full overflow-hidden bg-[#FAFAF8]">
           <img
             :src="mentor.avatar"
-            :alt="`Photo de profil de ${mentor.name}`"
+            :alt="`Illustration du profil fictif de ${mentor.name}`"
             width="320"
             height="224"
             class="h-full w-full object-cover"
@@ -329,7 +331,7 @@ const mentors: Mentor[] = [
               v-if="mentor.isPro"
               class="rounded-full bg-[#E6F0D6] px-2.5 py-0.5 text-xs font-bold text-[#3D4D1A]"
             >
-              PRO
+              PRO (exemple)
             </span>
           </div>
 
@@ -354,7 +356,7 @@ const mentors: Mentor[] = [
               variant="outline"
               class="min-h-11 w-full justify-center rounded-full border-[#576F1F] text-[#576F1F] hover:bg-[#E6F0D6]"
             >
-              Voir profil
+              {{ appEntryLabel }}
             </UButton>
           </div>
         </div>
@@ -387,14 +389,14 @@ git commit -m "feat(landing): ajouter le composant FeaturedMentorsSection et sa 
 - Create: `apps/vitrine/stories/landing/CommunityVerbatimSection.stories.ts`
 
 **Interfaces:**
-- Produces: Bandeau vert sage combinant la mission gratuite du Collectif Mongulu (+2500 membres actifs) et la carte verbatim de Sekou.
+- Produces: Bandeau vert sage combinant la mission gratuite du Collectif Mongulu (chiffre illustratif : +2500 membres actifs) et une carte de témoignage fictif attribué au personnage Sekou.
 
 - [ ] **Step 1: Créer `CommunityVerbatimSection.vue`**
 
 ```vue
 <template>
   <section
-    class="community-verbatim-section rounded-3xl bg-[#D2E6BA] p-6 sm:p-10 lg:p-14"
+    class="community-verbatim-section rounded-3xl bg-[#E6F0D6] p-6 sm:p-10 lg:p-14"
     aria-labelledby="community-title"
   >
     <div class="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
@@ -406,8 +408,8 @@ git commit -m "feat(landing): ajouter le composant FeaturedMentorsSection et sa 
         >
           Une communauté engagée et gratuite
         </h2>
-        <p class="mt-4 text-base leading-relaxed text-[#2D3D14] sm:text-lg">
-          Manzi-mfa est un service porté par le collectif Mongulu. Notre mission est de démocratiser l'accès au savoir technologique. Les sessions "Quick Chat" sont gratuites pour tous les membres de la communauté.
+        <p class="mt-4 text-base leading-relaxed text-[#3D4D1A] sm:text-lg">
+          Manzi-mfa est un service porté par le collectif Mongulu. Notre mission est de démocratiser l'accès au savoir technologique. Les sessions « Quick Chat » sont gratuites pour tous les membres de la communauté.
         </p>
 
         <div class="mt-8 flex items-center gap-3 font-semibold text-[#1F1F1F]">
@@ -419,7 +421,7 @@ git commit -m "feat(landing): ajouter le composant FeaturedMentorsSection et sa 
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <span>+2500 membres actifs</span>
+          <span>+2500 membres actifs (exemple)</span>
         </div>
       </div>
 
@@ -452,16 +454,19 @@ git commit -m "feat(landing): ajouter le composant FeaturedMentorsSection et sa 
               />
             </div>
             <span class="ml-3 rounded-full bg-[#3D4D1A] px-3 py-1 text-xs font-bold text-white">
-              +2k
+              +2k (exemple)
             </span>
           </div>
 
-          <blockquote class="mt-6">
+          <p class="mt-6 text-sm font-semibold text-[#3D4D1A]">
+            Témoignage fictif
+          </p>
+          <blockquote class="mt-2">
             <p class="font-serif text-xl font-bold leading-snug text-[#1F1F1F] sm:text-2xl">
-              "Manzi-mfa a changé ma vision de la tech. Merci aux mentors !"
+              « Manzi-mfa a changé ma vision de la tech. Merci aux mentors ! »
             </p>
-            <footer class="mt-4 text-sm font-medium text-[#555555]">
-              &mdash; Sekou, Junior Web Dev
+            <footer class="mt-4 text-sm font-medium text-[#3D4D1A]">
+              — Sekou, personnage fictif
             </footer>
           </blockquote>
         </div>
@@ -491,10 +496,6 @@ git commit -m "feat(landing): ajouter le composant CommunityVerbatimSection et s
 
 **Files:**
 - Modify: `apps/vitrine/app/pages/index.vue`
-- Delete: `apps/vitrine/app/components/landing/AudienceSection.vue` (si remplacé)
-- Delete: `apps/vitrine/stories/landing/AudienceSection.stories.ts`
-- Delete: `apps/vitrine/app/components/landing/CtaSection.vue` (si remplacé)
-- Delete: `apps/vitrine/stories/landing/CtaSection.stories.ts`
 
 **Interfaces:**
 - Consumes: `HeroSection`, `HowItWorksSection`, `FeaturedMentorsSection`, `CommunityVerbatimSection`
@@ -527,7 +528,9 @@ useSeoMeta({
 </template>
 ```
 
-- [ ] **Step 2: Supprimer les composants obsolètes non utilisés et vérifier avec fallow**
+- [ ] **Step 2: Vérifier le code mort avec fallow**
+
+Les composants `AudienceSection.vue`, `CtaSection.vue` et leurs stories n’existent pas à cette révision : aucune suppression n’est nécessaire.
 
 Run: `npx fallow --ci --format compact`
 Expected: 0 code mort.
@@ -536,8 +539,7 @@ Expected: 0 code mort.
 
 ```bash
 git add apps/vitrine/app/pages/index.vue
-git rm apps/vitrine/app/components/landing/AudienceSection.vue apps/vitrine/stories/landing/AudienceSection.stories.ts apps/vitrine/app/components/landing/CtaSection.vue apps/vitrine/stories/landing/CtaSection.stories.ts
-git commit -m "feat(landing): assembler les 4 sections Stitch sur la vitrine et retirer les anciens blocs"
+git commit -m "feat(landing): assembler les 4 sections Stitch sur la vitrine"
 ```
 
 ---
@@ -564,7 +566,7 @@ Ajuster les vérifications de titres et de CTA pour correspondre aux nouveaux te
 - [ ] **Step 2: Exécuter les tests E2E**
 
 Run: `npm run test:e2e`
-Expected: 14/14 tests PASS.
+Expected: 16/16 tests PASS (dont navigation générique des cartes et repli explicite pour une URL FTP).
 
 - [ ] **Step 3: Commit**
 

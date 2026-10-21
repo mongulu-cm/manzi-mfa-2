@@ -12,7 +12,7 @@ const steps = [
   },
   {
     number: '3',
-    title: 'Book Quick Chat',
+    title: 'Réservez un Quick Chat',
     description: 'Échangez pendant 15-30 minutes en direct avec un senior bienveillant.',
   },
 ]
