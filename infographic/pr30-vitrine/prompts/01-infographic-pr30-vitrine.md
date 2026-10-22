@@ -1,0 +1,8 @@
+Créer une infographie professionnelle pédagogique en FRANÇAIS, paysage 16:9, grande résolution. Disposition bridge / problème → changements → résultat, trois grands blocs reliés par des flèches simples. Style TLDRAW UNIQUEMENT : fond blanc pur, schéma dessiné à la main, contours noirs légèrement irréguliers, annotations manuscrites mais parfaitement lisibles, couleurs sobres vert olive, beige clair et gris anthracite. Grandes lettres, espace blanc généreux. Aucune photo, aucun logo, aucun dégradé, aucun rendu 3D, aucune texture. Petites icônes simples : page web vide, blocs de page assemblés, téléphone et écran, coche de validation. Mettre en évidence le bénéfice du site public et les preuves, pas une interface de logiciel de développement.
+Titre exact : « PR #30 — La vitrine Manzi-mfa »
+Sous-titre : « F-001 · Issue #8 »
+Bloc gauche « AVANT » : « Une page d’attente » puis « L’offre de mentoring reste à présenter ».
+Bloc central, plus large, « CHANGEMENTS » : « 4 sections publiques », « Présentation · 3 étapes », « Profils illustratifs · communauté », « Boutons → connexion commune /login », et « Libellés clairs · liens HTTP(S) · docs alignées ».
+Bloc droit « RÉSULTAT VÉRIFIÉ » : « Mobile 320 px et desktop », « 108 tests unitaires », « 25 tests stories / accessibilité », « 16 tests E2E », puis coche et « CI verte · PR fusionnée ».
+Un bandeau discret inférieur « Revue Cubic : 14 remarques corrigées · 1 choix expliqué ».
+Ne rien inventer. Tous les nombres et textes doivent être exacts et lisibles. Ne pas prétendre que les profils d’exemple sont réels ou que des sessions ont été réservées. Ne montrer aucune donnée personnelle, aucun secret ni adresse e-mail. Conserver la composition aérée malgré ces textes, préférer des libellés larges et nets.
