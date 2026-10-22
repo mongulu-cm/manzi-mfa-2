@@ -41,6 +41,8 @@ npm run dev:app
 Vitrine : http://localhost:3000. Plateforme : http://localhost:3001 ; les visiteurs anonymes sont redirigés vers `/login`.
 `npm run dev` démarre la vitrine. Les variables de `.env.example` sont documentaires : exporter les valeurs ou créer un `.env` dans chaque application. Les valeurs par défaut visent la production.
 
+`NUXT_PUBLIC_APP_URL` doit contenir uniquement l’origine HTTP(S) de la plateforme, par exemple `https://app.manzi-mfa-2.mongulu.cm`, sans sous-chemin. Les liens de connexion visent `/login` à la racine de cette origine ; l’hébergement sous un préfixe comme `/app/` n’est pas pris en charge. Si la variable est absente, la vitrine conserve l’adresse de production par défaut. Si sa valeur effective est vide, invalide ou utilise un autre protocole, les boutons proposent un contact par e-mail. Ce repli ne détecte pas les pannes d’une application dont l’adresse est valide.
+
 Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`. La plateforme consomme `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (clé de type publishable, nom default). Les exporter aussi dans le terminal plateforme ou les placer dans `apps/plateforme/.env`, ignoré par Git. Les variables `SUPABASE_URL` / `SUPABASE_KEY` utilisées par le workflow CLI ne les remplacent pas.
 
 ## Commandes
