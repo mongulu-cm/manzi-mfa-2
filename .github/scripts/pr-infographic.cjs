@@ -122,12 +122,14 @@ async function checkPullRequest({ github, context, verify = verifyImage }) {
       return 'pending'
     }
     for (const candidate of ready) {
+      // Auteur retourné par GitHub, jamais le titre, la branche ou l’acteur du run.
+      if (candidate.user?.login === 'dependabot[bot]') continue
       if (!await prHasInfographic(github, owner, repo, candidate, verify)) {
         await publish('failure', 'Chaque PR Ready de ce commit doit afficher une section « Infographie » avec une image accessible.')
         return 'failure'
       }
     }
-    await publish('success', 'Infographie affichée et accessible dans les PR Ready de ce commit.')
+    await publish('success', 'Infographie vérifiée pour les PR Ready ; Dependabot est exempté.')
     return 'success'
   }
   catch {

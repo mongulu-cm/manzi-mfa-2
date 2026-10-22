@@ -136,7 +136,9 @@ Valider les deux previews avant de publier le nouveau lien en production. Pour l
 
 ### Infographie obligatoire avant fusion
 
-Les PR vers `main` doivent afficher leur infographie générée dans une section intitulée `Infographie`, dans la description ou dans un commentaire. Exemple :
+Seules les PR dont l’auteur retourné par l’API GitHub est exactement `dependabot[bot]` sont exemptées du contrôle d’image ; tous les autres contrôles restent applicables. Une PR humaine partageant le même commit reste soumise au contrôle.
+
+Les autres PR vers `main` doivent afficher leur infographie générée dans une section intitulée `Infographie`, dans la description ou dans un commentaire. Exemple :
 
 ```md
 ### Infographie

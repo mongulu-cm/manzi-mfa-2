@@ -61,12 +61,12 @@ it('vérifie une vraie image et refuse une page HTML ou une redirection externe'
   expect(redirect).toHaveBeenCalledTimes(1)
 })
 
-function fixture({ draft = false, body = '', comments = [] as { body: string }[], base = 'main', related = [] as Record<string, unknown>[] } = {}) {
+function fixture({ login = 'human', draft = false, body = '', comments = [] as { body: string }[], base = 'main', related = [] as Record<string, unknown>[] } = {}) {
   const statuses: { state: string, sha: string }[] = []
   const associated = vi.fn()
   const github = {
     rest: {
-      pulls: { get: vi.fn(async () => ({ data: { number: 40, state: 'open', draft, body, base: { ref: base }, head: { sha: 'current-head' } } })) },
+      pulls: { get: vi.fn(async () => ({ data: { number: 40, state: 'open', user: { login }, draft, body, base: { ref: base }, head: { sha: 'current-head' } } })) },
       issues: { listComments: vi.fn() },
       repos: {
         listPullRequestsAssociatedWithCommit: associated,
@@ -151,4 +151,43 @@ it('rend une erreur API visible sans exposer son contenu', async () => {
   expect(await checkPullRequest(source)).toBe('error')
   expect(source.statuses.at(-1)).toMatchObject({ state: 'error', sha: 'current-head' })
   expect(JSON.stringify(source.statuses)).not.toContain('secret-provider-detail')
+})
+
+it('exempte uniquement l’auteur Dependabot retourné par GitHub, pour chaque déclencheur', async () => {
+  for (const payload of [
+    { pull_request: { number: 40, user: { login: 'human' } } },
+    { issue: { number: 40 }, sender: { login: 'human' } },
+    { inputs: { pull_request: '40' } },
+  ]) {
+    const source = fixture({ login: 'dependabot[bot]' })
+    const verify = vi.fn()
+    expect(await checkPullRequest({ ...source, verify, context: { ...source.context, payload, actor: 'human' } })).toBe('success')
+    expect(source.statuses.at(-1)).toMatchObject({ state: 'success', sha: 'current-head' })
+    expect(verify).not.toHaveBeenCalled()
+    expect(source.github.paginate).toHaveBeenCalledTimes(1)
+  }
+})
+
+it.each(['human', 'renovate[bot]', 'dependabot', 'Dependabot[bot]', ''])('conserve le contrôle pour %s malgré les indices Dependabot dans l’événement', async (login) => {
+  const source = fixture({ login })
+  const context = { ...source.context, actor: 'dependabot[bot]', payload: {
+    pull_request: { number: 40, title: 'dependabot[bot]', head: { ref: 'dependabot/npm/update' }, user: { login: 'dependabot[bot]' } },
+    sender: { login: 'dependabot[bot]' },
+  } }
+  expect(await checkPullRequest({ ...source, context })).toBe('failure')
+  expect(await checkPullRequest({ ...fixture({ login, body: infographic }), verify: async () => true })).toBe('success')
+})
+
+it('une PR Dependabot ne valide pas une PR humaine partageant son SHA', async () => {
+  const source = fixture({ login: 'dependabot[bot]', related: [{
+    number: 41, state: 'open', draft: false, user: { login: 'human' }, body: '', base: { ref: 'main' }, head: { sha: 'current-head' },
+  }] })
+  expect(await checkPullRequest(source)).toBe('failure')
+})
+
+it('une PR humaine avec image peut partager son SHA avec Dependabot sans image', async () => {
+  const source = fixture({ body: infographic, related: [{
+    number: 41, state: 'open', draft: false, user: { login: 'dependabot[bot]' }, body: '', base: { ref: 'main' }, head: { sha: 'current-head' },
+  }] })
+  expect(await checkPullRequest({ ...source, verify: async () => true })).toBe('success')
 })
