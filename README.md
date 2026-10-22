@@ -134,6 +134,24 @@ Valider les deux previews avant de publier le nouveau lien en production. Pour l
 
 ## Vérification
 
+### Infographie obligatoire avant fusion
+
+Les PR vers `main` doivent afficher leur infographie générée dans une section intitulée `Infographie`, dans la description ou dans un commentaire. Exemple :
+
+```md
+### Infographie
+
+![Problème, changements et résultat](https://raw.githubusercontent.com/organisation/depot/commit/infographic.png)
+```
+
+Le statut **Infographie de la PR** vérifie que l’image intégrée est accessible et possède une signature PNG, JPEG ou WebP. Il accepte les images hébergées sur GitHub (pièces jointes ou fichiers du dépôt). Un lien de téléchargement seul, un badge hors de cette section ou un exemple placé dans un bloc de code ne suffit pas. Le contrôle vérifie la présence de l’image ; la génération par IA et la pertinence du contenu restent à vérifier lors de la revue.
+
+Le workflow `.github/workflows/pr-infographic.yml` réévalue le dernier commit lors des modifications de PR, des ajouts/modifications/suppressions de commentaires et du passage en Ready. Le statut reste en attente pendant le Draft et devient vert seulement quand les PR Ready portant ce commit affichent leur image. Une relance manuelle est disponible dans Actions en indiquant le numéro de PR.
+
+À l’installation, **après fusion du workflow dans `main`**, ajouter `Infographie de la PR` (application GitHub Actions, ID `15368`) aux contrôles obligatoires de la protection de `main`, en conservant les contrôles existants et leur configuration. Ne pas l’exiger avant l’installation du workflow : les PR resteraient bloquées sur un statut qui ne peut pas encore être produit.
+
+Le workflow utilise exclusivement le code de la branche cible et un jeton limité à la lecture et à l’écriture des statuts. Il n’exécute ni les sources ni les commandes fournies dans les PR ou commentaires.
+
 ```sh
 npm run check
 npx playwright install chromium
