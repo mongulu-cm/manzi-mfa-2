@@ -105,10 +105,10 @@
 - [ ] Déclarer `public.notification_deliveries` (spec § 5.3, `status` ∈ `pending`, `sent`, `failed`, `uncertain`), RLS activée, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, `GRANT ALL … TO service_role`, trigger `updated_at` (réutiliser `private.set_updated_at()` si PR #35 est fusionnée, sinon le déclarer ici et signaler le conflit dans la PR).
 - [ ] Générer la migration par `declarative sync`, la relire.
 - [ ] pgTAP : colonnes et `CHECK`, PK, aucun `SELECT`/`INSERT` possible pour `anon` et `authenticated`, cascade à la suppression d’un utilisateur.
-- [ ] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress' | 'uncertain'` (spec § 5.4, `pending` expiré passé à `uncertain`), `markSent(key, providerMessageId)`, `markFailed(key, errorCode, providerCode?)` (colonne `last_provider_code`), `markUncertain(key, errorCode)`.
+- [x] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress' | 'uncertain'` (spec § 5.4, `pending` expiré passé à `uncertain`), `markSent(key, providerMessageId)`, `markFailed(key, errorCode, providerCode?)` (colonne `last_provider_code`), `markUncertain(key, errorCode)`.
 - [ ] Transitions conditionnelles (`UPDATE … WHERE status = … AND updated_at = …`) : une réservation concurrente perdue → `in_progress`.
-- [ ] `createMemoryJournal()` (tests) et `createSupabaseJournal(client)` (client admin `@supabase/server`) ; toute erreur Supabase → `journal_unavailable`.
-- [ ] Tests unitaires du journal mémoire et de l’adaptateur Supabase avec client simulé (insert en conflit, lecture `sent`, `pending` récent, `pending` expiré → `uncertain`, `uncertain`, `failed`, réservation concurrente perdue, erreur).
+- [ ] `createMemoryJournal()` (tests, fait) et `createSupabaseJournal(client)` (client admin `@supabase/server`) ; toute erreur Supabase → `journal_unavailable`.
+- [ ] Tests unitaires du journal mémoire (faits, avec `decideExisting` partagée) et de l’adaptateur Supabase avec client simulé (insert en conflit, lecture `sent`, `pending` récent, `pending` expiré → `uncertain`, `uncertain`, `failed`, réservation concurrente perdue, erreur).
 
 ### Task 7: Orchestration `notifyQuickChat`
 
@@ -116,9 +116,9 @@
 - Create: `apps/plateforme/server/notifications/notify.ts`
 - Test: `tests/unit/notifications-notify.test.ts`
 
-- [ ] `notifyQuickChat(input, deps)` avec `deps = { policy, transport, journal, logger, render options, from, replyTo, now }` : valide, planifie, puis pour chaque message réserve → envoie → marque (spec § 5.4) ; retourne le rapport.
-- [ ] Les erreurs d’un destinataire n’empêchent pas l’envoi à l’autre ; `journal_unavailable` ⇒ statut `failed` sans appel au transport ; `provider_timeout` ⇒ `markUncertain`, statut `uncertain`, ligne `email.uncertain` au niveau erreur.
-- [ ] Tests sur fixtures (critère 1) : création → 2 `sent` ; rejeu → 2 `duplicate` ; v2 puis v3 → nouveaux envois ; événement désactivé → `skipped` ; échec transport → `failed` puis renvoi → `sent` avec `attempts = 2` ; délai dépassé → `uncertain` puis rejeu → `uncertain` sans appel au transport ; `pending` expiré → `uncertain` ; `in_progress` ; aucun email/nom dans les lignes journalisées.
+- [x] `notifyQuickChat(input, deps)` avec `deps = { policy, transport, journal, logger, render options, from, replyTo, now }` : valide, planifie, puis pour chaque message réserve → envoie → marque (spec § 5.4) ; retourne le rapport.
+- [x] Les erreurs d’un destinataire n’empêchent pas l’envoi à l’autre ; `journal_unavailable` ⇒ statut `failed` sans appel au transport ; `provider_timeout` ⇒ `markUncertain`, statut `uncertain`, ligne `email.uncertain` au niveau erreur.
+- [x] Tests sur fixtures (critère 1) : création → 2 `sent` ; rejeu → 2 `duplicate` ; v2 puis v3 → nouveaux envois ; événement désactivé → `skipped` ; échec transport → `failed` puis renvoi → `sent` avec `attempts = 2` ; délai dépassé → `uncertain` puis rejeu → `uncertain` sans appel au transport ; `pending` expiré → `uncertain` ; `in_progress` ; aucun email/nom dans les lignes journalisées.
 
 ### Task 8: Smoke test opt-in, configuration et documentation
 
