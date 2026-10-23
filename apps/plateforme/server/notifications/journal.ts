@@ -9,11 +9,22 @@ export type Reservation
   = | { decision: 'send', attempt: number }
     | { decision: 'duplicate' | 'in_progress' | 'uncertain' }
 
+// Codes acceptés par la colonne last_error_code (contrainte CHECK).
+export type DeliveryErrorCode = Extract<NotificationErrorCode,
+  'journal_unavailable' | 'provider_rejected' | 'provider_unavailable' | 'provider_timeout' | 'provider_uncertain'>
+
+// Une fin d'envoi ne s'applique qu'à la tentative réservée : une tentative plus ancienne et
+// attardée ne peut pas écraser l'état d'une tentative suivante.
+export interface DeliveryAttempt {
+  idempotencyKey: string
+  attempt: number
+}
+
 export interface DeliveryJournal {
   reserve(planned: PlannedNotification, event: QuickChatEvent, now: Date): Promise<Reservation>
-  markSent(idempotencyKey: string, providerMessageId: string): Promise<void>
-  markFailed(idempotencyKey: string, errorCode: NotificationErrorCode, providerCode?: string): Promise<void>
-  markUncertain(idempotencyKey: string, errorCode: NotificationErrorCode): Promise<void>
+  markSent(delivery: DeliveryAttempt, providerMessageId: string): Promise<void>
+  markFailed(delivery: DeliveryAttempt, errorCode: DeliveryErrorCode, providerCode?: string): Promise<void>
+  markUncertain(delivery: DeliveryAttempt, errorCode: DeliveryErrorCode): Promise<void>
 }
 
 // Au-delà, une ligne pending ne correspond plus à un envoi en cours : son issue est inconnue.
@@ -72,14 +83,14 @@ export function createMemoryJournal(clock: () => Date = () => new Date()): Memor
       Object.assign(row, { status: 'pending', attempts: row.attempts + 1, updatedAt: now })
       return { decision: 'send', attempt: row.attempts }
     },
-    async markSent(key, providerMessageId) {
-      update(key, { status: 'sent', providerMessageId, lastErrorCode: undefined, lastProviderCode: undefined })
+    async markSent(delivery, providerMessageId) {
+      update(delivery, { status: 'sent', providerMessageId, lastErrorCode: undefined, lastProviderCode: undefined })
     },
-    async markFailed(key, errorCode, providerCode) {
-      update(key, { status: 'failed', lastErrorCode: errorCode, lastProviderCode: providerCode })
+    async markFailed(delivery, errorCode, providerCode) {
+      update(delivery, { status: 'failed', lastErrorCode: errorCode, lastProviderCode: providerCode })
     },
-    async markUncertain(key, errorCode) {
-      update(key, { status: 'uncertain', lastErrorCode: errorCode })
+    async markUncertain(delivery, errorCode) {
+      update(delivery, { status: 'uncertain', lastErrorCode: errorCode, lastProviderCode: undefined })
     },
   }
 
@@ -87,10 +98,10 @@ export function createMemoryJournal(clock: () => Date = () => new Date()): Memor
     if (journal.unavailable) throw new NotificationError('journal_unavailable')
   }
 
-  function update(key: string, changes: Partial<DeliveryRow>) {
+  function update({ idempotencyKey, attempt }: DeliveryAttempt, changes: Partial<DeliveryRow>) {
     available()
-    const row = rows.get(key)
-    if (!row) throw new NotificationError('journal_unavailable')
+    const row = rows.get(idempotencyKey)
+    if (row?.attempts !== attempt) throw new NotificationError('journal_unavailable')
     Object.assign(row, changes, { updatedAt: clock() })
   }
 
@@ -114,9 +125,10 @@ export function createSupabaseJournal(client: Pick<SupabaseClient, 'rpc'>): Deli
     }
   }
 
-  async function finish(key: string, status: DeliveryStatus, values: Record<string, string | undefined> = {}) {
+  async function finish(delivery: DeliveryAttempt, status: DeliveryStatus, values: Record<string, string | undefined> = {}) {
     const updated = await call('finish_notification_delivery', {
-      p_idempotency_key: key,
+      p_idempotency_key: delivery.idempotencyKey,
+      p_attempt: delivery.attempt,
       p_status: status,
       p_provider_message_id: values.providerMessageId ?? null,
       p_error_code: values.errorCode ?? null,
@@ -143,8 +155,8 @@ export function createSupabaseJournal(client: Pick<SupabaseClient, 'rpc'>): Deli
       if (!Number.isInteger(row.attempt)) throw new NotificationError('journal_unavailable')
       return { decision: 'send', attempt: row.attempt as number }
     },
-    markSent: (key, providerMessageId) => finish(key, 'sent', { providerMessageId }),
-    markFailed: (key, errorCode, providerCode) => finish(key, 'failed', { errorCode, providerCode }),
-    markUncertain: (key, errorCode) => finish(key, 'uncertain', { errorCode }),
+    markSent: (delivery, providerMessageId) => finish(delivery, 'sent', { providerMessageId }),
+    markFailed: (delivery, errorCode, providerCode) => finish(delivery, 'failed', { errorCode, providerCode }),
+    markUncertain: (delivery, errorCode) => finish(delivery, 'uncertain', { errorCode }),
   }
 }

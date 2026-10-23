@@ -1,6 +1,6 @@
 import { NotificationError, PARTICIPANT_ROLES, validateQuickChatEvent } from './event'
 import type { NotificationErrorCode, ParticipantRole, QuickChatEvent } from './event'
-import type { DeliveryJournal } from './journal'
+import type { DeliveryErrorCode, DeliveryJournal } from './journal'
 import type { NotificationLogger } from './logger'
 import { planNotifications } from './policy'
 import type { NotificationPolicy, PlannedNotification } from './policy'
@@ -19,7 +19,7 @@ export interface NotifyDependencies {
   now: () => Date
 }
 
-export type NotificationStatus = 'sent' | 'duplicate' | 'in_progress' | 'uncertain' | 'failed' | 'skipped'
+export type NotificationStatus = 'sent' | 'duplicate' | 'in_progress' | 'uncertain' | 'failed' | 'skipped' | 'dry_run'
 
 export interface NotificationResult {
   role: ParticipantRole
@@ -35,6 +35,15 @@ function errorCodeOf(error: unknown): NotificationErrorCode {
   return error instanceof NotificationError ? error.code : 'provider_unavailable'
 }
 
+const UNCERTAIN_CODES = new Set<NotificationErrorCode>(['provider_timeout', 'provider_uncertain'])
+const SEND_CODES = new Set<NotificationErrorCode>(['provider_rejected', 'provider_unavailable', ...UNCERTAIN_CODES])
+
+// Toute autre erreur levée par un transport est traitée comme une indisponibilité.
+function sendErrorCode(error: unknown): DeliveryErrorCode {
+  const code = errorCodeOf(error)
+  return SEND_CODES.has(code) ? code as DeliveryErrorCode : 'provider_unavailable'
+}
+
 interface Delivery {
   planned: PlannedNotification
   message: EmailMessage
@@ -45,22 +54,24 @@ interface Delivery {
 // Envoi d'un message déjà réservé dans le journal (spec § 5.4, étapes 3 et 4).
 async function sendReserved(delivery: Delivery, attempt: number, deps: NotifyDependencies): Promise<NotificationResult> {
   const { journal, logger } = deps
-  const { planned, context, result } = delivery
+  const { context, result } = delivery
+  const reserved = { idempotencyKey: delivery.planned.idempotencyKey, attempt }
   let providerMessageId: string
   try {
     ({ providerMessageId } = await deps.transport.send(delivery.message))
   }
   catch (error) {
-    const errorCode = errorCodeOf(error)
+    const errorCode = sendErrorCode(error)
     const providerCode = error instanceof NotificationError ? error.providerCode : undefined
-    const uncertain = errorCode === 'provider_timeout'
-    await (uncertain ? journal.markUncertain(planned.idempotencyKey, errorCode) : journal.markFailed(planned.idempotencyKey, errorCode, providerCode))
-      .catch(() => logger.error('email.failed', { ...context, attempt, errorCode: 'journal_unavailable' }))
-    logger.error(uncertain ? 'email.uncertain' : 'email.failed', { ...context, attempt, errorCode, providerCode })
+    const uncertain = UNCERTAIN_CODES.has(errorCode)
+    const event = uncertain ? 'email.uncertain' : 'email.failed'
+    await (uncertain ? journal.markUncertain(reserved, errorCode) : journal.markFailed(reserved, errorCode, providerCode))
+      .catch(() => logger.error(event, { ...context, attempt, errorCode: 'journal_unavailable' }))
+    logger.error(event, { ...context, attempt, errorCode, providerCode })
     return result(uncertain ? 'uncertain' : 'failed', errorCode)
   }
   try {
-    await journal.markSent(planned.idempotencyKey, providerMessageId)
+    await journal.markSent(reserved, providerMessageId)
   }
   catch {
     // L'email est parti ; la ligne restée pending deviendra uncertain, jamais renvoyée.
@@ -116,9 +127,16 @@ export async function notifyQuickChat(input: unknown, deps: NotifyDependencies):
   const results: NotificationResult[] = []
   for (const role of PARTICIPANT_ROLES) {
     const entry = messages.find(({ item }) => item.role === role)
+    const context = { quickChatId: event.quickChatId, eventType: event.type, role }
     if (!entry) {
-      deps.logger.info('email.skipped', { quickChatId: event.quickChatId, eventType: event.type, role })
+      deps.logger.info('email.skipped', context)
       results.push({ role, status: 'skipped' })
+      continue
+    }
+    if (deps.transport.dryRun) {
+      // Envoi à blanc : ni journal ni envoi, pour ne pas fausser l'idempotence d'un futur envoi réel.
+      deps.logger.info('email.dry_run', context)
+      results.push({ role, status: 'dry_run' })
       continue
     }
     // Séquentiel : l'échec d'un destinataire n'empêche pas l'envoi à l'autre.

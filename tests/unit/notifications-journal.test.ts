@@ -4,6 +4,7 @@ import { DEFAULT_POLICY, planNotifications } from '../../apps/plateforme/server/
 import { createdEvent } from '../fixtures/quick-chat-events'
 
 const [planned] = planNotifications(createdEvent, DEFAULT_POLICY)
+const attempt = (n: number) => ({ idempotencyKey: planned!.idempotencyKey, attempt: n })
 const start = new Date('2026-11-01T10:00:00Z')
 const later = (ms: number) => new Date(start.getTime() + ms)
 
@@ -31,7 +32,7 @@ describe('journal en mémoire', () => {
   it('refuse le renvoi d’un email déjà parti', async () => {
     const journal = createMemoryJournal(() => start)
     await journal.reserve(planned!, createdEvent, start)
-    await journal.markSent(planned!.idempotencyKey, 'cf-1')
+    await journal.markSent(attempt(1), 'cf-1')
     expect(await journal.reserve(planned!, createdEvent, later(1))).toEqual({ decision: 'duplicate' })
     expect(journal.rows.get(planned!.idempotencyKey)).toMatchObject({ status: 'sent', providerMessageId: 'cf-1' })
   })
@@ -39,7 +40,7 @@ describe('journal en mémoire', () => {
   it('autorise une nouvelle tentative après un échec', async () => {
     const journal = createMemoryJournal(() => start)
     await journal.reserve(planned!, createdEvent, start)
-    await journal.markFailed(planned!.idempotencyKey, 'provider_unavailable', 'E_RATE_LIMIT_EXCEEDED')
+    await journal.markFailed(attempt(1), 'provider_unavailable', 'E_RATE_LIMIT_EXCEEDED')
     expect(journal.rows.get(planned!.idempotencyKey)).toMatchObject({ lastErrorCode: 'provider_unavailable', lastProviderCode: 'E_RATE_LIMIT_EXCEEDED' })
     expect(await journal.reserve(planned!, createdEvent, later(1))).toEqual({ decision: 'send', attempt: 2 })
   })
@@ -53,16 +54,25 @@ describe('journal en mémoire', () => {
     expect(await journal.reserve(planned!, createdEvent, later(2 * PENDING_TTL_MS))).toEqual({ decision: 'uncertain' })
   })
 
+  it('ignore la fin d’une tentative attardée', async () => {
+    const journal = createMemoryJournal(() => start)
+    await journal.reserve(planned!, createdEvent, start)
+    await journal.markFailed(attempt(1), 'provider_unavailable')
+    await journal.reserve(planned!, createdEvent, later(1))
+    await expect(journal.markFailed(attempt(1), 'provider_unavailable')).rejects.toMatchObject({ code: 'journal_unavailable' })
+    expect(journal.rows.get(planned!.idempotencyKey)).toMatchObject({ status: 'pending', attempts: 2 })
+  })
+
   it('marque une issue inconnue', async () => {
     const journal = createMemoryJournal()
     await journal.reserve(planned!, createdEvent, start)
-    await journal.markUncertain(planned!.idempotencyKey, 'provider_timeout')
+    await journal.markUncertain(attempt(1), 'provider_timeout')
     expect(journal.rows.get(planned!.idempotencyKey)).toMatchObject({ status: 'uncertain', lastErrorCode: 'provider_timeout' })
   })
 
   it('signale un journal indisponible ou une ligne absente', async () => {
     const journal = createMemoryJournal()
-    await expect(journal.markSent('inconnue', 'cf-1')).rejects.toMatchObject({ code: 'journal_unavailable' })
+    await expect(journal.markSent({ idempotencyKey: 'inconnue', attempt: 1 }, 'cf-1')).rejects.toMatchObject({ code: 'journal_unavailable' })
     journal.unavailable = true
     await expect(journal.reserve(planned!, createdEvent, start)).rejects.toMatchObject({ code: 'journal_unavailable' })
   })
@@ -114,19 +124,20 @@ describe('journal Supabase', () => {
 
   it('enregistre l’issue de chaque envoi', async () => {
     const { rpc, journal } = client({ data: true }, { data: true }, { data: true })
-    await journal.markSent('k', 'cf-1')
-    await journal.markFailed('k', 'provider_rejected', 'E_RECIPIENT_SUPPRESSED')
-    await journal.markUncertain('k', 'provider_timeout')
+    const reserved = { idempotencyKey: 'k', attempt: 2 }
+    await journal.markSent(reserved, 'cf-1')
+    await journal.markFailed(reserved, 'provider_rejected', 'E_RECIPIENT_SUPPRESSED')
+    await journal.markUncertain(reserved, 'provider_timeout')
     expect(rpc.mock.calls.map(([, args]) => args)).toEqual([
-      { p_idempotency_key: 'k', p_status: 'sent', p_provider_message_id: 'cf-1', p_error_code: null, p_provider_code: null },
-      { p_idempotency_key: 'k', p_status: 'failed', p_provider_message_id: null, p_error_code: 'provider_rejected', p_provider_code: 'E_RECIPIENT_SUPPRESSED' },
-      { p_idempotency_key: 'k', p_status: 'uncertain', p_provider_message_id: null, p_error_code: 'provider_timeout', p_provider_code: null },
+      { p_idempotency_key: 'k', p_attempt: 2, p_status: 'sent', p_provider_message_id: 'cf-1', p_error_code: null, p_provider_code: null },
+      { p_idempotency_key: 'k', p_attempt: 2, p_status: 'failed', p_provider_message_id: null, p_error_code: 'provider_rejected', p_provider_code: 'E_RECIPIENT_SUPPRESSED' },
+      { p_idempotency_key: 'k', p_attempt: 2, p_status: 'uncertain', p_provider_message_id: null, p_error_code: 'provider_timeout', p_provider_code: null },
     ])
     expect(rpc.mock.calls.every(([fn]) => fn === 'finish_notification_delivery')).toBe(true)
   })
 
   it('signale une ligne absente', async () => {
     const { journal } = client({ data: false })
-    await expect(journal.markSent('absente', 'cf-1')).rejects.toMatchObject({ code: 'journal_unavailable' })
+    await expect(journal.markSent({ idempotencyKey: 'absente', attempt: 1 }, 'cf-1')).rejects.toMatchObject({ code: 'journal_unavailable' })
   })
 })

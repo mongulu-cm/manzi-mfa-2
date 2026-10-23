@@ -89,7 +89,7 @@ Gabarits en français, fonctions pures `(event, role, options) → { subject, te
 Chaque email contient :
 
 1. **Identification** : « Quick Chat QC-XXXXXX » (6 premiers caractères hexadécimaux de l’uuid, en majuscules) et le nom de l’autre participant.
-2. **Horaire** : date et heure longues en français, fuseau nommé et décalage UTC explicites (ex. « jeudi 5 novembre 2026, 18 h 30 (heure de Douala, UTC+1) — 30 min »). Pour une modification d’horaire, l’ancien horaire est rappelé et barré dans le HTML, préfixé « Ancien horaire : » dans le texte.
+2. **Horaire** : date et heure longues en français, fuseau nommé et décalage UTC explicites (ex. « jeudi 5 novembre 2026, 18 h 30 (heure de Douala, UTC+1) — 30 min »). Pour une modification d’horaire, l’ancien horaire est rappelé, sans durée (l’événement ne porte pas l’ancienne durée), barré dans le HTML et préfixé « Ancien horaire : » dans le texte.
 3. **Action attendue**, selon le couple :
 
 | Événement | Mentor | Mentoré |
@@ -115,7 +115,7 @@ interface EmailTransport {
 ```
 
 - **`memory`** : conserve les messages en mémoire ; utilisé par les tests et les fixtures.
-- **`log`** (défaut hors production) : n’envoie rien, journalise l’événement d’envoi **sans** adresse ni contenu.
+- **`log`** (défaut tant que l’envoi réel n’est pas activé) : envoi à blanc (`dryRun`). Rien ne part et **rien n’est écrit dans le journal**, pour qu’un passage ultérieur à `cloudflare` n’assimile pas ces envois fictifs à des doublons ; le rapport indique `dry_run` et une ligne `email.dry_run` est journalisée sans adresse ni contenu.
 - **Fournisseur réel : [Cloudflare Email Service](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)**, choix fixé par le schéma d’architecture. Envoi par la liaison Workers `send_email` déclarée dans `apps/plateforme/wrangler.jsonc` (`"send_email": [{ "name": "EMAIL" }]`) : **aucune clé d’API** à gérer, aucune dépendance npm. L’assemblage (F-007) lit la liaison via `event.context.cloudflare.env.EMAIL` ; le module ne reçoit qu’une interface minimale `EmailSendBinding` (`send({ to, from, replyTo, subject, text, html }) → { messageId }`) déclarée localement, sans dépendre de `@cloudflare/workers-types`.
 - L’adaptateur `createCloudflareEmailTransport({ binding, timeoutMs = 10_000 })` traduit le `code` des erreurs levées par la liaison en erreurs typées :
 
@@ -125,6 +125,7 @@ interface EmailTransport {
 | `E_SENDER_NOT_VERIFIED`, `E_SENDER_DOMAIN_NOT_AVAILABLE`, `E_RECIPIENT_NOT_ALLOWED`, `E_RECIPIENT_SUPPRESSED`, `E_ACCOUNT_SUSPENDED` | `provider_rejected` |
 | `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu | `provider_unavailable` |
 | Délai dépassé (`timeoutMs`) | `provider_timeout` |
+| Appel abouti sans `messageId` | `provider_uncertain` |
 
   `provider_timeout` est distinct : abandonner l’attente n’annule pas l’appel, Cloudflare a pu accepter le message. L’issue de l’envoi est donc **inconnue** et traitée comme telle (§ 5.4), jamais comme un échec renvoyable.
 
@@ -172,7 +173,7 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
    - `failed` → nouvelle tentative autorisée.
 2. Passer à `pending`, `attempts + 1`.
 3. Envoyer via le transport.
-4. Succès → `sent` + `provider_message_id`. Délai dépassé → `uncertain` + `last_error_code = provider_timeout`. Autre échec → `failed` + `last_error_code` (+ `last_provider_code`).
+4. Succès → `sent` + `provider_message_id`. Délai dépassé ou réponse sans identifiant → `uncertain` (`provider_timeout`, `provider_uncertain`). Autre échec → `failed` + `last_error_code` (+ `last_provider_code`). La fin d’envoi porte le numéro de tentative réservé et ne s’applique qu’à elle : une tentative attardée ne peut pas écraser une tentative suivante ou une résolution manuelle suivie d’un renvoi.
 
 Les étapes 1 et 2 forment une seule fonction SQL, `public.reserve_notification_delivery` : insertion `ON CONFLICT DO NOTHING`, puis lecture de la ligne verrouillée (`FOR UPDATE`) et décision avec l’horloge de la base. Deux appels concurrents ne peuvent donc pas réserver le même envoi. L’étape 4 passe par `public.finish_notification_delivery`. Ces deux fonctions (`SECURITY INVOKER`, `search_path` vide) ne sont exécutables que par `service_role` ; elles tiennent `updated_at` à jour sans trigger.
 
@@ -190,7 +191,7 @@ Journaux JSON sur une ligne (`console.info` / `console.error`), collectés par l
 
 - Événements : `email.sent`, `email.duplicate`, `email.in_progress`, `email.uncertain` (niveau erreur : action manuelle requise), `email.skipped`, `email.failed`.
 - **Jamais** d’adresse email, de nom, de contenu, de jeton d’API ni de message d’erreur brut du fournisseur (il peut citer l’adresse du destinataire) ; seul le `code` Cloudflare est conservé.
-- Codes d’erreur : `invalid_event`, `config_invalid`, `config_missing`, `journal_unavailable`, `provider_rejected`, `provider_unavailable`, `provider_timeout`.
+- Codes d’erreur : `invalid_event`, `config_invalid`, `config_missing`, `journal_unavailable`, `provider_rejected`, `provider_unavailable`, `provider_timeout`, `provider_uncertain`.
 - Si le journal est indisponible, **aucun email n’est envoyé** (`journal_unavailable`) : on préfère un échec visible à un doublon possible.
 
 ---
@@ -244,3 +245,5 @@ apps/plateforme/server/notifications/
 4. **Événements** — création et modification seulement ; annulation et rappel J-1 à décider pour F-007.
 5. **Exigence envers F-007** — persister une `version` entière incrémentée à chaque modification et appeler `notifyQuickChat` après validation de la transaction.
 6. **Relances** — V1 : renvoi manuel sûr (rejouer l’événement renvoie les `failed`, jamais les `uncertain`) ; relance automatique à définir.
+7. **Conservation du journal** — les lignes sont supprimées avec le compte, mais aucune durée de conservation ni purge n’est encore fixée : arrêter une durée (par exemple quelques mois après l’échange) et une purge planifiée avant l’activation, puis la reporter dans `PRIVACY.md`.
+8. **Restriction de la liaison** — ajouter `allowed_sender_addresses` (adresse d’expédition arrêtée au point 2) à la liaison `send_email` ; `allowed_destination_addresses` n’est pas adapté, les destinataires étant les membres.

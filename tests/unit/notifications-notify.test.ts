@@ -5,7 +5,7 @@ import { createNotificationLogger } from '../../apps/plateforme/server/notificat
 import { notifyQuickChat } from '../../apps/plateforme/server/notifications/notify'
 import type { NotifyDependencies } from '../../apps/plateforme/server/notifications/notify'
 import { DEFAULT_POLICY, parsePolicy } from '../../apps/plateforme/server/notifications/policy'
-import { createMemoryTransport } from '../../apps/plateforme/server/notifications/transport'
+import { createLogTransport, createMemoryTransport } from '../../apps/plateforme/server/notifications/transport'
 import type { EmailTransport } from '../../apps/plateforme/server/notifications/transport'
 import { createdEvent, mentee, mentor, updatedAgainEvent, updatedEvent } from '../fixtures/quick-chat-events'
 
@@ -114,6 +114,36 @@ describe('notification d’un Quick Chat', () => {
     advance(PENDING_TTL_MS)
     expect(statuses(await notifyQuickChat(createdEvent, deps))).toEqual(['uncertain', 'duplicate'])
     expect(transport.sent.map(message => message.to)).toEqual([mentee.email])
+  })
+
+  it('n’écrit rien dans le journal lors d’un envoi à blanc', async () => {
+    const { deps, journal, lines } = setup({ transport: createLogTransport() })
+    expect(statuses(await notifyQuickChat(createdEvent, deps))).toEqual(['dry_run', 'dry_run'])
+    expect(journal.rows.size).toBe(0)
+    expect(lines.filter(line => line.includes('email.dry_run'))).toHaveLength(2)
+    // Un passage ultérieur au vrai fournisseur envoie bien les emails.
+    expect(statuses(await notifyQuickChat(createdEvent, { ...deps, transport: createMemoryTransport() }))).toEqual(['sent', 'sent'])
+  })
+
+  it('traite une réponse sans identifiant comme une issue inconnue', async () => {
+    const { deps, transport, journal } = setup()
+    transport.failures.push(new NotificationError('provider_uncertain'))
+    expect((await notifyQuickChat(createdEvent, deps)).results[0]).toEqual({ role: 'mentor', status: 'uncertain', errorCode: 'provider_uncertain' })
+    expect([...journal.rows.values()][0]).toMatchObject({ status: 'uncertain', lastErrorCode: 'provider_uncertain' })
+  })
+
+  it('classe une erreur de configuration levée par le transport comme indisponibilité', async () => {
+    const { deps, transport } = setup()
+    transport.failures.push(new NotificationError('config_invalid'))
+    expect((await notifyQuickChat(createdEvent, deps)).results[0]).toEqual({ role: 'mentor', status: 'failed', errorCode: 'provider_unavailable' })
+  })
+
+  it('garde email.uncertain quand l’issue inconnue ne peut pas être enregistrée', async () => {
+    const { deps, transport, journal, lines } = setup()
+    transport.failures.push(new NotificationError('provider_timeout'))
+    vi.spyOn(journal, 'markUncertain').mockRejectedValue(new NotificationError('journal_unavailable'))
+    await notifyQuickChat(createdEvent, deps)
+    expect(lines.filter(line => line.includes('"errorCode":"journal_unavailable"'))).toEqual([expect.stringContaining('"event":"email.uncertain"')])
   })
 
   it('n’envoie rien quand le journal est indisponible', async () => {

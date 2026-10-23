@@ -48,12 +48,10 @@ describe('transports de test et de développement', () => {
     expect(transport.sent).toEqual([message])
   })
 
-  it('journalise un envoi fictif sans adresse, sujet ni contenu', async () => {
-    const output = sink()
-    const result = await createLogTransport(createNotificationLogger(output)).send(message)
-    expect(result.providerMessageId).toMatch(/^log-[0-9a-f-]{36}$/)
-    const logged = output.info.mock.calls.map(([line]) => line).join('\n')
-    expect(logged).toBe('{"scope":"notifications","event":"email.logged"}')
-    expect(logged).not.toMatch(/example\.test|confidentiel/)
+  it('signale le transport log comme envoi à blanc', async () => {
+    const transport = createLogTransport()
+    expect(transport.dryRun).toBe(true)
+    expect((await transport.send(message)).providerMessageId).toMatch(/^log-[0-9a-f-]{36}$/)
+    expect(createMemoryTransport().dryRun).toBeUndefined()
   })
 })

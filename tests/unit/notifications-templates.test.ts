@@ -51,7 +51,9 @@ describe('gabarits d’email', () => {
   })
 
   it('rappelle l’ancien horaire seulement pour une modification', () => {
-    const previous = formatSchedule(createdEvent.startsAt, updatedEvent.durationMinutes, options.timeZone)
+    // L'ancienne durée n'est pas connue : l'ancien horaire est affiché sans durée.
+    const previous = formatSchedule(createdEvent.startsAt, undefined, options.timeZone)
+    expect(previous).toBe('jeudi 5 novembre 2026, 18 h 30 (heure de Douala, UTC+1)')
     const updated = renderEmail(updatedEvent, 'mentee', options)
     expect(updated.text).toContain(`Ancien horaire : ${previous}`)
     expect(updated.html).toContain(`<s>${previous}</s>`)
@@ -62,7 +64,7 @@ describe('gabarits d’email', () => {
 
   it('utilise un libellé générique quand un nom manque', () => {
     const forMentor = renderEmail(anonymousMenteeEvent, 'mentor', options)
-    expect(forMentor.text).toContain('votre mentoré vous a envoyé une demande')
+    expect(forMentor.text).toContain('\n\nVotre mentoré vous a envoyé une demande')
     const forMentee = renderEmail(anonymousMenteeEvent, 'mentee', options)
     expect(forMentee.text.startsWith('Bonjour,\n')).toBe(true)
   })
@@ -70,7 +72,8 @@ describe('gabarits d’email', () => {
   it('échappe toutes les valeurs dynamiques du HTML et garde le sujet sans nom', () => {
     const email = renderEmail(hostileNamesEvent, 'mentee', options)
     expect(email.html).not.toContain('<script>')
-    expect(email.html).toContain('&#60;script&#62;alert(&#34;x&#34;)&#60;/script&#62; &#38; Très long nom')
+    expect(email.html).toContain(escapeHtml(hostileNamesEvent.mentor.displayName!))
+    expect(escapeHtml(hostileNamesEvent.mentor.displayName!)).toMatch(/^&#60;script&#62;alert\(&#34;x&#34;\)&#60;\/script&#62; &#38; Très long nom( Très long nom){9}$/)
     expect(email.subject).not.toContain('script')
     expect(escapeHtml(`'`)).toBe('&#39;')
   })

@@ -10,7 +10,7 @@ CREATE TABLE public.notification_deliveries (
   attempts integer NOT NULL DEFAULT 1 CHECK (attempts >= 1),
   provider_message_id text CHECK (char_length(provider_message_id) <= 200),
   last_error_code text CHECK (last_error_code IN (
-    'journal_unavailable', 'provider_rejected', 'provider_unavailable', 'provider_timeout'
+    'journal_unavailable', 'provider_rejected', 'provider_unavailable', 'provider_timeout', 'provider_uncertain'
   )),
   last_provider_code text CHECK (last_provider_code ~ '^E_[A-Z_]{1,64}$'),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -76,9 +76,11 @@ BEGIN
 END;
 $$;
 
--- Issue d'un envoi réservé ; retourne false si la ligne n'existe pas.
+-- Issue d'une tentative réservée ; retourne false si la ligne n'existe pas ou si une autre
+-- tentative l'a réservée depuis, de sorte qu'une tentative attardée n'écrase rien.
 CREATE FUNCTION public.finish_notification_delivery(
   p_idempotency_key text,
+  p_attempt integer,
   p_status text,
   p_provider_message_id text DEFAULT NULL,
   p_error_code text DEFAULT NULL,
@@ -99,12 +101,12 @@ BEGIN
     last_error_code = p_error_code,
     last_provider_code = p_provider_code,
     updated_at = now()
-  WHERE idempotency_key = p_idempotency_key;
+  WHERE idempotency_key = p_idempotency_key AND attempts = p_attempt;
   RETURN FOUND;
 END;
 $$;
 
 REVOKE ALL ON FUNCTION public.reserve_notification_delivery(text, uuid, text, text, uuid, integer) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.finish_notification_delivery(text, text, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.finish_notification_delivery(text, integer, text, text, text, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reserve_notification_delivery(text, uuid, text, text, uuid, integer) TO service_role;
-GRANT EXECUTE ON FUNCTION public.finish_notification_delivery(text, text, text, text, text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.finish_notification_delivery(text, integer, text, text, text, text) TO service_role;

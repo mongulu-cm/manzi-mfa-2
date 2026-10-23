@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Assertion functions are available to test roles only until this transaction rolls back.
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated, service_role;
 SET search_path = public, extensions;
-SELECT plan(33);
+SELECT plan(36);
 
 INSERT INTO auth.users (id, email) VALUES
   ('c0000000-0000-0000-0000-000000000001', 'mentor@example.invalid'),
@@ -32,44 +32,37 @@ SELECT throws_ok($$INSERT INTO public.notification_deliveries (idempotency_key, 
   VALUES ('k6', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 'boom')$$,
   '23514', NULL, 'Code d’erreur contrôlé');
 
--- Réservation et issue d'un envoi
-CREATE TEMP TABLE reserved AS
-  SELECT * FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120);
-SELECT results_eq('SELECT decision, attempt FROM reserved', $$VALUES ('send'::text, 1)$$, 'Première réservation : envoi');
-SELECT results_eq(
-  $$SELECT decision, attempt FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$,
-  $$VALUES ('in_progress'::text, NULL::integer)$$, 'Envoi en cours non dupliqué');
-SELECT ok(public.finish_notification_delivery('qc:v1:mentor', 'failed', NULL, 'provider_unavailable', 'E_RATE_LIMIT_EXCEEDED'), 'Échec enregistré');
+-- Réservation et issue d'un envoi, avec le rôle du serveur (clé secret) comme en production
+SET LOCAL ROLE service_role;
+SELECT results_eq($$SELECT decision, attempt FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$, $$VALUES ('send'::text, 1)$$, 'Première réservation : envoi');
+SELECT results_eq($$SELECT decision, attempt FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$, $$VALUES ('in_progress'::text, NULL::integer)$$, 'Envoi en cours non dupliqué');
+SELECT ok(public.finish_notification_delivery('qc:v1:mentor', 1, 'failed', NULL, 'provider_unavailable', 'E_RATE_LIMIT_EXCEEDED'), 'Échec enregistré');
 SELECT results_eq('SELECT status, last_error_code, last_provider_code FROM public.notification_deliveries WHERE idempotency_key = ''qc:v1:mentor''',
   $$VALUES ('failed'::text, 'provider_unavailable'::text, 'E_RATE_LIMIT_EXCEEDED'::text)$$, 'Codes d’échec conservés');
-SELECT results_eq(
-  $$SELECT decision, attempt FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$,
-  $$VALUES ('send'::text, 2)$$, 'Nouvelle tentative après échec');
-SELECT ok(public.finish_notification_delivery('qc:v1:mentor', 'sent', 'cf-123'), 'Envoi enregistré');
+SELECT results_eq($$SELECT decision, attempt FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$, $$VALUES ('send'::text, 2)$$, 'Nouvelle tentative après échec');
+SELECT ok(NOT public.finish_notification_delivery('qc:v1:mentor', 1, 'failed', NULL, 'provider_unavailable'), 'Tentative attardée sans effet');
+SELECT is((SELECT status FROM public.notification_deliveries WHERE idempotency_key = 'qc:v1:mentor'), 'pending', 'La tentative en cours est préservée');
+SELECT ok(public.finish_notification_delivery('qc:v1:mentor', 2, 'sent', 'cf-123'), 'Envoi enregistré');
 SELECT results_eq('SELECT status, attempts, provider_message_id, last_error_code FROM public.notification_deliveries WHERE idempotency_key = ''qc:v1:mentor''',
   $$VALUES ('sent'::text, 2, 'cf-123'::text, NULL::text)$$, 'Succès après deux tentatives, erreur effacée');
-SELECT results_eq(
-  $$SELECT decision FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$,
-  $$VALUES ('duplicate'::text)$$, 'Rejeu après envoi : doublon');
+SELECT results_eq($$SELECT decision FROM public.reserve_notification_delivery('qc:v1:mentor', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentor', 'c0000000-0000-0000-0000-000000000001', 120)$$, $$VALUES ('duplicate'::text)$$, 'Rejeu après envoi : doublon');
 
 -- Issue inconnue : délai dépassé ou envoi interrompu
 SELECT public.reserve_notification_delivery('qc:v1:mentee', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentee', 'c0000000-0000-0000-0000-000000000002', 120);
 UPDATE public.notification_deliveries SET updated_at = now() - interval '3 minutes' WHERE idempotency_key = 'qc:v1:mentee';
-SELECT results_eq(
-  $$SELECT decision FROM public.reserve_notification_delivery('qc:v1:mentee', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentee', 'c0000000-0000-0000-0000-000000000002', 120)$$,
-  $$VALUES ('uncertain'::text)$$, 'Envoi interrompu : issue inconnue');
+SELECT results_eq($$SELECT decision FROM public.reserve_notification_delivery('qc:v1:mentee', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentee', 'c0000000-0000-0000-0000-000000000002', 120)$$, $$VALUES ('uncertain'::text)$$, 'Envoi interrompu : issue inconnue');
 SELECT is((SELECT status FROM public.notification_deliveries WHERE idempotency_key = 'qc:v1:mentee'), 'uncertain', 'Ligne marquée uncertain');
-SELECT results_eq(
-  $$SELECT decision FROM public.reserve_notification_delivery('qc:v1:mentee', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentee', 'c0000000-0000-0000-0000-000000000002', 120)$$,
-  $$VALUES ('uncertain'::text)$$, 'Issue inconnue jamais renvoyée');
-SELECT ok(public.finish_notification_delivery('qc:v1:mentee', 'uncertain', NULL, 'provider_timeout'), 'Délai dépassé enregistré');
-SELECT ok(NOT public.finish_notification_delivery('absente', 'sent', 'cf-1'), 'Ligne absente signalée');
-SELECT throws_ok($$SELECT public.finish_notification_delivery('qc:v1:mentee', 'pending')$$, '22023', NULL, 'Statut final contrôlé');
+SELECT results_eq($$SELECT decision FROM public.reserve_notification_delivery('qc:v1:mentee', 'd0000000-0000-0000-0000-000000000001', 'quick_chat.created', 'mentee', 'c0000000-0000-0000-0000-000000000002', 120)$$, $$VALUES ('uncertain'::text)$$, 'Issue inconnue jamais renvoyée');
+SELECT ok(public.finish_notification_delivery('qc:v1:mentee', 1, 'uncertain', NULL, 'provider_uncertain'), 'Issue inconnue enregistrée');
+SELECT ok(NOT public.finish_notification_delivery('absente', 1, 'sent', 'cf-1'), 'Ligne absente signalée');
+SELECT throws_ok($$SELECT public.finish_notification_delivery('qc:v1:mentee', 1, 'pending')$$, '22023', NULL, 'Statut final contrôlé');
+RESET ROLE;
 
 -- Accès
 SELECT ok(NOT has_function_privilege('anon', 'public.reserve_notification_delivery(text, uuid, text, text, uuid, integer)', 'EXECUTE'), 'Réservation anonyme interdite');
-SELECT ok(NOT has_function_privilege('authenticated', 'public.finish_notification_delivery(text, text, text, text, text)', 'EXECUTE'), 'Mise à jour authentifiée interdite');
-SELECT ok(has_function_privilege('service_role', 'public.reserve_notification_delivery(text, uuid, text, text, uuid, integer)', 'EXECUTE'), 'Serveur autorisé');
+SELECT ok(NOT has_function_privilege('authenticated', 'public.finish_notification_delivery(text, integer, text, text, text, text)', 'EXECUTE'), 'Mise à jour authentifiée interdite');
+SELECT ok(has_function_privilege('service_role', 'public.reserve_notification_delivery(text, uuid, text, text, uuid, integer)', 'EXECUTE'), 'Serveur autorisé à réserver');
+SELECT ok(has_function_privilege('service_role', 'public.finish_notification_delivery(text, integer, text, text, text, text)', 'EXECUTE'), 'Serveur autorisé à conclure');
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', 'c0000000-0000-0000-0000-000000000002', true);

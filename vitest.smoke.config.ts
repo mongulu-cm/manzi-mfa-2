@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     include: ['tests/smoke/**/*.smoke.ts'],
     environment: 'node',
-    testTimeout: 30_000,
+    // Quatre envois séquentiels (délai de 10 s chacun au plus) puis le rejeu.
+    testTimeout: 60_000,
   },
 })

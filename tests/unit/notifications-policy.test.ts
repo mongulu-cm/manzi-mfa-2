@@ -11,8 +11,11 @@ describe('politique de notification', () => {
     ])
   })
 
-  it.each([undefined, null, ''])('utilise la politique par défaut pour une configuration vide (%s)', (raw) => {
-    expect(parsePolicy(raw)).toBe(DEFAULT_POLICY)
+  it.each([undefined, null, ''])('utilise une copie de la politique par défaut pour une configuration vide (%s)', (raw) => {
+    const policy = parsePolicy(raw)
+    expect(policy).toEqual(DEFAULT_POLICY)
+    policy.events['quick_chat.created'].recipients.pop()
+    expect(DEFAULT_POLICY.events['quick_chat.created'].recipients).toEqual(['mentor', 'mentee'])
   })
 
   it('désactive un événement sans toucher à l’autre', () => {
@@ -36,6 +39,8 @@ describe('politique de notification', () => {
     ['enabled absent', { events: { 'quick_chat.created': { recipients: ['mentor'] } } }],
     ['recipients non tableau', { events: { 'quick_chat.created': { enabled: true, recipients: 'mentor' } } }],
     ['rôle inconnu', { events: { 'quick_chat.created': { enabled: true, recipients: ['admin'] } } }],
+    ['clé racine inconnue', { events: {}, enabled: false }],
+    ['clé d’événement inconnue', { events: { 'quick_chat.created': { enabled: true, recipients: ['mentor'], recipient: ['mentee'] } } }],
   ])('refuse une configuration avec %s', (_, raw) => {
     expect(() => parsePolicy(raw)).toThrow(expect.objectContaining({ code: 'config_invalid' }))
   })

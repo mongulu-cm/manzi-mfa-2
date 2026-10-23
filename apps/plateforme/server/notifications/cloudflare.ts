@@ -41,7 +41,8 @@ export function createCloudflareEmailTransport(
       })
       try {
         const result = await Promise.race([binding.send(message), timeout])
-        if (!result?.messageId) throw new NotificationError('provider_unavailable')
+        // Appel abouti sans identifiant : rien ne prouve que le message n'est pas parti.
+        if (!result?.messageId) throw new NotificationError('provider_uncertain')
         return { providerMessageId: result.messageId }
       }
       catch (error) {

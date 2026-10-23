@@ -45,8 +45,8 @@ function utcOffset(zoneName: string): string {
   return `UTC${sign}${Number(match[2])}${minutes}`
 }
 
-// Ex. « jeudi 5 novembre 2026, 18 h 30 (heure de Douala, UTC+1) — 30 min ».
-export function formatSchedule(startsAt: string, durationMinutes: number, timeZone: string): string {
+// Ex. « jeudi 5 novembre 2026, 18 h 30 (heure de Douala, UTC+1) — 30 min » ; sans durée si elle est omise.
+export function formatSchedule(startsAt: string, durationMinutes: number | undefined, timeZone: string): string {
   let parts: Intl.DateTimeFormatPart[]
   try {
     parts = new Intl.DateTimeFormat('fr-FR', {
@@ -60,7 +60,8 @@ export function formatSchedule(startsAt: string, durationMinutes: number, timeZo
   const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value ?? ''
   const city = timeZone.includes('/') ? `heure de ${timeZone.split('/').pop()!.replace(/_/g, ' ')}, ` : ''
   return `${part('weekday')} ${part('day')} ${part('month')} ${part('year')}, `
-    + `${part('hour')} h ${part('minute')} (${city}${utcOffset(part('timeZoneName'))}) — ${durationMinutes} min`
+    + `${part('hour')} h ${part('minute')} (${city}${utcOffset(part('timeZoneName'))})`
+    + (durationMinutes === undefined ? '' : ` — ${durationMinutes} min`)
 }
 
 function absoluteUrl(path: string, base: string): string {
@@ -81,7 +82,9 @@ function subjectFor(event: QuickChatEvent, role: ParticipantRole, reference: str
 
 function introFor(event: QuickChatEvent, role: ParticipantRole, other: string): string {
   if (event.type === 'quick_chat.updated') return `L’horaire de votre Quick Chat avec ${other} a été modifié.`
-  return role === 'mentor' ? `${other} vous a envoyé une demande de Quick Chat.` : `Votre demande de Quick Chat avec ${other} est envoyée.`
+  if (role === 'mentee') return `Votre demande de Quick Chat avec ${other} est envoyée.`
+  // Seul le libellé générique prend une majuscule en début de phrase ; un nom réel reste tel quel.
+  return `${other === OTHER_FALLBACK.mentor ? 'Votre mentoré' : other} vous a envoyé une demande de Quick Chat.`
 }
 
 // Le sujet ne contient aucun nom : seules la référence et la nature de l'événement y figurent.
@@ -90,7 +93,8 @@ export function renderEmail(event: QuickChatEvent, role: ParticipantRole, option
   const self = event[role].displayName
   const other = event[role === 'mentor' ? 'mentee' : 'mentor'].displayName ?? OTHER_FALLBACK[role]
   const schedule = formatSchedule(event.startsAt, event.durationMinutes, options.timeZone)
-  const previous = event.previousStartsAt && formatSchedule(event.previousStartsAt, event.durationMinutes, options.timeZone)
+  // L'événement ne porte pas l'ancienne durée : l'ancien horaire est affiché sans durée.
+  const previous = event.previousStartsAt && formatSchedule(event.previousStartsAt, undefined, options.timeZone)
   const link = absoluteUrl(`/quick-chats/${event.quickChatId}`, options.appUrl)
   const privacy = absoluteUrl('/confidentialite', options.siteUrl)
   const greeting = self ? `Bonjour ${self},` : 'Bonjour,'

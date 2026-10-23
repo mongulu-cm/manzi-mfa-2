@@ -30,6 +30,7 @@ export type NotificationErrorCode
     | 'provider_rejected'
     | 'provider_unavailable'
     | 'provider_timeout'
+    | 'provider_uncertain'
 
 // Message générique : aucune valeur d'entrée (adresse, nom, réponse du fournisseur) n'y figure.
 export class NotificationError extends Error {
@@ -61,6 +62,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function timestamp(value: unknown): string {
   if (typeof value !== 'string' || !ISO_WITH_ZONE.test(value) || Number.isNaN(Date.parse(value))) invalid()
+  // Date.parse reporte un jour inexistant (31 février → 3 mars) au lieu de le refuser.
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number) as [number, number, number]
+  if (new Date(Date.UTC(year, month - 1, day)).getUTCDate() !== day) invalid()
   return value
 }
 
@@ -70,7 +74,7 @@ function uuid(value: unknown): string {
 }
 
 function emailAddress(value: unknown): string {
-  if (typeof value !== 'string' || value.length > 254 || !EMAIL.test(value)) invalid()
+  if (typeof value !== 'string' || value.length > 254 || CONTROL.test(value) || !EMAIL.test(value)) invalid()
   return value
 }
 

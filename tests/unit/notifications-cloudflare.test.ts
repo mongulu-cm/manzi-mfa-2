@@ -47,9 +47,9 @@ describe('adaptateur Cloudflare Email Service', () => {
     expect(email.send).toHaveBeenCalledWith(message)
   })
 
-  it('considère une réponse sans identifiant comme indisponible', async () => {
+  it('considère une réponse sans identifiant comme une issue inconnue', async () => {
     const error = await failure(async () => ({ messageId: '' }))
-    expect(error.code).toBe('provider_unavailable')
+    expect(error.code).toBe('provider_uncertain')
   })
 
   it.each([

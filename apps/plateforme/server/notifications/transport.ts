@@ -1,5 +1,3 @@
-import type { NotificationLogger } from './logger'
-
 export interface EmailMessage {
   to: string
   from: { email: string, name?: string }
@@ -10,6 +8,8 @@ export interface EmailMessage {
 }
 
 export interface EmailTransport {
+  // Envoi à blanc : rien ne part et rien n'est écrit dans le journal d'idempotence.
+  readonly dryRun?: boolean
   send(message: EmailMessage): Promise<{ providerMessageId: string }>
 }
 
@@ -34,11 +34,12 @@ export function createMemoryTransport(): MemoryTransport {
   }
 }
 
-// N'envoie rien : signale seulement qu'un email aurait été transmis, sans adresse ni contenu.
-export function createLogTransport(logger: NotificationLogger): EmailTransport {
+// N'envoie rien : notifyQuickChat le signale (email.dry_run) sans toucher au journal, de sorte
+// qu'un passage ultérieur à un vrai fournisseur ne prenne pas ces envois pour des doublons.
+export function createLogTransport(): EmailTransport {
   return {
+    dryRun: true,
     async send() {
-      logger.info('email.logged')
       return { providerMessageId: `log-${crypto.randomUUID()}` }
     },
   }

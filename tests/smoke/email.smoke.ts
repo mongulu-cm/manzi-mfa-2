@@ -51,12 +51,17 @@ function alias(address: string, tag: string): string {
   return `${local}+${tag}@${domain}`
 }
 
+// Le mentoré reçoit sur E2E_EMAIL_TO ; le mentor sur E2E_EMAIL_TO_MENTOR, ou à défaut sur l'alias
+// +mentor (à vérifier dans Cloudflare tant que le domaine d'envoi n'est pas intégré).
+const menteeTo = to
+const mentorTo = process.env.E2E_EMAIL_TO_MENTOR || (to ? alias(to, 'mentor') : undefined)
+
 describe.skipIf(!configured)('envoi réel par Cloudflare Email Service', () => {
   it('envoie création et modification, puis refuse le rejeu', async () => {
     const recipients = (event: typeof createdEvent) => ({
       ...event,
-      mentor: { ...event.mentor, email: alias(to!, 'mentor') },
-      mentee: { ...event.mentee, email: alias(to!, 'mentee') },
+      mentor: { ...event.mentor, email: mentorTo! },
+      mentee: { ...event.mentee, email: menteeTo! },
     })
     const deps = {
       policy: DEFAULT_POLICY,

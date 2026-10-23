@@ -5,7 +5,7 @@ export type NotificationLogEvent
     | 'email.uncertain'
     | 'email.skipped'
     | 'email.failed'
-    | 'email.logged'
+    | 'email.dry_run'
 
 export interface NotificationLogFields {
   quickChatId?: string

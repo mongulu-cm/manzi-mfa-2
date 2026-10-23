@@ -17,7 +17,8 @@ CREATE TABLE "public"."notification_deliveries" (
   CONSTRAINT "notification_deliveries_event_type_check" CHECK ((event_type = ANY (ARRAY['quick_chat.created'::text, 'quick_chat.updated'::text]))),
   CONSTRAINT "notification_deliveries_idempotency_key_check" CHECK ((char_length(idempotency_key) <= 200)),
   CONSTRAINT "notification_deliveries_last_error_code_check"
-    CHECK ((last_error_code = ANY (ARRAY['journal_unavailable'::text, 'provider_rejected'::text, 'provider_unavailable'::text, 'provider_timeout'::text]))),
+    CHECK
+    ((last_error_code = ANY (ARRAY['journal_unavailable'::text, 'provider_rejected'::text, 'provider_unavailable'::text, 'provider_timeout'::text, 'provider_uncertain'::text]))),
   CONSTRAINT "notification_deliveries_last_provider_code_check" CHECK ((last_provider_code ~ '^E_[A-Z_]{1,64}$'::text)),
   CONSTRAINT "notification_deliveries_pkey" PRIMARY KEY (idempotency_key),
   CONSTRAINT "notification_deliveries_provider_message_id_check" CHECK ((char_length(provider_message_id) <= 200)),
@@ -32,10 +33,11 @@ REVOKE ALL ON TABLE "public"."notification_deliveries" FROM "anon", "authenticat
 
 CREATE OR REPLACE FUNCTION public.finish_notification_delivery (
   p_idempotency_key     text,
+  p_attempt             integer,
   p_status              text,
-  p_provider_message_id text DEFAULT NULL::text,
-  p_error_code          text DEFAULT NULL::text,
-  p_provider_code       text DEFAULT NULL::text
+  p_provider_message_id text    DEFAULT NULL::text,
+  p_error_code          text    DEFAULT NULL::text,
+  p_provider_code       text    DEFAULT NULL::text
 )
   RETURNS boolean
   LANGUAGE plpgsql
@@ -51,12 +53,12 @@ BEGIN
     last_error_code = p_error_code,
     last_provider_code = p_provider_code,
     updated_at = now()
-  WHERE idempotency_key = p_idempotency_key;
+  WHERE idempotency_key = p_idempotency_key AND attempts = p_attempt;
   RETURN FOUND;
 END;
 $function$;
 
-REVOKE ALL ON FUNCTION "public"."finish_notification_delivery"(text, text, text, text, text) FROM PUBLIC, "anon", "authenticated";
+REVOKE ALL ON FUNCTION "public"."finish_notification_delivery"(text, integer, text, text, text, text) FROM PUBLIC, "anon", "authenticated";
 
 CREATE OR REPLACE FUNCTION public.reserve_notification_delivery (
   p_idempotency_key     text,
@@ -118,11 +120,11 @@ CREATE INDEX notification_deliveries_quick_chat_id_idx ON public.notification_de
 
 CREATE INDEX notification_deliveries_recipient_id_idx ON public.notification_deliveries USING btree (recipient_id);
 
-REVOKE ALL ON FUNCTION "public"."finish_notification_delivery"(text, text, text, text, text) FROM "postgres";
+REVOKE ALL ON FUNCTION "public"."finish_notification_delivery"(text, integer, text, text, text, text) FROM "postgres";
 
-GRANT EXECUTE ON FUNCTION "public"."finish_notification_delivery"(text, text, text, text, text) TO "postgres";
+GRANT EXECUTE ON FUNCTION "public"."finish_notification_delivery"(text, integer, text, text, text, text) TO "postgres";
 
-GRANT EXECUTE ON FUNCTION "public"."finish_notification_delivery"(text, text, text, text, text) TO "service_role";
+GRANT EXECUTE ON FUNCTION "public"."finish_notification_delivery"(text, integer, text, text, text, text) TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."reserve_notification_delivery"(text, uuid, text, text, uuid, integer) FROM "postgres";
 
