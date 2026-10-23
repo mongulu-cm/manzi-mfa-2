@@ -82,9 +82,12 @@ export async function updateUserProfile(
     resume_url: input.resumeUrl,
     is_onboarded: input.isOnboarded,
   }
-  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  const payload: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(columns)) {
     if (value !== undefined) payload[key] = value
+  }
+  if (Object.keys(payload).length === 0) {
+    return fetchUserProfile(client, userId)
   }
 
   const { data, error } = await client.from('profiles').update(payload).eq('id', userId).select().single()

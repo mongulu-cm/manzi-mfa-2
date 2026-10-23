@@ -7,13 +7,13 @@ CREATE TABLE public.profiles (
   avatar_url text,
   created_at timestamptz NOT NULL DEFAULT now(),
   role text CHECK (role IN ('mentor', 'mentee')),
-  headline text,
-  company_or_school text,
+  headline text CHECK (headline IS NULL OR char_length(headline) <= 120),
+  company_or_school text CHECK (company_or_school IS NULL OR char_length(company_or_school) <= 120),
   years_of_experience integer CHECK (years_of_experience >= 0 AND years_of_experience <= 70),
   linkedin_url text CHECK (linkedin_url IS NULL OR linkedin_url ~* '^https://([a-z0-9-]+\.)*linkedin\.com(/.*)?$'),
-  skills text[] DEFAULT '{}'::text[],
-  bio text,
-  resume_url text,
+  skills text[] DEFAULT '{}'::text[] CHECK (cardinality(skills) <= 30),
+  bio text CHECK (bio IS NULL OR char_length(bio) <= 1000),
+  resume_url text CHECK (resume_url IS NULL OR char_length(resume_url) <= 500),
   is_onboarded boolean NOT NULL DEFAULT false,
   is_active boolean NOT NULL DEFAULT true,
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -45,7 +45,6 @@ CREATE POLICY profiles_read_active_mentors ON public.profiles
 CREATE OR REPLACE FUNCTION private.set_updated_at()
   RETURNS TRIGGER
   LANGUAGE plpgsql
-  SECURITY DEFINER
   SET search_path TO ''
 AS $function$
 BEGIN

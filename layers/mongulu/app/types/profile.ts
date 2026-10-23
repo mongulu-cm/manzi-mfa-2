@@ -51,13 +51,13 @@ function isLinkedinUrl(value: unknown): boolean {
 }
 
 function isStringMax(value: unknown, max: number): boolean {
-  return typeof value === 'string' && value.length <= max
+  return typeof value === 'string' && Array.from(value).length <= max
 }
 
 type FieldRule = [key: string, isValid: (value: unknown) => boolean, message: string, nullable?: boolean]
 
 const isSkills = (s: unknown): boolean =>
-  Array.isArray(s) && s.length <= 30 && s.every(x => typeof x === 'string' && x.trim() !== '' && x.length <= 50)
+  Array.isArray(s) && s.length <= 30 && s.every(x => typeof x === 'string' && x.trim() !== '' && Array.from(x).length <= 50)
 
 const isYears = (y: unknown): boolean => typeof y === 'number' && Number.isInteger(y) && y >= 0 && y <= 70
 
@@ -70,6 +70,7 @@ const FIELD_RULES: FieldRule[] = [
   ['bio', v => isStringMax(v, 1000), 'bio must be a string of at most 1000 characters', true],
   ['resumeUrl', v => isStringMax(v, 500), 'resumeUrl must be a string of at most 500 characters or null', true],
   ['skills', isSkills, 'skills must be an array of at most 30 non-empty strings of at most 50 characters'],
+  ['isOnboarded', v => typeof v === 'boolean', 'isOnboarded must be a boolean'],
 ]
 
 export function validateProfileUpdateInput(input: unknown): { valid: boolean, errors: string[] } {

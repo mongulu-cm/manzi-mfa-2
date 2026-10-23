@@ -12,7 +12,7 @@ export function validateFilePayload(
   sizeBytes: number,
   bucket: StorageBucket,
 ): { valid: boolean, error?: string } {
-  const rule = RULES[bucket]
+  const rule = Object.prototype.hasOwnProperty.call(RULES, bucket) ? RULES[bucket] : undefined
   if (!rule) return { valid: false, error: 'Bucket inconnu' }
   if (!rule.mimeTypes.includes(mimeType)) {
     return { valid: false, error: `Type de fichier non autorisé : ${mimeType}` }
@@ -26,20 +26,26 @@ export function validateFilePayload(
   return { valid: true }
 }
 
-export function buildStoragePath(userId: string, _bucket: StorageBucket, filename: string): string {
+export function buildStoragePath(userId: string, bucket: StorageBucket, filename: string): string {
   const sanitized = filename
     .replace(/[\\/]+/g, '_')
     .replace(/\.{2,}/g, '.')
     .replace(/[^A-Za-z0-9._-]/g, '_')
     .replace(/^[._]+|[._]+$/g, '')
-  return `${userId}/${sanitized || 'file'}`
+  const fallback = bucket === 'avatars' ? 'avatar.jpg' : 'cv.pdf'
+  return `${userId}/${sanitized || fallback}`
 }
 
 export async function createSignedDocumentUrl(
   client: SupabaseClient,
+  userId: string,
   path: string,
   expiresInSeconds = 3600,
 ): Promise<string> {
+  const folder = path.split('/')[0]
+  if (folder !== userId) {
+    throw new Error('Accès non autorisé au document')
+  }
   const { data, error } = await client.storage.from('documents').createSignedUrl(path, expiresInSeconds)
   if (error || !data?.signedUrl) {
     throw new Error('Impossible de générer l\'URL signée du document')

@@ -17,9 +17,9 @@ L'objectif de **F-017** est d'établir la fondation de données produit sous Pos
 
 ### Objectifs clés
 1. **Données structurées sous PostgreSQL** : Évolution du schéma `profiles` pour supporter les profils mentor / mentoré (rôle, intitulé de poste, entreprise/école, années d'expérience, lien LinkedIn, compétences/tags, bio, complétion d'onboarding).
-2. **Stockage de fichiers Supabase Storage** : Définition des buckets sécurisés (`avatars` public/lecture seule avec quota et formats images stricts, `documents` privé pour les CVs/fichiers avec accès strictement restreint au propriétaire).
+2. **Stockage de fichiers Supabase Storage** : Définition des buckets sécurisés (`avatars` public/lecture seule avec restriction de taille (2 Mo) et formats images stricts, `documents` privé pour les CVs/fichiers avec accès strictement restreint au propriétaire).
 3. **Sécurité & Isolation (RLS)** : Politiques Row Level Security strictes interdisant toute lecture ou mutation non autorisée, testées avec pgTAP.
-4. **Frontière applicative stable** : Fournir une couche de services TypeScript serveur (`apps/plateforme/server/utils/data.ts` et `storage.ts`) avec validation d'entrée (`@supabase/server`), évitant d'exposer directement le stockage brut aux clients sans contrôle.
+4. **Frontière applicative stable** : Fournir une couche de services TypeScript serveur (`apps/plateforme/server/utils/database.ts` et `storage.ts`) avec validation d'entrée (`@supabase/server`), évitant d'exposer directement le stockage brut aux clients sans contrôle.
 5. **Déploiement et tests déterministes** : Migrations SQL reproductibles sous `supabase/migrations/`, schéma déclaratif sous `supabase/schemas/`, et suite de tests pgTAP sous `supabase/tests/`.
 
 ---

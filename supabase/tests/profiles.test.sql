@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Assertion functions are available to test roles only until this transaction rolls back.
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated;
 SET search_path = public, extensions;
-SELECT plan(35);
+SELECT plan(39);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
   ('a0000000-0000-0000-0000-000000000001', 'a@example.invalid', '{"name":"  Membre Test  ","picture":"https://image.example.invalid/photo.png"}'),
@@ -32,11 +32,15 @@ SELECT is((SELECT count(*)::integer FROM public.profiles WHERE id='a0000000-0000
 SELECT throws_ok($$INSERT INTO public.profiles(id) VALUES ('b0000000-0000-0000-0000-000000000001')$$, '42501', NULL, 'Création cliente interdite');
 SELECT lives_ok($$UPDATE public.profiles SET headline='DevOps Senior' WHERE id = (SELECT auth.uid())$$, 'Le propriétaire modifie son profil');
 SELECT is((SELECT headline FROM public.profiles WHERE id='a0000000-0000-0000-0000-000000000001'), 'DevOps Senior', 'Modification propriétaire persistée');
-SELECT is((WITH u AS (UPDATE public.profiles SET headline='Pirate' WHERE id='a0000000-0000-0000-0000-000000000002' RETURNING 1) SELECT count(*)::integer FROM u), 0, 'Modification du profil d''un tiers sans effet');
+WITH u AS (UPDATE public.profiles SET headline='Pirate' WHERE id='a0000000-0000-0000-0000-000000000002' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM u) SELECT is(n, 0, 'Modification du profil d''un tiers sans effet') FROM cnt;
 SELECT throws_ok($$UPDATE public.profiles SET role='invalid' WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Rôle invalide refusé');
 SELECT throws_ok($$UPDATE public.profiles SET years_of_experience=71 WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Expérience > 70 refusée');
 SELECT throws_ok($$UPDATE public.profiles SET years_of_experience=-1 WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Expérience négative refusée');
 SELECT throws_ok($$UPDATE public.profiles SET linkedin_url='https://example.com/in/x' WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'URL LinkedIn invalide refusée');
+SELECT throws_ok($$UPDATE public.profiles SET headline=repeat('a', 121) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Headline > 120 caractères refusé');
+SELECT throws_ok($$UPDATE public.profiles SET bio=repeat('a', 1001) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Bio > 1000 caractères refusé');
+SELECT throws_ok($$UPDATE public.profiles SET resume_url=repeat('a', 501) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Resume URL > 500 caractères refusé');
+SELECT throws_ok($$UPDATE public.profiles SET skills=array_fill('ts'::text, ARRAY[31]) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétences > 30 éléments refusé');
 SELECT lives_ok($$UPDATE public.profiles SET role='mentee', years_of_experience=10, linkedin_url='https://www.linkedin.com/in/test' WHERE id = (SELECT auth.uid())$$, 'Valeurs valides acceptées');
 SELECT throws_ok($$UPDATE public.profiles SET created_at = now() WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'created_at non modifiable');
 SELECT throws_ok($$UPDATE public.profiles SET id = gen_random_uuid() WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'id non modifiable');

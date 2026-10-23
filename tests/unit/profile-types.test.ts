@@ -66,6 +66,16 @@ describe('validateProfileUpdateInput', () => {
     expect(validateProfileUpdateInput({ resumeUrl: null }).valid).toBe(true)
     expect(validateProfileUpdateInput({ resumeUrl: 'a'.repeat(501) }).errors[0]).toContain('resumeUrl')
     expect(validateProfileUpdateInput({ resumeUrl: 3 }).errors[0]).toContain('resumeUrl')
+    // Astral characters (code points vs utf-16 code units)
+    expect(validateProfileUpdateInput({ headline: '👋'.repeat(120) }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ headline: '👋'.repeat(121) }).valid).toBe(false)
+  })
+
+  it('validates isOnboarded as boolean', () => {
+    expect(validateProfileUpdateInput({ isOnboarded: true }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ isOnboarded: false }).valid).toBe(true)
+    expect(validateProfileUpdateInput({ isOnboarded: 'true' as never }).valid).toBe(false)
+    expect(validateProfileUpdateInput({ isOnboarded: 1 as never }).valid).toBe(false)
   })
 
   it('enforces skills count and length limits', () => {

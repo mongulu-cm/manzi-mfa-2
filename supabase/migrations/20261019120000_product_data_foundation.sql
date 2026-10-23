@@ -1,12 +1,12 @@
 ALTER TABLE "public"."profiles"
   ADD COLUMN IF NOT EXISTS "role" text CHECK ("role" IN ('mentor', 'mentee')),
-  ADD COLUMN IF NOT EXISTS "headline" text,
-  ADD COLUMN IF NOT EXISTS "company_or_school" text,
+  ADD COLUMN IF NOT EXISTS "headline" text CHECK ("headline" IS NULL OR char_length("headline") <= 120),
+  ADD COLUMN IF NOT EXISTS "company_or_school" text CHECK ("company_or_school" IS NULL OR char_length("company_or_school") <= 120),
   ADD COLUMN IF NOT EXISTS "years_of_experience" integer CHECK ("years_of_experience" >= 0 AND "years_of_experience" <= 70),
   ADD COLUMN IF NOT EXISTS "linkedin_url" text CHECK ("linkedin_url" IS NULL OR "linkedin_url" ~* '^https://([a-z0-9-]+\.)*linkedin\.com(/.*)?$'),
-  ADD COLUMN IF NOT EXISTS "skills" text[] DEFAULT '{}'::text[],
-  ADD COLUMN IF NOT EXISTS "bio" text,
-  ADD COLUMN IF NOT EXISTS "resume_url" text,
+  ADD COLUMN IF NOT EXISTS "skills" text[] DEFAULT '{}'::text[] CHECK (cardinality("skills") <= 30),
+  ADD COLUMN IF NOT EXISTS "bio" text CHECK ("bio" IS NULL OR char_length("bio") <= 1000),
+  ADD COLUMN IF NOT EXISTS "resume_url" text CHECK ("resume_url" IS NULL OR char_length("resume_url") <= 500),
   ADD COLUMN IF NOT EXISTS "is_onboarded" boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS "is_active" boolean NOT NULL DEFAULT true,
   ADD COLUMN IF NOT EXISTS "updated_at" timestamp with time zone NOT NULL DEFAULT now();
@@ -38,7 +38,6 @@ GRANT UPDATE ("display_name", "headline", "company_or_school", "years_of_experie
 CREATE OR REPLACE FUNCTION private.set_updated_at()
   RETURNS TRIGGER
   LANGUAGE plpgsql
-  SECURITY DEFINER
   SET search_path TO ''
 AS $function$
 BEGIN

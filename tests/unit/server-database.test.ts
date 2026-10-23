@@ -38,11 +38,11 @@ describe('fetchUserProfile', () => {
   })
   it('throws a clean error on DB error', async () => {
     const { client } = mockClient({ data: null, error: { message: 'secret sql' } })
-    await expect(fetchUserProfile(client, 'u1')).rejects.toThrow('Unable to load profile')
+    await expect(fetchUserProfile(client, 'u1')).rejects.toThrow(/^Unable to load profile$/)
   })
   it('throws when not found', async () => {
     const { client } = mockClient({ data: null, error: null })
-    await expect(fetchUserProfile(client, 'u1')).rejects.toThrow('Profile not found')
+    await expect(fetchUserProfile(client, 'u1')).rejects.toThrow(/^Profile not found$/)
   })
 })
 
@@ -58,14 +58,20 @@ describe('updateUserProfile', () => {
       role: 'mentor', headline: 'Eng', company_or_school: 'ACME', years_of_experience: 5,
       linkedin_url: 'https://www.linkedin.com/in/x', skills: ['ts'], bio: 'b', resume_url: 'r', is_onboarded: true,
     })
-    expect(typeof payload.updated_at).toBe('string')
+    expect(payload.updated_at).toBeUndefined()
     expect(calls.eq![0]).toEqual(['id', 'u1'])
     expect(p.id).toBe('u1')
   })
   it('omits undefined fields', async () => {
     const { client, calls } = mockClient({ data: row, error: null })
     await updateUserProfile(client, 'u1', { headline: 'x' })
-    expect(Object.keys(calls.update![0]![0] as object).sort()).toEqual(['headline', 'updated_at'])
+    expect(Object.keys(calls.update![0]![0] as object).sort()).toEqual(['headline'])
+  })
+  it('returns profile directly when update payload is empty', async () => {
+    const { client } = mockClient({ data: row, error: null })
+    const p = await updateUserProfile(client, 'u1', {})
+    expect(p.id).toBe('u1')
+    expect(client.from).toHaveBeenCalledWith('profiles')
   })
   it('throws on validation failure without calling the DB', async () => {
     const { client } = mockClient({ data: row, error: null })
@@ -74,7 +80,7 @@ describe('updateUserProfile', () => {
   })
   it('throws a clean error on DB error', async () => {
     const { client } = mockClient({ data: null, error: { message: 'secret' } })
-    await expect(updateUserProfile(client, 'u1', { headline: 'x' })).rejects.toThrow('Unable to update profile')
+    await expect(updateUserProfile(client, 'u1', { headline: 'x' })).rejects.toThrow(/^Unable to update profile$/)
   })
 })
 
@@ -93,6 +99,6 @@ describe('fetchActiveMentors', () => {
   })
   it('throws a clean error on DB error', async () => {
     const { client } = mockClient({ data: null, error: { message: 'x' } })
-    await expect(fetchActiveMentors(client)).rejects.toThrow('Unable to load mentors')
+    await expect(fetchActiveMentors(client)).rejects.toThrow(/^Unable to load mentors$/)
   })
 })

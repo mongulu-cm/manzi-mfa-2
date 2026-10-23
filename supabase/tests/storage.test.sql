@@ -2,8 +2,9 @@ BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Assertion functions are available to test roles only until this transaction rolls back.
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated;
+SELECT set_config('storage.allow_delete_query', 'true', true);
 SET search_path = public, extensions;
-SELECT plan(19);
+SELECT plan(21);
 
 -- Buckets
 SELECT is((SELECT public FROM storage.buckets WHERE id = 'avatars'), true, 'Le bucket avatars est public');
@@ -20,6 +21,8 @@ SELECT lives_ok($$INSERT INTO storage.objects (bucket_id, name, owner_id) VALUES
 SELECT throws_ok($$INSERT INTO storage.objects (bucket_id, name, owner_id) VALUES ('avatars', 'a0000000-0000-0000-0000-000000000002/photo.png', 'a0000000-0000-0000-0000-000000000001')$$, '42501', NULL, 'A ne dépose pas d''avatar chez B');
 SELECT lives_ok($$INSERT INTO storage.objects (bucket_id, name, owner_id) VALUES ('documents', 'a0000000-0000-0000-0000-000000000001/cv.pdf', 'a0000000-0000-0000-0000-000000000001')$$, 'A dépose un document dans son dossier');
 SELECT is((SELECT count(*)::integer FROM storage.objects WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf'), 1, 'A lit son document');
+WITH u AS (UPDATE storage.objects SET metadata = metadata WHERE bucket_id = 'avatars' AND name = 'a0000000-0000-0000-0000-000000000001/photo.png' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM u) SELECT is(n, 1, 'A modifie son avatar') FROM cnt;
+WITH u AS (UPDATE storage.objects SET metadata = metadata WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM u) SELECT is(n, 1, 'A modifie son document') FROM cnt;
 RESET ROLE;
 
 -- Anonyme : aucun listing (les avatars passent par l'URL publique du CDN)
@@ -34,10 +37,10 @@ SELECT set_config('request.jwt.claim.sub', 'a0000000-0000-0000-0000-000000000002
 SELECT is((SELECT count(*)::integer FROM storage.objects WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf'), 0, 'B ne lit pas le document de A');
 SELECT throws_ok($$INSERT INTO storage.objects (bucket_id, name, owner_id) VALUES ('documents', 'a0000000-0000-0000-0000-000000000001/cv.pdf', 'a0000000-0000-0000-0000-000000000002')$$, '42501', NULL, 'B ne dépose pas dans le dossier de A');
 SELECT is((SELECT count(*)::integer FROM storage.objects WHERE bucket_id = 'avatars' AND name = 'a0000000-0000-0000-0000-000000000001/photo.png'), 0, 'B ne lit pas l''avatar de A via l''API');
-SELECT is((WITH u AS (UPDATE storage.objects SET name = name WHERE bucket_id = 'avatars' AND name = 'a0000000-0000-0000-0000-000000000001/photo.png' RETURNING 1) SELECT count(*)::integer FROM u), 0, 'B ne modifie pas l''avatar de A');
-SELECT is((WITH d AS (DELETE FROM storage.objects WHERE bucket_id = 'avatars' AND name = 'a0000000-0000-0000-0000-000000000001/photo.png' RETURNING 1) SELECT count(*)::integer FROM d), 0, 'B ne supprime pas l''avatar de A');
-SELECT is((WITH u AS (UPDATE storage.objects SET name = name WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf' RETURNING 1) SELECT count(*)::integer FROM u), 0, 'B ne modifie pas le document de A');
-SELECT is((WITH d AS (DELETE FROM storage.objects WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf' RETURNING 1) SELECT count(*)::integer FROM d), 0, 'B ne supprime pas le document de A');
+WITH u AS (UPDATE storage.objects SET name = name WHERE bucket_id = 'avatars' AND name = 'a0000000-0000-0000-0000-000000000001/photo.png' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM u) SELECT is(n, 0, 'B ne modifie pas l''avatar de A') FROM cnt;
+WITH d AS (DELETE FROM storage.objects WHERE bucket_id = 'avatars' AND name = 'a0000000-0000-0000-0000-000000000001/photo.png' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM d) SELECT is(n, 0, 'B ne supprime pas l''avatar de A') FROM cnt;
+WITH u AS (UPDATE storage.objects SET name = name WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM u) SELECT is(n, 0, 'B ne modifie pas le document de A') FROM cnt;
+WITH d AS (DELETE FROM storage.objects WHERE bucket_id = 'documents' AND name = 'a0000000-0000-0000-0000-000000000001/cv.pdf' RETURNING 1), cnt AS (SELECT count(*)::integer AS n FROM d) SELECT is(n, 0, 'B ne supprime pas le document de A') FROM cnt;
 RESET ROLE;
 
 SELECT * FROM finish();

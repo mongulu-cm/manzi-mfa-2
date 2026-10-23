@@ -27,6 +27,7 @@ describe('validateFilePayload', () => {
   })
   it('rejette un bucket inconnu', () => {
     expect(validateFilePayload('image/png', 1, 'x' as never).valid).toBe(false)
+    expect(validateFilePayload('image/png', 1, 'constructor' as never).valid).toBe(false)
   })
 })
 
@@ -36,14 +37,15 @@ describe('buildStoragePath', () => {
   })
   it('neutralise la traversée de répertoire', () => {
     const p = buildStoragePath('u1', 'documents', '../../etc/passwd')
-    expect(p).not.toContain('..')
+    expect(p).toBe('u1/etc_passwd')
     expect(p.split('/')).toHaveLength(2)
   })
   it('retire slashs et caractères spéciaux', () => {
     expect(buildStoragePath('u1', 'avatars', '/mon fichier*.png/')).toBe('u1/mon_fichier_.png')
   })
   it('utilise un nom par défaut si vide', () => {
-    expect(buildStoragePath('u1', 'avatars', '../')).toBe('u1/file')
+    expect(buildStoragePath('u1', 'avatars', '../')).toBe('u1/avatar.jpg')
+    expect(buildStoragePath('u1', 'documents', '../')).toBe('u1/cv.pdf')
   })
 })
 
@@ -53,20 +55,25 @@ describe('createSignedDocumentUrl', () => {
     const from = vi.fn(() => ({ createSignedUrl }))
     return { client: { storage: { from } } as unknown as SupabaseClient, from, createSignedUrl }
   }
-  it('retourne l\'URL signée', async () => {
+  it('retourne l\'URL signée pour un document du propriétaire', async () => {
     const m = make({ data: { signedUrl: 'https://s/x' }, error: null })
-    await expect(createSignedDocumentUrl(m.client, 'u1/a.pdf')).resolves.toBe('https://s/x')
+    await expect(createSignedDocumentUrl(m.client, 'u1', 'u1/a.pdf')).resolves.toBe('https://s/x')
     expect(m.from).toHaveBeenCalledWith('documents')
     expect(m.createSignedUrl).toHaveBeenCalledWith('u1/a.pdf', 3600)
   })
+  it('interdit la signature pour le document d\'un tiers', async () => {
+    const m = make({ data: { signedUrl: 'https://s/x' }, error: null })
+    await expect(createSignedDocumentUrl(m.client, 'u1', 'u2/a.pdf')).rejects.toThrow('Accès non autorisé')
+    expect(m.from).not.toHaveBeenCalled()
+  })
   it('utilise l\'expiration fournie', async () => {
     const m = make({ data: { signedUrl: 'u' }, error: null })
-    await createSignedDocumentUrl(m.client, 'p', 60)
-    expect(m.createSignedUrl).toHaveBeenCalledWith('p', 60)
+    await createSignedDocumentUrl(m.client, 'u1', 'u1/p', 60)
+    expect(m.createSignedUrl).toHaveBeenCalledWith('u1/p', 60)
   })
   it('lève une erreur propre', async () => {
     const m = make({ data: null, error: { message: 'secret' } })
-    await expect(createSignedDocumentUrl(m.client, 'p')).rejects.toThrow('Impossible de générer')
+    await expect(createSignedDocumentUrl(m.client, 'u1', 'u1/p')).rejects.toThrow('Impossible de générer')
   })
 })
 
