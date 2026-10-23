@@ -126,16 +126,16 @@
 - Create: `tests/smoke/email.smoke.ts`, `vitest.smoke.config.ts`
 - Modify: `package.json` (script `test:email`), `.fallowrc.json` (entrée smoke), `.env.example`, `apps/plateforme/nuxt.config.ts` (`runtimeConfig.notifications`), `README.md`, `PRIVACY.md`
 
-- [ ] Smoke : ignoré sans `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM_EMAIL`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` ; fournit à `createCloudflareEmailTransport` une liaison de test appelant l’API REST (`POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send`, `messageId` absent de la réponse REST → valeur fixe `rest`) ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
-- [ ] `runtimeConfig.notifications` : `provider: 'log'`, `fromEmail: ''`, `fromName: 'Manzi-mfa'`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
-- [ ] `.env.example` : `NUXT_NOTIFICATIONS_*`, `NUXT_SUPABASE_SECRET_KEY` (vide, commentaire « binding Secret Cloudflare, jamais committé »), `E2E_EMAIL_TO`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_API_TOKEN` (smoke uniquement, jamais committé).
-- [ ] README : section « Notifications email » (contrat, configuration, liaison `send_email`, activation du domaine d’envoi par `wrangler email sending enable` et enregistrements DNS relevés lors de l’activation, quotas et métriques Email Sending, smoke test, lecture du journal, résolution manuelle d’une ligne `uncertain`, relais SMTP Cloudflare pour les emails d’authentification Supabase configuré dans le tableau de bord — spec § 9).
-- [ ] `PRIVACY.md` : traitement « emails transactionnels Quick Chat », Cloudflare Email Service comme prestataire d’envoi, conservation du journal ; date de version mise à jour.
+- [x] Smoke : ignoré sans `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM_EMAIL`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` ; fournit à `createCloudflareEmailTransport` une liaison de test appelant l’API REST (`POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send`, `messageId` absent de la réponse REST → valeur fixe `rest`) ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
+- [x] `runtimeConfig.notifications` : `provider: 'log'`, `fromEmail: ''`, `fromName: 'Manzi-mfa'`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
+- [x] `.env.example` : `NUXT_NOTIFICATIONS_*`, `NUXT_SUPABASE_SECRET_KEY` (vide, commentaire « binding Secret Cloudflare, jamais committé »), `E2E_EMAIL_TO`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_API_TOKEN` (smoke uniquement, jamais committé).
+- [x] README : section « Notifications email » (contrat, configuration, liaison `send_email`, activation du domaine d’envoi par `wrangler email sending enable` et enregistrements DNS relevés lors de l’activation, quotas et métriques Email Sending, smoke test, lecture du journal, résolution manuelle d’une ligne `uncertain`, relais SMTP Cloudflare pour les emails d’authentification Supabase configuré dans le tableau de bord — spec § 9).
+- [ ] `PRIVACY.md` (texte public et `/confidentialite`) : à mettre à jour à l’activation par F-007, le module étant inactif d’ici là ; note de maintenance ajoutée en partie 3 avec le contenu à publier (traitement, prestataire, journal, fondement, conservation à fixer).
 
 ### Task 9: Vérification finale
 
-- [ ] `npm run check`
-- [ ] `npm run test:coverage`
-- [ ] `npx supabase start` puis `npm run test:db`
-- [ ] `npx fallow --ci --format compact`
+- [x] `npm run check`
+- [x] `npm run test:coverage`
+- [x] `npx supabase start` puis `npm run test:db`
+- [x] `npx fallow --ci --format compact`
 - [ ] PR en **Draft**, suivi avec `ce-babysit-pr` jusqu’à CI verte ; passage en Ready uniquement sur accord explicite de l’utilisateur.

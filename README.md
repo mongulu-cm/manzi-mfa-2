@@ -195,3 +195,44 @@ Dans LinkedIn Developers, ouvrir l'application puis **Auth → Authorized redire
 - Test réel manuel : lancer la plateforme avec les variables publiques du projet, cliquer « Continuer avec LinkedIn », vérifier le profil, recharger, se déconnecter puis se reconnecter. Vérifier qu’un seul compte et profil existent. Les variables locales `E2E_LINKEDIN_USERNAME` / `E2E_LINKEDIN_PASSWORD` peuvent servir au smoke test autorisé ; ne jamais les committer, enregistrer de trace contenant les identifiants ou les ajouter à la CI. Une validation MFA ou un challenge LinkedIn nécessite une intervention humaine.
 
 Pour publier la connexion LinkedIn, déployer d'abord les migrations Supabase, puis la confidentialité sur la vitrine, puis la plateforme pour activer l'interface de connexion. En cas de problème, revenir à la version précédente du Worker sans supprimer les comptes ni les profils ; corriger la base par une migration suivante.
+
+## Notifications email (F-008)
+
+Le module `apps/plateforme/server/notifications/` envoie au mentor et au mentoré un email lors de la création ou de la modification d’un Quick Chat. Il ne lit pas la base pour reconstituer l’échange : l’appelant (F-007) fournit un événement complet, avec les adresses lues côté serveur dans Supabase Auth, et une `version` incrémentée à chaque modification. Spécification : `docs/superpowers/specs/2026-10-23-f-008-notifications-email-design.md`.
+
+```ts
+const config = useRuntimeConfig(event)
+const report = await notifyQuickChat(quickChatEvent, {
+  policy: parsePolicy(config.notifications.policy),
+  transport: config.notifications.provider === 'cloudflare'
+    ? createCloudflareEmailTransport({ binding: event.context.cloudflare?.env.EMAIL })
+    : createLogTransport(logger),
+  journal: createSupabaseJournal(createAdminClient({
+    env: { url: config.public.supabaseUrl, secretKeys: { default: config.supabaseSecretKey } },
+  })),
+  logger,
+  from: { email: config.notifications.fromEmail, name: config.notifications.fromName },
+  replyTo: config.notifications.replyTo,
+  render: { appUrl, siteUrl: config.public.siteUrl, timeZone: config.notifications.timeZone },
+  now: () => new Date(),
+})
+```
+
+Appeler `notifyQuickChat` après la validation de la transaction du Quick Chat. Un événement ou une configuration invalide lève une erreur avant tout envoi ; un échec d’envoi n’interrompt pas l’opération métier et figure dans le rapport (`sent`, `duplicate`, `in_progress`, `uncertain`, `failed`, `skipped`).
+
+**Configuration** (serveur uniquement, voir `.env.example`) : `NUXT_NOTIFICATIONS_PROVIDER` (`log` par défaut, qui n’envoie rien, ou `cloudflare`), `NUXT_NOTIFICATIONS_FROM_EMAIL`, `NUXT_NOTIFICATIONS_FROM_NAME`, `NUXT_NOTIFICATIONS_REPLY_TO`, `NUXT_NOTIFICATIONS_TIME_ZONE` et `NUXT_NOTIFICATIONS_POLICY`. La politique est un JSON facultatif, par exemple `{"events":{"quick_chat.updated":{"enabled":true,"recipients":["mentee"]}}}` ; un événement absent garde sa valeur par défaut et toute valeur inconnue est refusée. `NUXT_SUPABASE_SECRET_KEY` (clé `secret`, jamais `service_role`) se déclare comme secret Cloudflare : `npx wrangler secret put NUXT_SUPABASE_SECRET_KEY` depuis `apps/plateforme`.
+
+**Cloudflare Email Service.** La liaison `send_email` (`EMAIL`) est déclarée dans `apps/plateforme/wrangler.jsonc` : aucune clé d’API côté Worker. L’expéditeur doit appartenir à un domaine d’envoi intégré au compte Cloudflare (`mongulu.cm`, ou `npx wrangler email sending enable <domaine>` pour un autre domaine) ; sinon, seules les adresses de destination vérifiées du compte reçoivent les emails. Relever les enregistrements SPF, DKIM et DMARC du domaine lors de son intégration. Le service est en bêta et un nouveau compte démarre avec un quota journalier réduit. Les envois par la liaison apparaissent « dropped » dans le résumé Email Routing : suivre plutôt les métriques **Email Sending**.
+
+**Journal des envois.** `public.notification_deliveries` conserve, par clé `quick-chat:<id>:v<version>:<type>:<rôle>`, le statut, le nombre de tentatives, l’identifiant Cloudflare et les codes d’erreur, sans adresse ni contenu. Les fonctions `reserve_notification_delivery` et `finish_notification_delivery` ne sont exécutables que par la clé secrète. Rejouer un événement renvoie seulement les emails `failed`. Une ligne `uncertain` (délai dépassé ou envoi interrompu) n’est jamais renvoyée automatiquement : vérifier dans les journaux **Email Sending** si un message est parti vers ce destinataire à l’heure indiquée, puis passer la ligne à `sent` ou, pour qu’un rejeu la renvoie, à `failed` :
+
+```sql
+UPDATE public.notification_deliveries SET status = 'failed', updated_at = now()
+WHERE idempotency_key = '<clé>' AND status = 'uncertain';
+```
+
+Les journaux Workers (`scope: "notifications"`) ne contiennent ni adresse, ni nom, ni contenu ; `email.uncertain` et `email.failed` sont émis au niveau erreur.
+
+**Tests.** `npm run test:unit` couvre le contrat, la politique, les gabarits, l’adaptateur Cloudflare et l’orchestration ; `npm run test:db` couvre la table et ses fonctions. `npm run test:email` est un smoke opt-in hors CI : avec `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM_EMAIL`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` (jeton limité à l’envoi d’emails) dans `.env`, il envoie les emails de création et de modification aux alias `+mentor` et `+mentee` de `E2E_EMAIL_TO` par l’API REST, puis vérifie que le rejeu n’envoie rien. Sans ces variables, il est ignoré.
+
+**Emails d’authentification Supabase.** Hors F-008, le relais SMTP de Cloudflare Email Service (`smtp.mx.cloudflare.net`, port 465, utilisateur littéral `api_token`, mot de passe : un jeton d’API) peut servir de SMTP personnalisé au projet Supabase. Le configurer dans le tableau de bord (**Authentication → Emails → SMTP Settings**), jamais dans `supabase/config.toml` : l’activer localement enverrait de vrais emails au lieu de les capturer, et `supabase config push` écraserait la configuration distante. Relever ensuite la limite d’envoi des emails d’authentification.
