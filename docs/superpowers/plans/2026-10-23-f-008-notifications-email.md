@@ -38,11 +38,11 @@
 - Create: `tests/fixtures/quick-chat-events.ts`
 - Test: `tests/unit/notifications-event.test.ts`
 
-- [ ] Définir `QuickChatEventType`, `ParticipantRole`, `QuickChatParticipant`, `QuickChatEvent` (spec § 2).
-- [ ] Implémenter `validateQuickChatEvent(input: unknown): QuickChatEvent` qui lève `NotificationError('invalid_event')` (uuid, type, version entière ≥ 1, ISO 8601 avec fuseau, durée 15–30, emails, participants distincts, `previousStartsAt` seulement pour `quick_chat.updated`).
-- [ ] Définir `NotificationError` (code typé, message générique sans donnée) dans `event.ts`.
-- [ ] Fixtures : `createdEvent`, `updatedEvent` (v2 avec `previousStartsAt`), `updatedAgainEvent` (v3), participant sans `displayName`, noms longs et contenant `<script>`.
-- [ ] Tests : fixtures valides ; un cas invalide par règle ; le message d’erreur ne contient aucune valeur d’entrée.
+- [x] Définir `QuickChatEventType`, `ParticipantRole`, `QuickChatParticipant`, `QuickChatEvent` (spec § 2).
+- [x] Implémenter `validateQuickChatEvent(input: unknown): QuickChatEvent` qui lève `NotificationError('invalid_event')` (uuid, type, version entière ≥ 1, ISO 8601 avec fuseau, durée 15–30, emails, participants distincts, `previousStartsAt` seulement pour `quick_chat.updated`).
+- [x] Définir `NotificationError` (code typé, message générique sans donnée) dans `event.ts`.
+- [x] Fixtures : `createdEvent`, `updatedEvent` (v2 avec `previousStartsAt`), `updatedAgainEvent` (v3), participant sans `displayName`, noms longs et contenant `<script>`.
+- [x] Tests : fixtures valides ; un cas invalide par règle ; le message d’erreur ne contient aucune valeur d’entrée.
 
 ### Task 2: Politique de notification
 
@@ -50,9 +50,9 @@
 - Create: `apps/plateforme/server/notifications/policy.ts`
 - Test: `tests/unit/notifications-policy.test.ts`
 
-- [ ] `DEFAULT_POLICY` (deux événements, deux rôles), `parsePolicy(raw: unknown): NotificationPolicy` (accepte objet ou chaîne JSON, lève `config_invalid`).
-- [ ] `idempotencyKey(event, role)` et `planNotifications(event, policy): PlannedNotification[]` (`{ role, recipient, idempotencyKey }`).
-- [ ] Tests : défaut → 2 messages ; événement désactivé → 0 ; destinataire unique ; rôles dupliqués dédoublonnés ; JSON invalide / rôle inconnu → `config_invalid` ; clés stables et distinctes par version.
+- [x] `DEFAULT_POLICY` (deux événements, deux rôles), `parsePolicy(raw: unknown): NotificationPolicy` (accepte objet ou chaîne JSON, vide → défaut, événement absent → valeur par défaut, lève `config_invalid`).
+- [x] `idempotencyKey(event, role)` et `planNotifications(event, policy): PlannedNotification[]` (`{ role, recipient, idempotencyKey }`).
+- [x] Tests : défaut → 2 messages ; événement désactivé → 0 ; destinataire unique ; rôles dupliqués dédoublonnés ; JSON invalide / rôle inconnu → `config_invalid` ; clés stables et distinctes par version.
 
 ### Task 3: Gabarits d’email
 
@@ -60,11 +60,11 @@
 - Create: `apps/plateforme/server/notifications/templates.ts`
 - Test: `tests/unit/notifications-templates.test.ts`
 
-- [ ] `quickChatReference(id)` → `QC-` + 6 caractères hexadécimaux en majuscules.
-- [ ] `formatSchedule(startsAt, durationMinutes, timeZone)` via `Intl.DateTimeFormat('fr-FR', { timeZone, … })` avec décalage UTC explicite.
-- [ ] `renderEmail(event, role, { appUrl, siteUrl, timeZone }) → { subject, text, html }` avec les actions du tableau spec § 4, ancien horaire pour une modification, lien `/quick-chats/<id>`, pied de page.
-- [ ] `escapeHtml` appliqué à toute valeur dynamique.
-- [ ] Tests : sujet et corps contiennent référence, horaire, durée, fuseau et action pour chacun des 4 couples ; ancien horaire seulement si modification ; `<script>` échappé ; nom absent → libellé générique ; fuseau configurable (`Africa/Douala`, `Europe/Paris`).
+- [x] `quickChatReference(id)` → `QC-` + 6 caractères hexadécimaux en majuscules.
+- [x] `formatSchedule(startsAt, durationMinutes, timeZone)` via `Intl.DateTimeFormat('fr-FR', { timeZone, … })` avec décalage UTC explicite.
+- [x] `renderEmail(event, role, { appUrl, siteUrl, timeZone }) → { subject, text, html }` avec les actions du tableau spec § 4, ancien horaire pour une modification, lien `/quick-chats/<id>`, pied de page.
+- [x] `escapeHtml` appliqué à toute valeur dynamique.
+- [x] Tests : sujet et corps contiennent référence, horaire, durée, fuseau et action pour chacun des 4 couples ; ancien horaire seulement si modification ; `<script>` échappé ; nom absent → libellé générique ; fuseau configurable (`Africa/Douala`, `Europe/Paris`).
 
 ### Task 4: Transports et journaux structurés
 
@@ -73,10 +73,10 @@
 - Create: `apps/plateforme/server/notifications/logger.ts`
 - Test: `tests/unit/notifications-transport.test.ts`
 
-- [ ] Interface `EmailTransport` et type `EmailMessage` (`to`, `from`, `replyTo`, `subject`, `text`, `html`).
-- [ ] `createMemoryTransport()` (expose `sent`, option d’échec programmable) et `createLogTransport(logger)`.
-- [ ] `createNotificationLogger(sink = console)` : émet une ligne JSON `{ scope: 'notifications', event, … }` avec une liste blanche de champs (`quickChatId`, `eventType`, `role`, `attempt`, `errorCode`, `providerCode`, `status`).
-- [ ] Tests : le transport log n’émet ni adresse, ni sujet, ni contenu ; un champ hors liste blanche est ignoré.
+- [x] Interface `EmailTransport` et type `EmailMessage` (`to`, `from: { email, name? }` — forme acceptée par la liaison Cloudflare —, `replyTo`, `subject`, `text`, `html`).
+- [x] `createMemoryTransport()` (expose `sent`, option d’échec programmable) et `createLogTransport(logger)`.
+- [x] `createNotificationLogger(sink = console)` : émet une ligne JSON `{ scope: 'notifications', event, … }` avec une liste blanche de champs (`quickChatId`, `eventType`, `role`, `attempt`, `errorCode`, `providerCode`, `status`).
+- [x] Tests : le transport log n’émet ni adresse, ni sujet, ni contenu ; un champ hors liste blanche est ignoré.
 
 ### Task 5: Adaptateur Cloudflare Email Service
 
@@ -85,12 +85,12 @@
 - Modify: `apps/plateforme/wrangler.jsonc` (`"send_email": [{ "name": "EMAIL" }]`)
 - Test: `tests/unit/notifications-cloudflare.test.ts`
 
-- [ ] Interface locale `EmailSendBinding` : `send({ to, from, replyTo, subject, text, html }): Promise<{ messageId: string }>` (sous-ensemble de l’[API Workers](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)).
-- [ ] `createCloudflareEmailTransport({ binding, timeoutMs = 10_000 })` : transmet le message, retourne `{ providerMessageId }` depuis `messageId` ; résultat sans `messageId` → `provider_unavailable`.
-- [ ] Liaison absente → `config_missing` à la création du transport.
-- [ ] Correspondance des codes (spec § 5.1, Review Focus) ; `NotificationError` porte `providerCode` (le `code` Cloudflare) mais jamais le message de l’erreur d’origine ; délai dépassé → `provider_timeout` sans `providerCode`.
-- [ ] Ajouter la liaison `send_email` à `apps/plateforme/wrangler.jsonc` ; vérifier que `npm run build` et `wrangler deploy --dry-run` l’acceptent.
-- [ ] Tests avec liaison simulée : champs transmis ; succès ; un code par famille (`E_VALIDATION_ERROR`, `E_RECIPIENT_SUPPRESSED`, `E_SENDER_NOT_VERIFIED`, `E_HEADER_NOT_ALLOWED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_INTERNAL_SERVER_ERROR`) ; code inconnu ; erreur sans code ; délai dépassé (horloge simulée) → `provider_timeout` ; le message d’origine contenant une adresse n’apparaît pas dans l’erreur levée.
+- [x] Interface locale `EmailSendBinding` : `send({ to, from, replyTo, subject, text, html }): Promise<{ messageId: string }>` (sous-ensemble de l’[API Workers](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)).
+- [x] `createCloudflareEmailTransport({ binding, timeoutMs = 10_000 })` : transmet le message, retourne `{ providerMessageId }` depuis `messageId` ; résultat sans `messageId` → `provider_unavailable`.
+- [x] Liaison absente → `config_missing` à la création du transport.
+- [x] Correspondance des codes (spec § 5.1, Review Focus) ; `NotificationError` porte `providerCode` (le `code` Cloudflare) mais jamais le message de l’erreur d’origine ; délai dépassé → `provider_timeout` sans `providerCode`.
+- [x] Ajouter la liaison `send_email` à `apps/plateforme/wrangler.jsonc` ; vérifier que `npm run build` et `wrangler deploy --dry-run` l’acceptent.
+- [x] Tests avec liaison simulée : champs transmis ; succès ; un code par famille (`E_VALIDATION_ERROR`, `E_RECIPIENT_SUPPRESSED`, `E_SENDER_NOT_VERIFIED`, `E_HEADER_NOT_ALLOWED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_INTERNAL_SERVER_ERROR`) ; code inconnu ; erreur sans code ; délai dépassé (horloge simulée) → `provider_timeout` ; le message d’origine contenant une adresse n’apparaît pas dans l’erreur levée.
 
 ### Task 6: Schéma et journal des envois
 
@@ -126,8 +126,8 @@
 - Create: `tests/smoke/email.smoke.ts`, `vitest.smoke.config.ts`
 - Modify: `package.json` (script `test:email`), `.fallowrc.json` (entrée smoke), `.env.example`, `apps/plateforme/nuxt.config.ts` (`runtimeConfig.notifications`), `README.md`, `PRIVACY.md`
 
-- [ ] Smoke : ignoré sans `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` ; fournit à `createCloudflareEmailTransport` une liaison de test appelant l’API REST (`POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send`, `messageId` absent de la réponse REST → valeur fixe `rest`) ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
-- [ ] `runtimeConfig.notifications` : `provider: 'log'`, `from: ''`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
+- [ ] Smoke : ignoré sans `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM_EMAIL`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` ; fournit à `createCloudflareEmailTransport` une liaison de test appelant l’API REST (`POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send`, `messageId` absent de la réponse REST → valeur fixe `rest`) ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
+- [ ] `runtimeConfig.notifications` : `provider: 'log'`, `fromEmail: ''`, `fromName: 'Manzi-mfa'`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
 - [ ] `.env.example` : `NUXT_NOTIFICATIONS_*`, `NUXT_SUPABASE_SECRET_KEY` (vide, commentaire « binding Secret Cloudflare, jamais committé »), `E2E_EMAIL_TO`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_API_TOKEN` (smoke uniquement, jamais committé).
 - [ ] README : section « Notifications email » (contrat, configuration, liaison `send_email`, activation du domaine d’envoi par `wrangler email sending enable` et enregistrements DNS relevés lors de l’activation, quotas et métriques Email Sending, smoke test, lecture du journal, résolution manuelle d’une ligne `uncertain`, relais SMTP Cloudflare pour les emails d’authentification Supabase configuré dans le tableau de bord — spec § 9).
 - [ ] `PRIVACY.md` : traitement « emails transactionnels Quick Chat », Cloudflare Email Service comme prestataire d’envoi, conservation du journal ; date de version mise à jour.
