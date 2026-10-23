@@ -41,6 +41,8 @@ npm run dev:app
 Vitrine : http://localhost:3000. Plateforme : http://localhost:3001 ; les visiteurs anonymes sont redirigés vers `/login`.
 `npm run dev` démarre la vitrine. Les variables de `.env.example` sont documentaires : exporter les valeurs ou créer un `.env` dans chaque application. Les valeurs par défaut visent la production.
 
+`NUXT_PUBLIC_APP_URL` doit contenir uniquement l’origine HTTP(S) de la plateforme, par exemple `https://app.manzi-mfa-2.mongulu.cm`, sans sous-chemin. Les liens de connexion visent `/login` à la racine de cette origine ; l’hébergement sous un préfixe comme `/app/` n’est pas pris en charge. Si la variable est absente, la vitrine conserve l’adresse de production par défaut. Si sa valeur effective est vide, invalide ou utilise un autre protocole, les boutons proposent un contact par e-mail. Ce repli ne détecte pas les pannes d’une application dont l’adresse est valide.
+
 Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`. La plateforme consomme `NUXT_PUBLIC_SUPABASE_URL` et `NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (clé de type publishable, nom default). Les exporter aussi dans le terminal plateforme ou les placer dans `apps/plateforme/.env`, ignoré par Git. Les variables `SUPABASE_URL` / `SUPABASE_KEY` utilisées par le workflow CLI ne les remplacent pas.
 
 ## Commandes
@@ -103,13 +105,13 @@ Les réglages Workers Builds sont distincts du déploiement Wrangler : une sessi
 | Paramètre Workers Builds | Vitrine | Plateforme |
 | --- | --- | --- |
 | Répertoire racine | `apps/vitrine` | `apps/plateforme` |
-| Build command | `cd ../.. && npm ci && npm run build:vitrine` | `cd ../.. && npm ci && npm run build:app` |
+| Build command | `cd ../.. && npx -y npm@11.19.1 ci && npm run build:vitrine` | `cd ../.. && npx -y npm@11.19.1 ci && npm run build:app` |
 | Deploy command | `npx wrangler deploy` | `npx wrangler deploy` |
 | Preview command | `npx wrangler preview` | `npm run deploy:preview` |
 | Branche production | `main` | `main` |
 | Domaine | `manzi-mfa-2.mongulu.cm` | `app.manzi-mfa-2.mongulu.cm` |
 
-La commande de build installe les dépendances depuis la racine du monorepo ; le déploiement s'exécute dans le répertoire de l'application, auprès de sa configuration Wrangler. Configurer aussi `NODE_VERSION=24` dans les variables de build, car les répertoires des applications ne contiennent pas de `.nvmrc`. Si l'installation automatique est activée, la désactiver via `SKIP_DEPENDENCY_INSTALL=true` pour utiliser uniquement le `npm ci` explicite ci-dessus.
+L’image de build fournit npm 10.9.2, qui refuse le `package-lock.json` produit par npm 11 (dépendances pairs optionnelles absentes, par exemple `Missing: cac@… from lock file`) ; la commande force donc npm 11.19.1 pour `npm ci`. Chaque branche d’aperçu reçoit une copie de ces réglages à sa création : mettre à jour la Base et les branches existantes. La commande de build installe les dépendances depuis la racine du monorepo ; le déploiement s'exécute dans le répertoire de l'application, auprès de sa configuration Wrangler. Configurer aussi `NODE_VERSION=24` dans les variables de build, car les répertoires des applications ne contiennent pas de `.nvmrc`. Si l'installation automatique est activée, la désactiver via `SKIP_DEPENDENCY_INSTALL=true` pour utiliser uniquement le `npm ci` explicite ci-dessus.
 
 Chemins surveillés, relatifs à la racine Git :
 
@@ -131,6 +133,26 @@ La PR reçoit un commentaire Cloudflare par Worker : l’un concerne la vitrine 
 Valider les deux previews avant de publier le nouveau lien en production. Pour la migration initiale vers deux sites, déployer la plateforme avant d'ajouter son lien sur la vitrine. Pour la version avec connexion LinkedIn, suivre l'ordre de publication décrit ci-dessous : migrations, confidentialité sur la vitrine, puis plateforme. Revenir à une version antérieure de chaque Worker séparément si nécessaire.
 
 ## Vérification
+
+### Infographie obligatoire avant fusion
+
+Seules les PR dont l’auteur retourné par l’API GitHub est exactement `dependabot[bot]` sont exemptées du contrôle d’image ; tous les autres contrôles restent applicables. Une PR humaine partageant le même commit reste soumise au contrôle.
+
+Les autres PR vers `main` doivent afficher leur infographie générée dans une section intitulée `Infographie`, dans la description ou dans un commentaire. Exemple :
+
+```md
+### Infographie
+
+![Problème, changements et résultat](https://raw.githubusercontent.com/organisation/depot/commit/infographic.png)
+```
+
+Le statut **Infographie de la PR** vérifie que l’image intégrée est accessible et possède une signature PNG, JPEG ou WebP. Il accepte les images hébergées sur GitHub (pièces jointes ou fichiers du dépôt). Un lien de téléchargement seul, un badge hors de cette section ou un exemple placé dans un bloc de code ne suffit pas. Le contrôle vérifie la présence de l’image ; la génération par IA et la pertinence du contenu restent à vérifier lors de la revue.
+
+Le workflow `.github/workflows/pr-infographic.yml` réévalue le dernier commit lors des modifications de PR, des ajouts/modifications/suppressions de commentaires et du passage en Ready. Le statut reste en attente pendant le Draft et devient vert seulement quand les PR Ready portant ce commit affichent leur image. Une relance manuelle est disponible dans Actions en indiquant le numéro de PR.
+
+À l’installation, **après fusion du workflow dans `main`**, ajouter `Infographie de la PR` (application GitHub Actions, ID `15368`) aux contrôles obligatoires de la protection de `main`, en conservant les contrôles existants et leur configuration. Ne pas l’exiger avant l’installation du workflow : les PR resteraient bloquées sur un statut qui ne peut pas encore être produit.
+
+Le workflow utilise exclusivement le code de la branche cible et un jeton limité à la lecture et à l’écriture des statuts. Il n’exécute ni les sources ni les commandes fournies dans les PR ou commentaires.
 
 ```sh
 npm run check
@@ -173,3 +195,44 @@ Dans LinkedIn Developers, ouvrir l'application puis **Auth → Authorized redire
 - Test réel manuel : lancer la plateforme avec les variables publiques du projet, cliquer « Continuer avec LinkedIn », vérifier le profil, recharger, se déconnecter puis se reconnecter. Vérifier qu’un seul compte et profil existent. Les variables locales `E2E_LINKEDIN_USERNAME` / `E2E_LINKEDIN_PASSWORD` peuvent servir au smoke test autorisé ; ne jamais les committer, enregistrer de trace contenant les identifiants ou les ajouter à la CI. Une validation MFA ou un challenge LinkedIn nécessite une intervention humaine.
 
 Pour publier la connexion LinkedIn, déployer d'abord les migrations Supabase, puis la confidentialité sur la vitrine, puis la plateforme pour activer l'interface de connexion. En cas de problème, revenir à la version précédente du Worker sans supprimer les comptes ni les profils ; corriger la base par une migration suivante.
+
+## Notifications email (F-008)
+
+Le module `apps/plateforme/server/notifications/` envoie au mentor et au mentoré un email lors de la création ou de la modification d’un Quick Chat. Il ne lit pas la base pour reconstituer l’échange : l’appelant (F-007) fournit un événement complet, avec les adresses lues côté serveur dans Supabase Auth, et une `version` incrémentée à chaque modification. Spécification : `docs/superpowers/specs/2026-10-23-f-008-notifications-email-design.md`.
+
+```ts
+const config = useRuntimeConfig(event)
+const report = await notifyQuickChat(quickChatEvent, {
+  policy: parsePolicy(config.notifications.policy),
+  transport: config.notifications.provider === 'cloudflare'
+    ? createCloudflareEmailTransport({ binding: event.context.cloudflare?.env.EMAIL })
+    : createLogTransport(logger),
+  journal: createSupabaseJournal(createAdminClient({
+    env: { url: config.public.supabaseUrl, secretKeys: { default: config.supabaseSecretKey } },
+  })),
+  logger,
+  from: { email: config.notifications.fromEmail, name: config.notifications.fromName },
+  replyTo: config.notifications.replyTo,
+  render: { appUrl: getRequestURL(event).origin, siteUrl: config.public.siteUrl, timeZone: config.notifications.timeZone },
+  now: () => new Date(),
+})
+```
+
+Appeler `notifyQuickChat` après la validation de la transaction du Quick Chat. Un événement ou une configuration invalide lève une erreur avant tout envoi ; un échec d’envoi n’interrompt pas l’opération métier et figure dans le rapport (`sent`, `duplicate`, `in_progress`, `uncertain`, `failed`, `skipped`, `dry_run`). Avec le transport `log`, l’envoi est à blanc : rien ne part et le journal n’est pas écrit, si bien qu’un passage ultérieur à `cloudflare` envoie bien les emails.
+
+**Configuration** (serveur uniquement, voir `.env.example`) : `NUXT_NOTIFICATIONS_PROVIDER` (`log` par défaut, qui n’envoie rien, ou `cloudflare`), `NUXT_NOTIFICATIONS_FROM_EMAIL`, `NUXT_NOTIFICATIONS_FROM_NAME`, `NUXT_NOTIFICATIONS_REPLY_TO`, `NUXT_NOTIFICATIONS_TIME_ZONE` et `NUXT_NOTIFICATIONS_POLICY`. La politique est un JSON facultatif, par exemple `{"events":{"quick_chat.updated":{"enabled":true,"recipients":["mentee"]}}}` ; un événement absent garde sa valeur par défaut et toute valeur inconnue est refusée. `NUXT_SUPABASE_SECRET_KEY` (clé `secret`, jamais `service_role`) se déclare comme secret Cloudflare : `npx wrangler secret put NUXT_SUPABASE_SECRET_KEY` depuis `apps/plateforme`.
+
+**Cloudflare Email Service.** La liaison `send_email` (`EMAIL`) est déclarée dans `apps/plateforme/wrangler.jsonc` : aucune clé d’API côté Worker. L’expéditeur doit appartenir à un domaine d’envoi intégré et confirmé dans le compte Cloudflare (`mongulu.cm` après confirmation dans le tableau de bord, ou `npx wrangler email sending enable <domaine>` pour un autre domaine) ; sinon, seules les adresses de destination vérifiées du compte reçoivent les emails. Une fois l’adresse d’expédition arrêtée, restreindre la liaison à cette adresse avec `allowed_sender_addresses` dans `wrangler.jsonc`. Relever les enregistrements SPF, DKIM et DMARC du domaine lors de son intégration. Le service est en bêta et un nouveau compte démarre avec un quota journalier réduit. Les envois par la liaison apparaissent « dropped » dans le résumé Email Routing : suivre plutôt les métriques **Email Sending**.
+
+**Journal des envois.** `public.notification_deliveries` conserve, par clé `quick-chat:<id>:v<version>:<type>:<rôle>`, le statut, le nombre de tentatives, l’identifiant Cloudflare et les codes d’erreur, sans adresse ni contenu. Les fonctions `reserve_notification_delivery` et `finish_notification_delivery` ne sont exécutables que par la clé secrète. Rejouer un événement renvoie seulement les emails `failed`. Une fin d’envoi ne s’applique qu’à la tentative réservée (`p_attempt`), si bien qu’une tentative attardée n’écrase pas une tentative suivante. Une ligne `uncertain` (délai dépassé, réponse sans identifiant ou envoi interrompu) n’est jamais renvoyée automatiquement : vérifier dans les journaux **Email Sending** si un message est parti vers ce destinataire à l’heure indiquée, puis passer la ligne à `sent` ou, pour qu’un rejeu la renvoie, à `failed` :
+
+```sql
+UPDATE public.notification_deliveries SET status = 'failed', updated_at = now()
+WHERE idempotency_key = '<clé>' AND status = 'uncertain';
+```
+
+Les journaux Workers (`scope: "notifications"`) ne contiennent ni adresse, ni nom, ni contenu ; `email.uncertain` et `email.failed` sont émis au niveau erreur.
+
+**Tests.** `npm run test:unit` couvre le contrat, la politique, les gabarits, l’adaptateur Cloudflare et l’orchestration ; `npm run test:db` couvre la table et ses fonctions. `npm run test:email` est un smoke opt-in hors CI : avec `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM_EMAIL`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` (jeton limité à l’envoi d’emails) dans `.env`, il envoie les emails de création et de modification par l’API REST, au mentoré sur `E2E_EMAIL_TO` et au mentor sur `E2E_EMAIL_TO_MENTOR` (à défaut, l’alias `+mentor` de `E2E_EMAIL_TO`), puis vérifie que le rejeu n’envoie rien. Sans ces variables, il est ignoré.
+
+**Emails d’authentification Supabase.** Hors F-008, le relais SMTP de Cloudflare Email Service (`smtp.mx.cloudflare.net`, port 465, utilisateur littéral `api_token`, mot de passe : un jeton d’API) peut servir de SMTP personnalisé au projet Supabase. Le configurer dans le tableau de bord (**Authentication → Emails → SMTP Settings**), jamais dans `supabase/config.toml` : l’activer localement enverrait de vrais emails au lieu de les capturer, et `supabase config push` écraserait la configuration distante. Relever ensuite la limite d’envoi des emails d’authentification.

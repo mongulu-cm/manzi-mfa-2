@@ -12,8 +12,10 @@
     "tests/e2e/*.test.mjs",
     "tests/db/run.mjs",
     "tests/smoke/linkedin.mjs",
+    "tests/smoke/email.smoke.ts",
     "vitest.config.ts",
-    "vitest.unit.config.ts"
+    "vitest.unit.config.ts",
+    "vitest.smoke.config.ts"
   ],
   "ignorePatterns": [
     ".storybook/**",

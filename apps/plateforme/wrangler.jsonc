@@ -6,6 +6,8 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": ".output/public" },
   "observability": { "enabled": true },
+  // Cloudflare Email Service : notifications Quick Chat (F-008), sans clé d'API.
+  "send_email": [{ "name": "EMAIL" }],
   "workers_dev": true,
   "previews": {},
   "routes": [

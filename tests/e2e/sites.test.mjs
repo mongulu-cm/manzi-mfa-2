@@ -30,7 +30,7 @@ async function waitForServer(app, port, child, getOutput) {
   throw new Error(`Démarrage de ${app} trop long : ${getOutput()}`)
 }
 
-async function startServer(app, port) {
+async function startServer(app, port, env = {}) {
   let output = ''
   const child = spawn(process.execPath, [
     'node_modules/nuxt/bin/nuxt.mjs', 'dev', `apps/${app}`,
@@ -42,6 +42,7 @@ async function startServer(app, port) {
       ...process.env, NUXT_PUBLIC_APP_URL: appUrl, NUXT_PUBLIC_SITE_URL: vitrineUrl,
       NUXT_PUBLIC_SUPABASE_URL: 'https://supabase.test.invalid',
       NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
+      ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -282,9 +283,9 @@ test('un échec du profil conserve la session et permet de réessayer', async ()
 test('la vitrine livre son contenu SEO en SSR et la plateforme une SPA', async () => {
   const response = await fetch(vitrineUrl)
   const html = await response.text()
-  assert.match(html, /<h1[^>]*>\s*Manzi-mfa/)
+  assert.match(html, /<h1[^>]*>\s*Trouvez le mentor tech qui vous aidera à avancer/)
   assert.match(html, /name="description"/)
-  assert.match(html, /Le pont vers l&#39;emploi|Le pont vers l'emploi/)
+  assert.match(html, /Accélérez votre carrière grâce à des échanges/)
   assert.match(html, new RegExp(`href="${appUrl}/login"`))
 
   const appResponse = await fetch(`${appUrl}/login`)
@@ -314,7 +315,7 @@ test('le lien de connexion ouvre la plateforme dans le même onglet puis permet 
     assert.match(await page.title(), /Se connecter — Manzi-mfa/)
     await page.getByRole('link', { name: 'Retour au site' }).click()
     await page.waitForURL(`${vitrineUrl}/`)
-    await page.getByRole('heading', { name: 'Manzi-mfa', exact: true }).waitFor()
+    await page.getByRole('heading', { name: 'Trouvez le mentor tech qui vous aidera à avancer' }).waitFor()
     assert.deepEqual(errors, [])
   }
   finally { await page.close() }
@@ -426,3 +427,83 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
   }
   finally { await page.close() }
 }, { timeout: 60_000 })
+
+test('la landing page vitrine rend ses sections en SSR sans JavaScript', async () => {
+  const response = await fetch(vitrineUrl)
+  assert.equal(response.status, 200)
+  const html = await response.text()
+  assert.match(html, /<h1[^>]*>\s*Trouvez le mentor tech qui vous aidera à avancer/)
+  for (const title of ['Comment ça marche \\?', 'Mentors à la une', 'Une communauté engagée et gratuite']) {
+    assert.match(html, new RegExp(`<h2[^>]*>\\s*${title}`), `Titre manquant dans le HTML SSR : ${title}`)
+  }
+  for (const name of ['Aïcha', 'Patrick', 'Emmanuel', 'Sarah']) {
+    assert.ok(html.includes(name), `Mentor manquant dans le HTML SSR : ${name}`)
+  }
+})
+
+test('la landing page vitrine est accessible et sans débordement à 320px et 1280px', async () => {
+  const page = await browser.newPage()
+  try {
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto(vitrineUrl)
+      await page.getByRole('heading', { name: 'Trouvez le mentor tech qui vous aidera à avancer' }).waitFor()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
+      await page.addScriptTag({ content: axe.source })
+      const violations = await page.evaluate(async () => (await window.axe.run()).violations
+        .filter(v => ['serious', 'critical'].includes(v.impact)).map(v => ({ id: v.id, nodes: v.nodes.map(n => ({ html: n.html, summary: n.failureSummary })) })))
+      assert.deepEqual(violations, [])
+    }
+  }
+  finally { await page.close() }
+}, { timeout: 60_000 })
+
+test('le CTA de la landing page redirige vers la connexion de la plateforme', async () => {
+  const page = await browser.newPage()
+  try {
+    await page.goto(vitrineUrl)
+    const cta = page.getByRole('link', { name: 'Trouver un mentor', exact: true })
+    assert.equal(await cta.getAttribute('href'), `${appUrl}/login`)
+    await cta.click()
+    await page.waitForURL(`${appUrl}/login`)
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+test('les cartes illustratives annoncent la connexion sans promettre un profil individuel', async () => {
+  const page = await browser.newPage()
+  try {
+    await page.goto(vitrineUrl)
+    const section = page.locator('.featured-mentors-section')
+    await section.getByText(/illustrati|fictif|exemple/i).first().waitFor()
+    assert.equal(await section.getByRole('link', { name: /Voir profil|Voir le profil/ }).count(), 0)
+    const entry = section.locator('article').first().getByRole('link', { name: 'Accéder à l’application', exact: true })
+    assert.equal(await entry.getAttribute('href'), `${appUrl}/login`)
+    await entry.click()
+    await page.waitForURL(`${appUrl}/login`)
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+test('une adresse FTP propose un contact explicite sur tous les liens applicatifs', async () => {
+  // Nuxt verrouille un serveur de développement par application : ce dernier
+  // scénario redémarre la vitrine avec une configuration volontairement invalide.
+  const vitrineServer = servers.find(server => server.spawnargs.includes('apps/vitrine'))
+  const stopped = new Promise(resolve => vitrineServer.once('exit', resolve))
+  vitrineServer.kill('SIGTERM')
+  await stopped
+  await startServer('vitrine', 3100, { NUXT_PUBLIC_APP_URL: 'ftp://app.example.com' })
+  const page = await browser.newPage()
+  try {
+    await page.goto(vitrineUrl)
+    await page.getByText(/L'accès direct est momentanément indisponible/).waitFor()
+    const contacts = page.getByRole('link', { name: 'Nous contacter', exact: true })
+    assert.ok(await contacts.count() > 0)
+    for (const contact of await contacts.all()) {
+      assert.match(await contact.getAttribute('href'), /^mailto:collectif@mongulu\.cm\?/)
+    }
+    assert.equal(await page.locator('a[href^="ftp:"]').count(), 0)
+    assert.equal(await page.getByRole('link', { name: /Se connecter|Devenir mentor|Trouver un mentor|Accéder à l’application/ }).count(), 0)
+  }
+  finally { await page.close() }
+}, { timeout: 150_000 })

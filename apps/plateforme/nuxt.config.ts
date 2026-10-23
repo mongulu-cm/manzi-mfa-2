@@ -11,6 +11,17 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
+    // Serveur uniquement : notifications Quick Chat (F-008), lues au point d'appel de F-007.
+    notifications: {
+      provider: 'log',
+      fromEmail: '',
+      fromName: 'Manzi-mfa',
+      replyTo: 'collectif@mongulu.cm',
+      timeZone: 'Africa/Douala',
+      policy: '',
+    },
+    // Secret Cloudflare, transmis à createAdminClient pour le journal des envois.
+    supabaseSecretKey: '',
     public: {
       siteUrl: 'https://manzi-mfa-2.mongulu.cm',
       supabaseUrl: '',
