@@ -80,7 +80,7 @@ Conformément aux bonnes pratiques Supabase (`supabase-postgres-best-practices`)
    - Visibilité : Public (accès direct en lecture via URL publique pour les images de profil).
    - Taille maximale de fichier : 2 Mo (`file_size_limit: 2097152`).
    - Types MIME autorisés : `image/jpeg`, `image/png`, `image/webp`.
-   - Chemin standardisé : `{uid}/avatar.{ext}`.
+   - Chemin standardisé : `{uid}/{filename}` (normalisé et sanitisé sous le répertoire de l'utilisateur).
 
 2. **Bucket `documents`** :
    - Visibilité : Privé (accès par URL signée uniquement, pour les CVs et justificatifs).

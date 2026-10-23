@@ -44,7 +44,7 @@ describe('buildStoragePath', () => {
     expect(buildStoragePath('u1', 'avatars', '/mon fichier*.png/')).toBe('u1/mon_fichier_.png')
   })
   it('utilise un nom par défaut si vide', () => {
-    expect(buildStoragePath('u1', 'avatars', '../')).toBe('u1/avatar.jpg')
+    expect(buildStoragePath('u1', 'avatars', '../')).toBe('u1/avatar')
     expect(buildStoragePath('u1', 'documents', '../')).toBe('u1/cv.pdf')
   })
 })

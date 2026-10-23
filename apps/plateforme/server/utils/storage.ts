@@ -32,7 +32,7 @@ export function buildStoragePath(userId: string, bucket: StorageBucket, filename
     .replace(/\.{2,}/g, '.')
     .replace(/[^A-Za-z0-9._-]/g, '_')
     .replace(/^[._]+|[._]+$/g, '')
-  const fallback = bucket === 'avatars' ? 'avatar.jpg' : 'cv.pdf'
+  const fallback = bucket === 'avatars' ? 'avatar' : 'cv.pdf'
   return `${userId}/${sanitized || fallback}`
 }
 
