@@ -72,9 +72,9 @@
     <path class="accent" d="M1250 432 L1258 440 L1272 422"/>
     <path class="accent" d="M1250 492 L1258 500 L1272 482"/>
   </g>
-  <text class="item" x="1286" y="320">252 tests unitaires</text>
-  <text class="item" x="1286" y="380">72 assertions pgTAP</text>
-  <text class="item" x="1286" y="440">9 contrôles CI réussis</text>
+  <text class="item" x="1286" y="320">269 tests unitaires</text>
+  <text class="item" x="1286" y="380">75 assertions pgTAP</text>
+  <text class="item" x="1286" y="440">28 retours de revue traités</text>
   <text class="item" x="1286" y="500">npm run check : OK</text>
   <text class="item" x="1252" y="568">Couverture :</text>
   <text class="item" x="1252" y="600">98,6 % instructions</text>
