@@ -33,6 +33,7 @@
     "test:coverage": "vitest run --config vitest.unit.config.ts --coverage",
     "test:db": "node tests/db/run.mjs",
     "test:linkedin": "node tests/smoke/linkedin.mjs",
+    "test:email": "vitest run --config vitest.smoke.config.ts",
     "intent": "intent"
   },
   "dependencies": {

@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
+  <!-- Style tldraw : traits à main levée (déplacement léger), fond blanc, couleurs sobres. Faits vérifiés de la PR #45 uniquement. -->
+  <defs>
+    <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="5"/>
+    </filter>
+    <marker id="head" viewBox="0 0 20 20" refX="16" refY="10" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M2 3 L17 10 L2 17" fill="none" stroke="#2f2f2f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: 'Noteworthy', 'Marker Felt', 'Bradley Hand', sans-serif; fill: #2f2f2f; }
+    .title { font-size: 46px; font-weight: 700; }
+    .subtitle { font-size: 24px; fill: #5b5b5b; }
+    .label { font-size: 30px; font-weight: 700; letter-spacing: 1px; }
+    .item { font-size: 23px; }
+    .small { font-size: 20px; fill: #555; }
+    .note { font-size: 22px; fill: #6b7a3a; }
+    .box { fill: #fbf7ee; stroke: #2f2f2f; stroke-width: 3; }
+    .accent { fill: none; stroke: #6b7a3a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .warn { fill: none; stroke: #9a5a3c; stroke-width: 3; stroke-linecap: round; }
+    .arrow { fill: none; stroke: #2f2f2f; stroke-width: 3.2; stroke-linecap: round; }
+  </style>
+  <rect width="1672" height="941" fill="#ffffff"/>
+
+  <text class="title" x="836" y="78" text-anchor="middle">F-008 · Notifications email des Quick Chats</text>
+  <text class="subtitle" x="836" y="118" text-anchor="middle">PR #45 — problème → changements → résultat vérifié</text>
+  <path class="accent" filter="url(#wobble)" d="M520 134 Q836 150 1152 134"/>
+
+  <g filter="url(#wobble)">
+    <rect class="box" x="48" y="190" width="430" height="560" rx="18"/>
+    <rect class="box" x="590" y="190" width="520" height="560" rx="18"/>
+    <rect class="box" x="1222" y="190" width="402" height="560" rx="18"/>
+    <path class="arrow" marker-end="url(#head)" d="M486 470 Q535 455 580 470"/>
+    <path class="arrow" marker-end="url(#head)" d="M1118 470 Q1167 455 1212 470"/>
+  </g>
+
+  <!-- PROBLÈME -->
+  <g filter="url(#wobble)"><circle class="warn" cx="92" cy="240" r="22"/><path class="warn" d="M92 228 L92 244 M92 252 L92 254"/></g>
+  <text class="label" x="128" y="251">PROBLÈME</text>
+  <text class="item" x="78" y="318">Un Quick Chat est créé</text>
+  <text class="item" x="78" y="350">ou modifié…</text>
+  <text class="item" x="78" y="408">… mentor et mentoré</text>
+  <text class="item" x="78" y="440">ne sont pas prévenus</text>
+  <text class="item" x="78" y="508">Exigence : email avec</text>
+  <text class="item" x="78" y="540">référence, horaire</text>
+  <text class="item" x="78" y="572">et action attendue</text>
+  <text class="item" x="78" y="640">Sans doublon silencieux</text>
+  <text class="small" x="78" y="700">Issue #10 · Vague 1</text>
+
+  <!-- CHANGEMENTS -->
+  <g filter="url(#wobble)"><rect class="accent" x="618" y="220" width="40" height="40" rx="6"/><path class="accent" d="M626 240 L650 240 M638 228 L638 252"/></g>
+  <text class="label" x="672" y="251">CHANGEMENTS</text>
+  <text class="item" x="620" y="318">• Module serveur notifyQuickChat</text>
+  <text class="item" x="620" y="352">   validation · politique · gabarits</text>
+  <text class="item" x="620" y="408">• Cloudflare Email Service</text>
+  <text class="item" x="620" y="442">   liaison send_email, sans clé d’API</text>
+  <text class="item" x="620" y="498">• Journal Supabase</text>
+  <text class="item" x="620" y="532">   notification_deliveries (RLS)</text>
+  <text class="item" x="620" y="566">   sans adresse ni contenu</text>
+  <text class="item" x="620" y="622">• Rejeu → duplicate · échec → renvoi</text>
+  <text class="item" x="620" y="656">   issue inconnue → jamais renvoyé</text>
+  <text class="item" x="620" y="712">• Builds Cloudflare : npm 11 pour npm ci</text>
+
+  <!-- RÉSULTAT VÉRIFIÉ -->
+  <g filter="url(#wobble)"><circle class="accent" cx="1266" cy="240" r="22"/><path class="accent" d="M1255 241 L1263 250 L1279 230"/></g>
+  <text class="label" x="1302" y="251">RÉSULTAT VÉRIFIÉ</text>
+  <g filter="url(#wobble)">
+    <path class="accent" d="M1250 312 L1258 320 L1272 302"/>
+    <path class="accent" d="M1250 372 L1258 380 L1272 362"/>
+    <path class="accent" d="M1250 432 L1258 440 L1272 422"/>
+    <path class="accent" d="M1250 492 L1258 500 L1272 482"/>
+  </g>
+  <text class="item" x="1286" y="320">269 tests unitaires</text>
+  <text class="item" x="1286" y="380">75 assertions pgTAP</text>
+  <text class="item" x="1286" y="440">28 retours de revue traités</text>
+  <text class="item" x="1286" y="500">npm run check : OK</text>
+  <text class="item" x="1252" y="568">Couverture :</text>
+  <text class="item" x="1252" y="600">98,6 % instructions</text>
+  <text class="item" x="1252" y="632">93 % branches</text>
+  <text class="small" x="1252" y="700">Inactif jusqu’à l’appel par F-007</text>
+
+  <text class="note" x="836" y="840" text-anchor="middle">Aucune adresse, aucun nom ni contenu d’email dans les journaux ou la base</text>
+  <path class="accent" filter="url(#wobble)" d="M420 860 Q836 874 1252 860"/>
+</svg>
