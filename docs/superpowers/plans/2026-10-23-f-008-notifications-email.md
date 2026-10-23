@@ -4,9 +4,9 @@
 
 **Goal:** Livrer un module serveur autonome qui, à partir d’un événement Quick Chat (création ou modification), envoie au mentor et au mentoré un email identifiant l’échange, son horaire et l’action attendue — configurable, idempotent et observable, déclenchable par fixtures avant l’intégration de F-007.
 
-**Architecture:** Modules purs et injectables sous `apps/plateforme/server/notifications/` (contrat, politique, gabarits, transports, journal, orchestration). Journal des envois dans `public.notification_deliveries` (RLS sans politique, accès serveur seulement). Fournisseur derrière une interface `EmailTransport` ; adaptateur Resend par `fetch`.
+**Architecture:** Modules purs et injectables sous `apps/plateforme/server/notifications/` (contrat, politique, gabarits, transports, journal, orchestration). Journal des envois dans `public.notification_deliveries` (RLS sans politique, accès serveur seulement). Fournisseur derrière une interface `EmailTransport` ; adaptateur Cloudflare Email Service par la liaison Workers `send_email` (`EMAIL`), choix fixé par le schéma d’architecture de l’issue.
 
-**Tech Stack:** Nuxt 4 / Nitro (preset `cloudflare_module`), TypeScript strict, `@supabase/server` (client admin, clé `secret`), Supabase déclaratif + pgTAP, Vitest (V8 coverage).
+**Tech Stack:** Nuxt 4 / Nitro (preset `cloudflare_module`), Cloudflare Email Service (liaison `send_email`), TypeScript strict, `@supabase/server` (client admin, clé `secret`), Supabase déclaratif + pgTAP, Vitest (V8 coverage).
 
 **Spec:** `docs/superpowers/specs/2026-10-23-f-008-notifications-email-design.md`
 
@@ -16,16 +16,16 @@
 - Schéma : modifier d’abord `supabase/schemas/`, puis `npx supabase db schema declarative sync -f notification_deliveries --no-apply` ; relire et versionner la migration générée avec le fichier déclaratif.
 - Aucun secret dans `runtimeConfig.public`, ni dans le dépôt ; variables documentées dans `.env.example`.
 - Aucune adresse email, nom, contenu d’email, clé ou corps de réponse fournisseur dans les journaux, la base ou les erreurs remontées.
-- Aucune nouvelle dépendance npm (Resend appelé par `fetch`).
+- Aucune nouvelle dépendance npm (liaison `send_email` typée par une interface locale, sans `@cloudflare/workers-types`).
 - Couverture unitaire : 95 % statements, 85 % branches, 100 % fonctions et lignes ; `npx fallow --ci` sans code ni export mort.
 - Aucun appel réseau réel en CI.
 
 ## Review Focus
 
-- Clé d’idempotence `quick-chat:<id>:v<version>:<type>:<role>` : identique au fournisseur et en base.
+- Clé d’idempotence `quick-chat:<id>:v<version>:<type>:<role>` en clé primaire du journal : seule protection contre les doublons, Cloudflare n’ayant pas d’idempotence native.
 - Réservation en base avant envoi ; journal indisponible ⇒ aucun envoi.
 - Échappement HTML de toutes les valeurs dynamiques des gabarits.
-- Mapping des erreurs Resend : 4xx (hors 429) → `provider_rejected`, 429/5xx/timeout/réseau → `provider_unavailable`.
+- Correspondance des codes Cloudflare (spec § 5.1) : validation, expéditeur/destinataire, compte suspendu, en-têtes → `provider_rejected` ; limites de débit/quota, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu, délai dépassé → `provider_unavailable`. Le message brut de l’erreur n’est jamais propagé.
 - Politique RLS : `anon` et `authenticated` n’ont aucun accès à `notification_deliveries`.
 
 ---
@@ -74,20 +74,22 @@
 
 - [ ] Interface `EmailTransport` et type `EmailMessage` (`to`, `from`, `replyTo`, `subject`, `text`, `html`).
 - [ ] `createMemoryTransport()` (expose `sent`, option d’échec programmable) et `createLogTransport(logger)`.
-- [ ] `createNotificationLogger(sink = console)` : émet une ligne JSON `{ scope: 'notifications', event, … }` avec une liste blanche de champs (`quickChatId`, `eventType`, `role`, `attempt`, `errorCode`, `status`).
+- [ ] `createNotificationLogger(sink = console)` : émet une ligne JSON `{ scope: 'notifications', event, … }` avec une liste blanche de champs (`quickChatId`, `eventType`, `role`, `attempt`, `errorCode`, `providerCode`, `status`).
 - [ ] Tests : le transport log n’émet ni adresse, ni sujet, ni contenu ; un champ hors liste blanche est ignoré.
 
-### Task 5: Adaptateur Resend
+### Task 5: Adaptateur Cloudflare Email Service
 
 **Files:**
-- Create: `apps/plateforme/server/notifications/resend.ts`
-- Test: `tests/unit/notifications-resend.test.ts`
+- Create: `apps/plateforme/server/notifications/cloudflare.ts`
+- Modify: `apps/plateforme/wrangler.jsonc` (`"send_email": [{ "name": "EMAIL" }]`)
+- Test: `tests/unit/notifications-cloudflare.test.ts`
 
-- [ ] `createResendTransport({ apiKey, request = fetch })` : `POST https://api.resend.com/emails`, en-têtes `Authorization: Bearer`, `Idempotency-Key`, `Content-Type`, `AbortSignal.timeout(10_000)`.
-- [ ] Retourne `{ providerMessageId }` depuis `id` ; réponse sans `id` → `provider_unavailable`.
-- [ ] Mapping d’erreurs (Review Focus) ; l’erreur ne contient ni la clé ni le corps de la réponse.
-- [ ] Clé absente → `config_missing` à la création du transport.
-- [ ] Tests avec `request` simulé : corps et en-têtes envoyés ; 200 ; 400 ; 422 ; 429 ; 500 ; rejet réseau ; timeout (`AbortError`).
+- [ ] Interface locale `EmailSendBinding` : `send({ to, from, replyTo, subject, text, html }): Promise<{ messageId: string }>` (sous-ensemble de l’[API Workers](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)).
+- [ ] `createCloudflareEmailTransport({ binding, timeoutMs = 10_000 })` : transmet le message, retourne `{ providerMessageId }` depuis `messageId` ; résultat sans `messageId` → `provider_unavailable`.
+- [ ] Liaison absente → `config_missing` à la création du transport.
+- [ ] Correspondance des codes (spec § 5.1, Review Focus) ; `NotificationError` porte `providerCode` (le `code` Cloudflare) mais jamais le message de l’erreur d’origine ; délai dépassé → `provider_unavailable` sans `providerCode`.
+- [ ] Ajouter la liaison `send_email` à `apps/plateforme/wrangler.jsonc` ; vérifier que `npm run build` et `wrangler deploy --dry-run` l’acceptent.
+- [ ] Tests avec liaison simulée : champs transmis ; succès ; un code par famille (`E_VALIDATION_ERROR`, `E_RECIPIENT_SUPPRESSED`, `E_SENDER_NOT_VERIFIED`, `E_HEADER_NOT_ALLOWED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_INTERNAL_SERVER_ERROR`) ; code inconnu ; erreur sans code ; délai dépassé (horloge simulée) ; le message d’origine contenant une adresse n’apparaît pas dans l’erreur levée.
 
 ### Task 6: Schéma et journal des envois
 
@@ -102,7 +104,7 @@
 - [ ] Déclarer `public.notification_deliveries` (spec § 5.3), RLS activée, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, `GRANT ALL … TO service_role`, trigger `updated_at` (réutiliser `private.set_updated_at()` si PR #35 est fusionnée, sinon le déclarer ici et signaler le conflit dans la PR).
 - [ ] Générer la migration par `declarative sync`, la relire.
 - [ ] pgTAP : colonnes et `CHECK`, PK, aucun `SELECT`/`INSERT` possible pour `anon` et `authenticated`, cascade à la suppression d’un utilisateur.
-- [ ] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress'`, `markSent(key, providerMessageId)`, `markFailed(key, errorCode)`.
+- [ ] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress'`, `markSent(key, providerMessageId)`, `markFailed(key, errorCode, providerCode?)` (colonne `last_provider_code`).
 - [ ] `createMemoryJournal()` (tests) et `createSupabaseJournal(client)` (client admin `@supabase/server`) ; toute erreur Supabase → `journal_unavailable`.
 - [ ] Tests unitaires du journal mémoire et de l’adaptateur Supabase avec client simulé (insert en conflit, lecture `sent`, `pending` récent, `pending` expiré, `failed`, erreur).
 
@@ -122,11 +124,11 @@
 - Create: `tests/smoke/email.smoke.ts`, `vitest.smoke.config.ts`
 - Modify: `package.json` (script `test:email`), `.fallowrc.json` (entrée smoke), `.env.example`, `apps/plateforme/nuxt.config.ts` (`runtimeConfig.notifications`), `README.md`, `PRIVACY.md`
 
-- [ ] Smoke : ignoré sans `E2E_EMAIL_TO` et `NUXT_NOTIFICATIONS_RESEND_API_KEY` ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
-- [ ] `runtimeConfig.notifications` : `provider: 'log'`, `resendApiKey: ''`, `from: ''`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
-- [ ] `.env.example` : `NUXT_NOTIFICATIONS_*`, `NUXT_SUPABASE_SECRET_KEY` (vide, commentaire « binding Secret Cloudflare, jamais committé »), `E2E_EMAIL_TO`.
-- [ ] README : section « Notifications email » (contrat, configuration, DNS du domaine expéditeur, bindings Cloudflare, smoke test, lecture du journal).
-- [ ] `PRIVACY.md` : traitement « emails transactionnels Quick Chat », fournisseur d’envoi comme prestataire, conservation du journal ; date de version mise à jour.
+- [ ] Smoke : ignoré sans `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` ; fournit à `createCloudflareEmailTransport` une liaison de test appelant l’API REST (`POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send`, `messageId` absent de la réponse REST → valeur fixe `rest`) ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
+- [ ] `runtimeConfig.notifications` : `provider: 'log'`, `from: ''`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
+- [ ] `.env.example` : `NUXT_NOTIFICATIONS_*`, `NUXT_SUPABASE_SECRET_KEY` (vide, commentaire « binding Secret Cloudflare, jamais committé »), `E2E_EMAIL_TO`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_API_TOKEN` (smoke uniquement, jamais committé).
+- [ ] README : section « Notifications email » (contrat, configuration, liaison `send_email`, activation du domaine d’envoi par `wrangler email sending enable` et enregistrements DNS ajoutés par Cloudflare, quotas et métriques Email Sending, smoke test, lecture du journal).
+- [ ] `PRIVACY.md` : traitement « emails transactionnels Quick Chat », Cloudflare Email Service comme prestataire d’envoi, conservation du journal ; date de version mise à jour.
 
 ### Task 9: Vérification finale
 

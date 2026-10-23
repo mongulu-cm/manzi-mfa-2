@@ -6,6 +6,7 @@
 - **Vague** : 1
 - **Exigences sources** : `R-047`, `R-053`
 - **Éléments d’architecture** : `AR-001`, `AR-007`, `AR-010`, `AR-013`
+- **Fournisseur d’envoi** : Cloudflare Email Service — bloc « Emails notifications (Cloudflare) » du [schéma d’architecture](https://excalidraw.com/#room=f17469760dd1911404bd,5M2wWCDP2uLqjd_XvCQhxw) lié à l’issue
 - **Date** : 2026-10-23
 - **Statut** : Proposition à valider
 
@@ -24,7 +25,7 @@ Le Quick Chat lui-même n’existe pas encore : la réservation relève de F-007
 | Les événements de création et modification peuvent déclencher un email via des fixtures | Contrat `QuickChatEvent` + fixtures typées ; tests unitaires de bout en bout avec un transport mémoire ; smoke test opt-in d’envoi réel (§ 7) |
 | Chaque email identifie le Quick Chat, son horaire et l’action attendue | Gabarits par couple (événement, rôle) avec référence courte, date/heure/fuseau, durée et action explicite (§ 4) |
 | Destinataires et événements configurables et testables | Politique de notification pure, alimentée par `runtimeConfig` serveur, testée unitairement (§ 3) |
-| Échecs observables, sans doublons silencieux | Clé d’idempotence déterministe, journal des envois en base, statut explicite, journaux structurés sans donnée personnelle (§ 5, § 6) |
+| Échecs observables, sans doublons silencieux | Clé d’idempotence déterministe, journal des envois en base (seule protection, Cloudflare n’offrant pas d’idempotence native), statut explicite, journaux structurés sans donnée personnelle (§ 5, § 6) |
 
 ### Hors périmètre
 
@@ -109,22 +110,32 @@ Chaque email contient :
 
 ```ts
 interface EmailTransport {
-  send(message: EmailMessage, options: { idempotencyKey: string }): Promise<{ providerMessageId: string }>
+  send(message: EmailMessage): Promise<{ providerMessageId: string }>
 }
 ```
 
 - **`memory`** : conserve les messages en mémoire ; utilisé par les tests et les fixtures.
 - **`log`** (défaut hors production) : n’envoie rien, journalise l’événement d’envoi **sans** adresse ni contenu.
-- **Fournisseur réel — recommandation : Resend** (API HTTP compatible Workers, en-tête `Idempotency-Key` natif, offre gratuite suffisante pour la phase 1). Appel `fetch` avec `AbortSignal.timeout(10_000)`, sans SDK supplémentaire (AGENTS.md : pas de bibliothèque sans besoin concret). L’adaptateur traduit les réponses en erreurs typées : `provider_rejected` (4xx hors 429), `provider_unavailable` (429, 5xx, timeout, réseau).
-- Sélection par `runtimeConfig.notifications.provider` (`log` | `resend`), clé dans `NUXT_NOTIFICATIONS_RESEND_API_KEY` (secret serveur, binding Cloudflare de type Secret), expéditeur dans `NUXT_NOTIFICATIONS_FROM` (ex. `Manzi-mfa <notifications@manzi-mfa-2.mongulu.cm>`).
-- **Le choix du fournisseur est à confirmer** (§ 9). Le reste du module ne dépend que de l’interface : changer de fournisseur revient à écrire un adaptateur.
+- **Fournisseur réel : [Cloudflare Email Service](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)**, choix fixé par le schéma d’architecture. Envoi par la liaison Workers `send_email` déclarée dans `apps/plateforme/wrangler.jsonc` (`"send_email": [{ "name": "EMAIL" }]`) : **aucune clé d’API** à gérer, aucune dépendance npm. L’assemblage (F-007) lit la liaison via `event.context.cloudflare.env.EMAIL` ; le module ne reçoit qu’une interface minimale `EmailSendBinding` (`send({ to, from, replyTo, subject, text, html }) → { messageId }`) déclarée localement, sans dépendre de `@cloudflare/workers-types`.
+- L’adaptateur `createCloudflareEmailTransport({ binding, timeoutMs = 10_000 })` traduit le `code` des erreurs levées par la liaison en erreurs typées :
+
+| Code Cloudflare | Code F-008 |
+| --- | --- |
+| `E_VALIDATION_ERROR`, `E_FIELD_MISSING`, `E_TOO_MANY_RECIPIENTS`, `E_TOO_MANY_ATTACHMENTS`, `E_CONTENT_TOO_LARGE`, `E_HEADER_*`, `E_HEADERS_*` | `provider_rejected` |
+| `E_SENDER_NOT_VERIFIED`, `E_SENDER_DOMAIN_NOT_AVAILABLE`, `E_RECIPIENT_NOT_ALLOWED`, `E_RECIPIENT_SUPPRESSED`, `E_ACCOUNT_SUSPENDED` | `provider_rejected` |
+| `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu, dépassement du délai | `provider_unavailable` |
+
+  Le code Cloudflare d’origine (ex. `E_RECIPIENT_SUPPRESSED`), qui ne contient aucune donnée personnelle, est conservé dans `providerCode` pour le diagnostic ; le message de l’erreur ne l’est jamais.
+- Sélection par `runtimeConfig.notifications.provider` (`log` | `cloudflare`), expéditeur dans `NUXT_NOTIFICATIONS_FROM` (ex. `Manzi-mfa <notifications@manzi-mfa-2.mongulu.cm>`). L’adresse doit appartenir à un domaine d’envoi intégré au compte Cloudflare (`npx wrangler email sending enable <domaine>`, enregistrements SPF/DKIM ajoutés par Cloudflare sur la zone `mongulu.cm`) ; tant que ce n’est pas fait, Cloudflare n’envoie qu’aux adresses de destination vérifiées du compte.
+- **Limites à connaître** : service en bêta ; quota journalier conservateur pour un nouveau compte, relevé automatiquement ensuite ; 50 destinataires et 5 Mio par message (sans incidence ici : un email par destinataire, sans pièce jointe). Les emails envoyés par la liaison apparaissent « dropped » dans le résumé Email Routing : suivre les métriques **Email Sending** du tableau de bord.
+- Le reste du module ne dépend que de l’interface `EmailTransport` : changer de fournisseur reviendrait à écrire un autre adaptateur.
 
 ### 5.2 Idempotence
 
-Clé déterministe : `quick-chat:<quickChatId>:v<version>:<type>:<role>`.
+Clé déterministe : `quick-chat:<quickChatId>:v<version>:<type>:<role>`, clé primaire du journal en base.
 
-- Transmise au fournisseur (protection contre un double envoi dans sa fenêtre d’idempotence).
-- Clé primaire du journal en base (protection durable, indépendante du fournisseur).
+- Cloudflare Email Service ne propose **pas** de clé d’idempotence : le journal en base est la seule protection contre les doublons, d’où la règle « journal indisponible ⇒ aucun envoi » (§ 6).
+- **Risque résiduel accepté** : si l’envoi réussit mais que l’écriture `sent` échoue (ou que le délai expire alors que Cloudflare a accepté le message), la ligne reste `pending` ; une nouvelle tentative après expiration (§ 5.4) peut produire un second email. Ce cas reste visible (`attempts` ≥ 2, ligne `email.sent` précédée d’un `email.failed` ou d’une erreur `journal_unavailable`) et n’est donc pas silencieux.
 
 ### 5.3 Journal des envois
 
@@ -138,8 +149,9 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
 | `recipient_id` | `uuid` FK `auth.users` `ON DELETE CASCADE` | Pas d’adresse email stockée |
 | `status` | `text` `CHECK (pending, sent, failed)` | État courant |
 | `attempts` | `int` | Nombre de tentatives |
-| `provider_message_id` | `text` | Identifiant fournisseur pour le support |
+| `provider_message_id` | `text` | `messageId` renvoyé par Cloudflare, pour le support |
 | `last_error_code` | `text` | Code typé (§ 6), jamais le message brut du fournisseur |
+| `last_provider_code` | `text` | Code Cloudflare d’origine (ex. `E_RATE_LIMIT_EXCEEDED`), sans donnée personnelle |
 | `created_at`, `updated_at` | `timestamptz` | Horodatage |
 
 - RLS activée, **aucune politique** pour `anon` / `authenticated` ; `REVOKE ALL` sauf `service_role`. Seul le serveur y accède.
@@ -153,8 +165,8 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
    - `pending` récent (< 2 min, `updated_at`) → résultat `in_progress` (un autre appel envoie).
    - `failed` ou `pending` expiré → nouvelle tentative autorisée.
 2. Passer à `pending`, `attempts + 1`.
-3. Envoyer via le transport avec la clé d’idempotence.
-4. Succès → `sent` + `provider_message_id`. Échec → `failed` + `last_error_code`.
+3. Envoyer via le transport.
+4. Succès → `sent` + `provider_message_id`. Échec → `failed` + `last_error_code` (+ `last_provider_code`).
 
 `notifyQuickChat(event)` retourne un rapport `{ results: Array<{ role, status: 'sent' | 'duplicate' | 'in_progress' | 'failed' | 'skipped', errorCode? }> }` : l’appelant (F-007) sait exactement ce qui a été envoyé. Un échec d’email **ne fait pas échouer** l’opération métier du Quick Chat ; il reste visible dans le rapport, les journaux et la table.
 
@@ -165,11 +177,11 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
 Journaux JSON sur une ligne (`console.info` / `console.error`), collectés par l’observabilité Workers déjà activée :
 
 ```json
-{ "scope": "notifications", "event": "email.failed", "quickChatId": "…", "eventType": "quick_chat.created", "role": "mentor", "attempt": 2, "errorCode": "provider_unavailable" }
+{ "scope": "notifications", "event": "email.failed", "quickChatId": "…", "eventType": "quick_chat.created", "role": "mentor", "attempt": 2, "errorCode": "provider_unavailable", "providerCode": "E_RATE_LIMIT_EXCEEDED" }
 ```
 
 - Événements : `email.sent`, `email.duplicate`, `email.in_progress`, `email.skipped`, `email.failed`.
-- **Jamais** d’adresse email, de nom, de contenu, de clé API ou de corps de réponse du fournisseur.
+- **Jamais** d’adresse email, de nom, de contenu, de jeton d’API ni de message d’erreur brut du fournisseur (il peut citer l’adresse du destinataire) ; seul le `code` Cloudflare est conservé.
 - Codes d’erreur : `invalid_event`, `config_invalid`, `config_missing`, `journal_unavailable`, `provider_rejected`, `provider_unavailable`.
 - Si le journal est indisponible, **aucun email n’est envoyé** (`journal_unavailable`) : on préfère un échec visible à un doublon possible.
 
@@ -180,9 +192,9 @@ Journaux JSON sur une ligne (`console.info` / `console.error`), collectés par l
 | Niveau | Contenu |
 | --- | --- |
 | Fixtures (`tests/fixtures/quick-chat-events.ts`) | Création, modification d’horaire, double modification (v2, v3), participants sans nom, noms longs/HTML à échapper |
-| Unitaires (Vitest, `tests/unit/`) | Validation d’événement ; politique (désactivation d’un événement, destinataire unique, config invalide) ; gabarits (référence, horaire avec fuseau, action par couple, échappement HTML) ; adaptateur Resend avec `fetch` simulé (en-têtes, idempotence, timeout, mapping 4xx/429/5xx) ; orchestrateur avec journal et transport en mémoire (nominal, doublon, en cours, échec puis renvoi, journal indisponible) ; absence de donnée personnelle dans les journaux |
+| Unitaires (Vitest, `tests/unit/`) | Validation d’événement ; politique (désactivation d’un événement, destinataire unique, config invalide) ; gabarits (référence, horaire avec fuseau, action par couple, échappement HTML) ; adaptateur Cloudflare avec liaison `EMAIL` simulée (champs transmis, `messageId`, délai dépassé, correspondance de chaque famille de codes, code inconnu, message brut jamais propagé) ; orchestrateur avec journal et transport en mémoire (nominal, doublon, en cours, échec puis renvoi, journal indisponible) ; absence de donnée personnelle dans les journaux |
 | Base (pgTAP, `supabase/tests/notifications.test.sql`) | Contraintes `CHECK`, unicité de la clé, `anon` et `authenticated` sans lecture ni écriture, cascade à la suppression du compte |
-| Smoke opt-in (`npm run test:email`, hors CI) | Envoie les fixtures « création » et « modification » à `E2E_EMAIL_TO` via le fournisseur configuré, puis rejoue pour vérifier le `duplicate` |
+| Smoke opt-in (`npm run test:email`, hors CI) | Envoie les fixtures « création » et « modification » à `E2E_EMAIL_TO` par Cloudflare Email Service, puis rejoue pour vérifier le `duplicate`. La liaison Workers n’existant pas sous Node, le smoke fournit à `createCloudflareEmailTransport` une liaison de test qui appelle l’[API REST](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/) (`POST /accounts/{account_id}/email/sending/send`, jeton `CLOUDFLARE_EMAIL_API_TOKEN` limité à l’envoi d’emails, hors dépôt) ; l’adaptateur de production reste unique |
 
 Les seuils de couverture existants (95 % statements, 85 % branches, 100 % fonctions et lignes) s’appliquent au module. Aucun appel réseau réel en CI.
 
@@ -196,21 +208,27 @@ apps/plateforme/server/notifications/
   policy.ts       # NotificationPolicy, planNotifications, lecture de la config
   templates.ts    # gabarits + formatage de l’horaire
   transport.ts    # interface EmailTransport, transports memory et log
-  resend.ts       # adaptateur Resend (fetch)
+  cloudflare.ts   # adaptateur Cloudflare Email Service (liaison send_email)
   journal.ts      # interface DeliveryJournal + implémentation Supabase
   notify.ts       # notifyQuickChat : orchestration
   logger.ts       # journaux structurés sans donnée personnelle
 ```
 
 - Modules purs et injectables (transport, journal, horloge, logger passés en paramètres) : testables sans Nitro. L’assemblage avec `useRuntimeConfig` se fera dans F-007, au point d’appel ; d’ici là le smoke test est le point d’entrée réel, déclaré dans `.fallowrc.json`.
-- Variables documentées dans `.env.example` et le README (section Notifications).
-- **`PRIVACY.md`** : ajout du traitement « emails transactionnels Quick Chat » et du fournisseur d’envoi comme prestataire, **avant** la mise en production (README : réviser la politique avant toute nouvelle collecte ou transmission).
+- Liaison `send_email` (`EMAIL`) ajoutée à `apps/plateforme/wrangler.jsonc`. Variables documentées dans `.env.example` et le README (section Notifications).
+- **`PRIVACY.md`** : ajout du traitement « emails transactionnels Quick Chat » et de Cloudflare Email Service comme prestataire d’envoi (adresse, nom et contenu transmis à Cloudflare), **avant** la mise en production (README : réviser la politique avant toute nouvelle collecte ou transmission).
 
 ---
 
-## 9. Décisions à confirmer
+## 9. Décisions
 
-1. **Fournisseur d’envoi** — recommandation Resend ; alternatives : envoi d’emails Cloudflare, Brevo. Impacte uniquement `resend.ts`, la configuration DNS (SPF/DKIM du domaine expéditeur) et `PRIVACY.md`.
+**Décidé**
+
+- **Fournisseur d’envoi** — Cloudflare Email Service, d’après le schéma d’architecture lié à l’issue (« Emails notifications (Cloudflare) »). Cohérent avec l’hébergement sur Cloudflare Workers : liaison native, pas de clé d’API, pas de nouveau prestataire hors Cloudflare.
+
+**À confirmer**
+
+1. **Activation du domaine d’envoi** — intégration du domaine expéditeur dans Cloudflare Email Service (`wrangler email sending enable`) par un administrateur de la zone `mongulu.cm`, et vérification de l’offre Workers requise pour envoyer à des destinataires quelconques (service en bêta).
 2. **Domaine et adresse d’expédition** — proposition `notifications@manzi-mfa-2.mongulu.cm`, adresse de réponse `collectif@mongulu.cm`.
 3. **Fuseau d’affichage** — `Africa/Douala` par défaut ; fuseau par participant à prévoir dans le profil (F-004 / F-017).
 4. **Événements** — création et modification seulement ; annulation et rappel J-1 à décider pour F-007.
