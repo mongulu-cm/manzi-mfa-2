@@ -101,14 +101,14 @@
 - Create: `apps/plateforme/server/notifications/journal.ts`
 - Test: `tests/unit/notifications-journal.test.ts`
 
-- [ ] Lire la skill `supabase-server`.
-- [ ] Déclarer `public.notification_deliveries` (spec § 5.3, `status` ∈ `pending`, `sent`, `failed`, `uncertain`), RLS activée, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, `GRANT ALL … TO service_role`, trigger `updated_at` (réutiliser `private.set_updated_at()` si PR #35 est fusionnée, sinon le déclarer ici et signaler le conflit dans la PR).
-- [ ] Générer la migration par `declarative sync`, la relire.
-- [ ] pgTAP : colonnes et `CHECK`, PK, aucun `SELECT`/`INSERT` possible pour `anon` et `authenticated`, cascade à la suppression d’un utilisateur.
+- [x] Lire la skill `supabase-server`.
+- [x] Déclarer `public.notification_deliveries` (spec § 5.3, `status` ∈ `pending`, `sent`, `failed`, `uncertain`), RLS activée, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, `GRANT ALL … TO service_role`, fonctions `reserve_notification_delivery` (réservation atomique, `FOR UPDATE`, horloge de la base) et `finish_notification_delivery`, exécutables par `service_role` seulement ; `updated_at` tenu par ces fonctions, sans trigger ni dépendance à la PR #35.
+- [x] Générer la migration par `declarative sync`, la relire.
+- [x] pgTAP : colonnes et `CHECK`, PK, aucun `SELECT`/`INSERT` possible pour `anon` et `authenticated`, cascade à la suppression d’un utilisateur.
 - [x] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress' | 'uncertain'` (spec § 5.4, `pending` expiré passé à `uncertain`), `markSent(key, providerMessageId)`, `markFailed(key, errorCode, providerCode?)` (colonne `last_provider_code`), `markUncertain(key, errorCode)`.
-- [ ] Transitions conditionnelles (`UPDATE … WHERE status = … AND updated_at = …`) : une réservation concurrente perdue → `in_progress`.
-- [ ] `createMemoryJournal()` (tests, fait) et `createSupabaseJournal(client)` (client admin `@supabase/server`) ; toute erreur Supabase → `journal_unavailable`.
-- [ ] Tests unitaires du journal mémoire (faits, avec `decideExisting` partagée) et de l’adaptateur Supabase avec client simulé (insert en conflit, lecture `sent`, `pending` récent, `pending` expiré → `uncertain`, `uncertain`, `failed`, réservation concurrente perdue, erreur).
+- [x] Concurrence : portée par le verrou de `reserve_notification_delivery` (une réservation concurrente voit `pending` récent → `in_progress`).
+- [x] `createMemoryJournal()` (tests) et `createSupabaseJournal(client)` (appels RPC) (client admin `@supabase/server`) ; toute erreur Supabase → `journal_unavailable`.
+- [x] Tests unitaires du journal mémoire et de l’adaptateur Supabase avec `rpc` simulé (arguments, décisions, réponses invalides, erreur sans fuite de donnée) ; décisions SQL couvertes par pgTAP ; parcours vérifié contre le Supabase local avec `createAdminClient`.
 
 ### Task 7: Orchestration `notifyQuickChat`
 

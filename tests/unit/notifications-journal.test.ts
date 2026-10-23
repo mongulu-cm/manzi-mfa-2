@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { PENDING_TTL_MS, createMemoryJournal, decideExisting } from '../../apps/plateforme/server/notifications/journal'
+import { describe, expect, it, vi } from 'vitest'
+import { PENDING_TTL_MS, createMemoryJournal, createSupabaseJournal, decideExisting } from '../../apps/plateforme/server/notifications/journal'
 import { DEFAULT_POLICY, planNotifications } from '../../apps/plateforme/server/notifications/policy'
 import { createdEvent } from '../fixtures/quick-chat-events'
 
@@ -65,5 +65,68 @@ describe('journal en mémoire', () => {
     await expect(journal.markSent('inconnue', 'cf-1')).rejects.toMatchObject({ code: 'journal_unavailable' })
     journal.unavailable = true
     await expect(journal.reserve(planned!, createdEvent, start)).rejects.toMatchObject({ code: 'journal_unavailable' })
+  })
+})
+
+describe('journal Supabase', () => {
+  type Rpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown, error: unknown }>
+  function client(...responses: Array<{ data: unknown, error?: unknown } | Error>) {
+    const rpc = vi.fn<Rpc>(async () => {
+      const next = responses.shift()!
+      if (next instanceof Error) throw next
+      return { data: next.data, error: next.error ?? null }
+    })
+    return { rpc, journal: createSupabaseJournal({ rpc } as unknown as Parameters<typeof createSupabaseJournal>[0]) }
+  }
+
+  it('réserve par la fonction SQL avec la clé, les identifiants et le délai d’expiration', async () => {
+    const { rpc, journal } = client({ data: [{ decision: 'send', attempt: 1 }] })
+    expect(await journal.reserve(planned!, createdEvent, start)).toEqual({ decision: 'send', attempt: 1 })
+    expect(rpc).toHaveBeenCalledWith('reserve_notification_delivery', {
+      p_idempotency_key: planned!.idempotencyKey,
+      p_quick_chat_id: createdEvent.quickChatId,
+      p_event_type: 'quick_chat.created',
+      p_recipient_role: 'mentor',
+      p_recipient_id: createdEvent.mentor.userId,
+      p_pending_ttl_seconds: 120,
+    })
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain('@')
+  })
+
+  it.each(['duplicate', 'in_progress', 'uncertain'])('relaie la décision %s', async (decision) => {
+    const { journal } = client({ data: [{ decision, attempt: null }] })
+    expect(await journal.reserve(planned!, createdEvent, start)).toEqual({ decision })
+  })
+
+  it.each([
+    ['une erreur Supabase', { data: null, error: { message: 'mentor@example.test' } }],
+    ['une exception réseau', new Error('fetch failed')],
+    ['une réponse vide', { data: [] }],
+    ['une réponse non tableau', { data: { decision: 'send' } }],
+    ['une décision inconnue', { data: [{ decision: 'maybe' }] }],
+    ['une tentative absente', { data: [{ decision: 'send', attempt: null }] }],
+  ])('traite %s comme un journal indisponible', async (_, response) => {
+    const { journal } = client(response)
+    const error = await journal.reserve(planned!, createdEvent, start).catch(caught => caught as Error)
+    expect(error).toMatchObject({ code: 'journal_unavailable' })
+    expect(JSON.stringify(error) + (error as Error).message).not.toContain('example.test')
+  })
+
+  it('enregistre l’issue de chaque envoi', async () => {
+    const { rpc, journal } = client({ data: true }, { data: true }, { data: true })
+    await journal.markSent('k', 'cf-1')
+    await journal.markFailed('k', 'provider_rejected', 'E_RECIPIENT_SUPPRESSED')
+    await journal.markUncertain('k', 'provider_timeout')
+    expect(rpc.mock.calls.map(([, args]) => args)).toEqual([
+      { p_idempotency_key: 'k', p_status: 'sent', p_provider_message_id: 'cf-1', p_error_code: null, p_provider_code: null },
+      { p_idempotency_key: 'k', p_status: 'failed', p_provider_message_id: null, p_error_code: 'provider_rejected', p_provider_code: 'E_RECIPIENT_SUPPRESSED' },
+      { p_idempotency_key: 'k', p_status: 'uncertain', p_provider_message_id: null, p_error_code: 'provider_timeout', p_provider_code: null },
+    ])
+    expect(rpc.mock.calls.every(([fn]) => fn === 'finish_notification_delivery')).toBe(true)
+  })
+
+  it('signale une ligne absente', async () => {
+    const { journal } = client({ data: false })
+    await expect(journal.markSent('absente', 'cf-1')).rejects.toMatchObject({ code: 'journal_unavailable' })
   })
 })

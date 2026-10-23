@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { NotificationError } from './event'
 import type { NotificationErrorCode, QuickChatEvent } from './event'
 import type { PlannedNotification } from './policy'
@@ -94,4 +95,56 @@ export function createMemoryJournal(clock: () => Date = () => new Date()): Memor
   }
 
   return journal
+}
+
+const RESERVATIONS = new Set(['send', 'duplicate', 'in_progress', 'uncertain'])
+
+// Client administrateur créé par l'appelant avec createAdminClient (@supabase/server, clé secret).
+// Les fonctions SQL utilisent l'horloge de la base : le paramètre now n'y sert pas.
+export function createSupabaseJournal(client: Pick<SupabaseClient, 'rpc'>): DeliveryJournal {
+  async function call(fn: string, args: Record<string, unknown>): Promise<unknown> {
+    try {
+      const { data, error } = await client.rpc(fn, args)
+      if (error) throw error
+      return data
+    }
+    catch {
+      // Le détail de l'erreur Supabase n'est pas propagé : il peut contenir des valeurs de la requête.
+      throw new NotificationError('journal_unavailable')
+    }
+  }
+
+  async function finish(key: string, status: DeliveryStatus, values: Record<string, string | undefined> = {}) {
+    const updated = await call('finish_notification_delivery', {
+      p_idempotency_key: key,
+      p_status: status,
+      p_provider_message_id: values.providerMessageId ?? null,
+      p_error_code: values.errorCode ?? null,
+      p_provider_code: values.providerCode ?? null,
+    })
+    if (updated !== true) throw new NotificationError('journal_unavailable')
+  }
+
+  return {
+    async reserve(planned, event) {
+      const rows = await call('reserve_notification_delivery', {
+        p_idempotency_key: planned.idempotencyKey,
+        p_quick_chat_id: event.quickChatId,
+        p_event_type: event.type,
+        p_recipient_role: planned.role,
+        p_recipient_id: planned.recipient.userId,
+        p_pending_ttl_seconds: PENDING_TTL_MS / 1000,
+      })
+      const row = Array.isArray(rows) ? rows[0] as { decision?: unknown, attempt?: unknown } | undefined : undefined
+      if (!row || typeof row.decision !== 'string' || !RESERVATIONS.has(row.decision)) {
+        throw new NotificationError('journal_unavailable')
+      }
+      if (row.decision !== 'send') return { decision: row.decision as 'duplicate' | 'in_progress' | 'uncertain' }
+      if (!Number.isInteger(row.attempt)) throw new NotificationError('journal_unavailable')
+      return { decision: 'send', attempt: row.attempt as number }
+    },
+    markSent: (key, providerMessageId) => finish(key, 'sent', { providerMessageId }),
+    markFailed: (key, errorCode, providerCode) => finish(key, 'failed', { errorCode, providerCode }),
+    markUncertain: (key, errorCode) => finish(key, 'uncertain', { errorCode }),
+  }
 }

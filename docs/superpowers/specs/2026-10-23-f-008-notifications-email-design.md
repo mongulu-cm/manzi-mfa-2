@@ -174,7 +174,7 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
 3. Envoyer via le transport.
 4. Succès → `sent` + `provider_message_id`. Délai dépassé → `uncertain` + `last_error_code = provider_timeout`. Autre échec → `failed` + `last_error_code` (+ `last_provider_code`).
 
-Les transitions de l’étape 1 sont conditionnelles (`UPDATE … WHERE status = <statut lu> AND updated_at = <valeur lue>`) : deux appels concurrents ne peuvent pas réserver le même envoi.
+Les étapes 1 et 2 forment une seule fonction SQL, `public.reserve_notification_delivery` : insertion `ON CONFLICT DO NOTHING`, puis lecture de la ligne verrouillée (`FOR UPDATE`) et décision avec l’horloge de la base. Deux appels concurrents ne peuvent donc pas réserver le même envoi. L’étape 4 passe par `public.finish_notification_delivery`. Ces deux fonctions (`SECURITY INVOKER`, `search_path` vide) ne sont exécutables que par `service_role` ; elles tiennent `updated_at` à jour sans trigger.
 
 `notifyQuickChat(event)` retourne un rapport `{ results: Array<{ role, status: 'sent' | 'duplicate' | 'in_progress' | 'uncertain' | 'failed' | 'skipped', errorCode? }> }` : l’appelant (F-007) sait exactement ce qui a été envoyé. Un échec d’email **ne fait pas échouer** l’opération métier du Quick Chat ; il reste visible dans le rapport, les journaux et la table.
 
