@@ -14,8 +14,6 @@ export default defineNuxtConfig({
     // Serveur uniquement : notifications Quick Chat (F-008), lues au point d'appel de F-007.
     notifications: {
       provider: 'log',
-      // Origine des liens envoyés par email : configurée, jamais déduite de la requête (en-tête Host).
-      appUrl: 'https://app.manzi-mfa-2.mongulu.cm',
       fromEmail: '',
       fromName: 'Manzi-mfa',
       replyTo: 'collectif@mongulu.cm',
