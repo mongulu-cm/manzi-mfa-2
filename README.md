@@ -105,13 +105,13 @@ Les réglages Workers Builds sont distincts du déploiement Wrangler : une sessi
 | Paramètre Workers Builds | Vitrine | Plateforme |
 | --- | --- | --- |
 | Répertoire racine | `apps/vitrine` | `apps/plateforme` |
-| Build command | `cd ../.. && npm ci && npm run build:vitrine` | `cd ../.. && npm ci && npm run build:app` |
+| Build command | `cd ../.. && npx -y npm@11.19.1 ci && npm run build:vitrine` | `cd ../.. && npx -y npm@11.19.1 ci && npm run build:app` |
 | Deploy command | `npx wrangler deploy` | `npx wrangler deploy` |
 | Preview command | `npx wrangler preview` | `npm run deploy:preview` |
 | Branche production | `main` | `main` |
 | Domaine | `manzi-mfa-2.mongulu.cm` | `app.manzi-mfa-2.mongulu.cm` |
 
-La commande de build installe les dépendances depuis la racine du monorepo ; le déploiement s'exécute dans le répertoire de l'application, auprès de sa configuration Wrangler. Configurer aussi `NODE_VERSION=24` dans les variables de build, car les répertoires des applications ne contiennent pas de `.nvmrc`. Si l'installation automatique est activée, la désactiver via `SKIP_DEPENDENCY_INSTALL=true` pour utiliser uniquement le `npm ci` explicite ci-dessus.
+L’image de build fournit npm 10.9.2, qui refuse le `package-lock.json` produit par npm 11 (dépendances pairs optionnelles absentes, par exemple `Missing: cac@… from lock file`) ; la commande force donc npm 11.19.1 pour `npm ci`. Chaque branche d’aperçu reçoit une copie de ces réglages à sa création : mettre à jour la Base et les branches existantes. La commande de build installe les dépendances depuis la racine du monorepo ; le déploiement s'exécute dans le répertoire de l'application, auprès de sa configuration Wrangler. Configurer aussi `NODE_VERSION=24` dans les variables de build, car les répertoires des applications ne contiennent pas de `.nvmrc`. Si l'installation automatique est activée, la désactiver via `SKIP_DEPENDENCY_INSTALL=true` pour utiliser uniquement le `npm ci` explicite ci-dessus.
 
 Chemins surveillés, relatifs à la racine Git :
 
