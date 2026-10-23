@@ -33,9 +33,13 @@ describe('journaux structurés', () => {
 
   it('accepte une ligne sans champ et écrit par défaut sur la console', () => {
     const info = vi.spyOn(console, 'info').mockImplementation(() => {})
-    createNotificationLogger().info('email.sent')
-    expect(info).toHaveBeenCalledWith('{"scope":"notifications","event":"email.sent"}')
-    info.mockRestore()
+    try {
+      createNotificationLogger().info('email.sent')
+      expect(info).toHaveBeenCalledWith('{"scope":"notifications","event":"email.sent"}')
+    }
+    finally {
+      info.mockRestore()
+    }
   })
 })
 

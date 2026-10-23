@@ -47,8 +47,9 @@ export class NotificationError extends Error {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const ISO_WITH_ZONE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?(?:Z|[+-]\d{2}:\d{2})$/
-// Volontairement strict : ni espace, ni chevron, ni virgule, ce qui écarte toute injection d'en-tête.
-const EMAIL = /^[^\s@<>,;"]+@[^\s@<>,;".]+(?:\.[^\s@<>,;".]+)+$/
+// Volontairement strict : ni espace, ni chevron, ni virgule, ni point en tête, en fin ou doublé,
+// ce qui écarte toute injection d'en-tête.
+const EMAIL = /^[^\s@<>,;".]+(?:\.[^\s@<>,;".]+)*@[^\s@<>,;".]+(?:\.[^\s@<>,;".]+)+$/
 // eslint-disable-next-line no-control-regex -- les caractères de contrôle sont précisément ce qui est refusé.
 const CONTROL = /[\u0000-\u001F\u007F]/
 

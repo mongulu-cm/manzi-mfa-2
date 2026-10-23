@@ -4,7 +4,7 @@ import {
   escapeHtml, formatSchedule, quickChatReference, renderEmail,
 } from '../../apps/plateforme/server/notifications/templates'
 import {
-  anonymousMenteeEvent, createdEvent, hostileNamesEvent, updatedEvent,
+  anonymousMenteeEvent, anonymousMentorEvent, createdEvent, hostileNamesEvent, updatedEvent,
 } from '../fixtures/quick-chat-events'
 
 const options = { appUrl: 'https://app.example.test', siteUrl: 'https://www.example.test', timeZone: 'Africa/Douala' }
@@ -67,6 +67,19 @@ describe('gabarits d’email', () => {
     expect(forMentor.text).toContain('\n\nVotre mentoré vous a envoyé une demande')
     const forMentee = renderEmail(anonymousMenteeEvent, 'mentee', options)
     expect(forMentee.text.startsWith('Bonjour,\n')).toBe(true)
+  })
+
+  it('utilise « votre mentor » quand le nom du mentor manque', () => {
+    const forMentee = renderEmail(anonymousMentorEvent, 'mentee', options)
+    expect(forMentee.text).toContain('Votre demande de Quick Chat avec votre mentor est envoyée.')
+    expect(renderEmail(anonymousMentorEvent, 'mentor', options).text.startsWith('Bonjour,\n')).toBe(true)
+  })
+
+  it.each(['mentor', 'mentee'] as const)('échappe le nom du destinataire dans la salutation (%s)', (role) => {
+    const email = renderEmail(hostileNamesEvent, role, options)
+    const name = hostileNamesEvent[role].displayName!
+    expect(email.html).toContain(`<p>Bonjour ${escapeHtml(name)},</p>`)
+    expect(email.html).not.toMatch(/<script>|<img/)
   })
 
   it('échappe toutes les valeurs dynamiques du HTML et garde le sujet sans nom', () => {

@@ -40,6 +40,7 @@ describe('politique de notification', () => {
     ['recipients non tableau', { events: { 'quick_chat.created': { enabled: true, recipients: 'mentor' } } }],
     ['rôle inconnu', { events: { 'quick_chat.created': { enabled: true, recipients: ['admin'] } } }],
     ['clé racine inconnue', { events: {}, enabled: false }],
+    ['événement actif sans destinataire', { events: { 'quick_chat.created': { enabled: true, recipients: [] } } }],
     ['clé d’événement inconnue', { events: { 'quick_chat.created': { enabled: true, recipients: ['mentor'], recipient: ['mentee'] } } }],
   ])('refuse une configuration avec %s', (_, raw) => {
     expect(() => parsePolicy(raw)).toThrow(expect.objectContaining({ code: 'config_invalid' }))

@@ -44,7 +44,13 @@ export const anonymousMenteeEvent: QuickChatEvent = {
   mentee: { ...mentee, displayName: null },
 }
 
+export const anonymousMentorEvent: QuickChatEvent = {
+  ...createdEvent,
+  mentor: { ...mentor, displayName: null },
+}
+
 export const hostileNamesEvent: QuickChatEvent = {
   ...createdEvent,
   mentor: { ...mentor, displayName: `<script>alert("x")</script> & ${'Très long nom '.repeat(10).trim()}` },
+  mentee: { ...mentee, displayName: '<img src=x onerror=alert(1)> "Jean" & \'Ndongo\'' },
 }

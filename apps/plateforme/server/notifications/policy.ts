@@ -37,6 +37,8 @@ function eventPolicy(value: unknown): EventPolicy {
   const { enabled, recipients } = onlyKeys(value, ['enabled', 'recipients'])
   if (typeof enabled !== 'boolean' || !Array.isArray(recipients)) configInvalid()
   if (!recipients.every(role => PARTICIPANT_ROLES.includes(role))) configInvalid()
+  // Un événement actif sans destinataire n'enverrait rien en silence : utiliser enabled: false.
+  if (enabled && recipients.length === 0) configInvalid()
   return { enabled, recipients: [...new Set(recipients as ParticipantRole[])] }
 }
 
