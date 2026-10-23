@@ -25,7 +25,7 @@ Le Quick Chat lui-même n’existe pas encore : la réservation relève de F-007
 | Les événements de création et modification peuvent déclencher un email via des fixtures | Contrat `QuickChatEvent` + fixtures typées ; tests unitaires de bout en bout avec un transport mémoire ; smoke test opt-in d’envoi réel (§ 7) |
 | Chaque email identifie le Quick Chat, son horaire et l’action attendue | Gabarits par couple (événement, rôle) avec référence courte, date/heure/fuseau, durée et action explicite (§ 4) |
 | Destinataires et événements configurables et testables | Politique de notification pure, alimentée par `runtimeConfig` serveur, testée unitairement (§ 3) |
-| Échecs observables, sans doublons silencieux | Clé d’idempotence déterministe, journal des envois en base (seule protection, Cloudflare n’offrant pas d’idempotence native), statut explicite, journaux structurés sans donnée personnelle (§ 5, § 6) |
+| Échecs observables, sans doublons silencieux | Clé d’idempotence déterministe, journal des envois en base (seule protection, aucune idempotence n’étant documentée par Cloudflare), statut `uncertain` jamais renvoyé automatiquement, journaux structurés sans donnée personnelle (§ 5, § 6) |
 
 ### Hors périmètre
 
@@ -123,10 +123,13 @@ interface EmailTransport {
 | --- | --- |
 | `E_VALIDATION_ERROR`, `E_FIELD_MISSING`, `E_TOO_MANY_RECIPIENTS`, `E_TOO_MANY_ATTACHMENTS`, `E_CONTENT_TOO_LARGE`, `E_HEADER_*`, `E_HEADERS_*` | `provider_rejected` |
 | `E_SENDER_NOT_VERIFIED`, `E_SENDER_DOMAIN_NOT_AVAILABLE`, `E_RECIPIENT_NOT_ALLOWED`, `E_RECIPIENT_SUPPRESSED`, `E_ACCOUNT_SUSPENDED` | `provider_rejected` |
-| `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu, dépassement du délai | `provider_unavailable` |
+| `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu | `provider_unavailable` |
+| Délai dépassé (`timeoutMs`) | `provider_timeout` |
+
+  `provider_timeout` est distinct : abandonner l’attente n’annule pas l’appel, Cloudflare a pu accepter le message. L’issue de l’envoi est donc **inconnue** et traitée comme telle (§ 5.4), jamais comme un échec renvoyable.
 
   Le code Cloudflare d’origine (ex. `E_RECIPIENT_SUPPRESSED`), qui ne contient aucune donnée personnelle, est conservé dans `providerCode` pour le diagnostic ; le message de l’erreur ne l’est jamais.
-- Sélection par `runtimeConfig.notifications.provider` (`log` | `cloudflare`), expéditeur dans `NUXT_NOTIFICATIONS_FROM` (ex. `Manzi-mfa <notifications@manzi-mfa-2.mongulu.cm>`). L’adresse doit appartenir à un domaine d’envoi intégré au compte Cloudflare (`npx wrangler email sending enable <domaine>`, enregistrements SPF/DKIM ajoutés par Cloudflare sur la zone `mongulu.cm`) ; tant que ce n’est pas fait, Cloudflare n’envoie qu’aux adresses de destination vérifiées du compte.
+- Sélection par `runtimeConfig.notifications.provider` (`log` | `cloudflare`), expéditeur dans `NUXT_NOTIFICATIONS_FROM` (ex. `Manzi-mfa <notifications@mongulu.cm>`). L’adresse doit appartenir à un domaine d’envoi intégré au compte Cloudflare : `mongulu.cm` l’est déjà (exemple d’envoi fourni par Cloudflare depuis `welcome@mongulu.cm`) ; un autre domaine demanderait `npx wrangler email sending enable <domaine>`. Tant qu’aucun domaine n’est intégré, Cloudflare n’envoie qu’aux adresses de destination vérifiées du compte. Les enregistrements DNS d’authentification (SPF, DKIM, DMARC) ne sont pas détaillés dans la documentation consultée : relever ceux en place sur `mongulu.cm` et les consigner dans le README.
 - **Limites à connaître** : service en bêta ; quota journalier conservateur pour un nouveau compte, relevé automatiquement ensuite ; 50 destinataires et 5 Mio par message (sans incidence ici : un email par destinataire, sans pièce jointe). Les emails envoyés par la liaison apparaissent « dropped » dans le résumé Email Routing : suivre les métriques **Email Sending** du tableau de bord.
 - Le reste du module ne dépend que de l’interface `EmailTransport` : changer de fournisseur reviendrait à écrire un autre adaptateur.
 
@@ -134,8 +137,9 @@ interface EmailTransport {
 
 Clé déterministe : `quick-chat:<quickChatId>:v<version>:<type>:<role>`, clé primaire du journal en base.
 
-- Cloudflare Email Service ne propose **pas** de clé d’idempotence : le journal en base est la seule protection contre les doublons, d’où la règle « journal indisponible ⇒ aucun envoi » (§ 6).
-- **Risque résiduel accepté** : si l’envoi réussit mais que l’écriture `sent` échoue (ou que le délai expire alors que Cloudflare a accepté le message), la ligne reste `pending` ; une nouvelle tentative après expiration (§ 5.4) peut produire un second email. Ce cas reste visible (`attempts` ≥ 2, ligne `email.sent` précédée d’un `email.failed` ou d’une erreur `journal_unavailable`) et n’est donc pas silencieux.
+- La documentation de Cloudflare Email Service ne mentionne **aucune** clé d’idempotence : le module n’en suppose pas, et le journal en base est la seule protection contre les doublons, d’où la règle « journal indisponible ⇒ aucun envoi » (§ 6).
+- **Issue inconnue ⇒ pas de renvoi automatique.** Deux situations ne permettent pas de savoir si l’email est parti : le délai dépassé (`provider_timeout`) et une ligne restée `pending` au-delà de son expiration (envoi interrompu, ou écriture `sent` échouée après un envoi réussi). Ces lignes passent au statut `uncertain`, que ni le rejeu de l’événement ni une nouvelle tentative ne renvoient. On préfère un email possiblement manquant, signalé, à un doublon : aucun des deux n’est silencieux.
+- **Résolution manuelle** d’une ligne `uncertain` (procédure documentée dans le README) : vérifier dans les métriques et journaux **Email Sending** de Cloudflare si un message est parti vers ce destinataire à l’heure indiquée, puis passer la ligne à `sent` (rien à faire) ou à `failed` (le prochain rejeu de l’événement renverra l’email).
 
 ### 5.3 Journal des envois
 
@@ -147,7 +151,7 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
 | `quick_chat_id` | `uuid` | Corrélation (pas de FK tant que F-007 n’a pas créé la table) |
 | `event_type`, `recipient_role` | `text` + `CHECK` | Valeurs du contrat |
 | `recipient_id` | `uuid` FK `auth.users` `ON DELETE CASCADE` | Pas d’adresse email stockée |
-| `status` | `text` `CHECK (pending, sent, failed)` | État courant |
+| `status` | `text` `CHECK (pending, sent, failed, uncertain)` | État courant (§ 5.2 pour `uncertain`) |
 | `attempts` | `int` | Nombre de tentatives |
 | `provider_message_id` | `text` | `messageId` renvoyé par Cloudflare, pour le support |
 | `last_error_code` | `text` | Code typé (§ 6), jamais le message brut du fournisseur |
@@ -163,12 +167,16 @@ Table `public.notification_deliveries`, déclarée dans `supabase/schemas/notifi
 1. **Réserver** : `INSERT … ON CONFLICT DO NOTHING` puis lecture de la ligne.
    - `sent` → ne rien envoyer, résultat `duplicate` (journalisé, non silencieux).
    - `pending` récent (< 2 min, `updated_at`) → résultat `in_progress` (un autre appel envoie).
-   - `failed` ou `pending` expiré → nouvelle tentative autorisée.
+   - `pending` expiré → passer à `uncertain`, résultat `uncertain`, rien n’est envoyé.
+   - `uncertain` → résultat `uncertain`, rien n’est envoyé (résolution manuelle, § 5.2).
+   - `failed` → nouvelle tentative autorisée.
 2. Passer à `pending`, `attempts + 1`.
 3. Envoyer via le transport.
-4. Succès → `sent` + `provider_message_id`. Échec → `failed` + `last_error_code` (+ `last_provider_code`).
+4. Succès → `sent` + `provider_message_id`. Délai dépassé → `uncertain` + `last_error_code = provider_timeout`. Autre échec → `failed` + `last_error_code` (+ `last_provider_code`).
 
-`notifyQuickChat(event)` retourne un rapport `{ results: Array<{ role, status: 'sent' | 'duplicate' | 'in_progress' | 'failed' | 'skipped', errorCode? }> }` : l’appelant (F-007) sait exactement ce qui a été envoyé. Un échec d’email **ne fait pas échouer** l’opération métier du Quick Chat ; il reste visible dans le rapport, les journaux et la table.
+Les transitions de l’étape 1 sont conditionnelles (`UPDATE … WHERE status = <statut lu> AND updated_at = <valeur lue>`) : deux appels concurrents ne peuvent pas réserver le même envoi.
+
+`notifyQuickChat(event)` retourne un rapport `{ results: Array<{ role, status: 'sent' | 'duplicate' | 'in_progress' | 'uncertain' | 'failed' | 'skipped', errorCode? }> }` : l’appelant (F-007) sait exactement ce qui a été envoyé. Un échec d’email **ne fait pas échouer** l’opération métier du Quick Chat ; il reste visible dans le rapport, les journaux et la table.
 
 ---
 
@@ -180,9 +188,9 @@ Journaux JSON sur une ligne (`console.info` / `console.error`), collectés par l
 { "scope": "notifications", "event": "email.failed", "quickChatId": "…", "eventType": "quick_chat.created", "role": "mentor", "attempt": 2, "errorCode": "provider_unavailable", "providerCode": "E_RATE_LIMIT_EXCEEDED" }
 ```
 
-- Événements : `email.sent`, `email.duplicate`, `email.in_progress`, `email.skipped`, `email.failed`.
+- Événements : `email.sent`, `email.duplicate`, `email.in_progress`, `email.uncertain` (niveau erreur : action manuelle requise), `email.skipped`, `email.failed`.
 - **Jamais** d’adresse email, de nom, de contenu, de jeton d’API ni de message d’erreur brut du fournisseur (il peut citer l’adresse du destinataire) ; seul le `code` Cloudflare est conservé.
-- Codes d’erreur : `invalid_event`, `config_invalid`, `config_missing`, `journal_unavailable`, `provider_rejected`, `provider_unavailable`.
+- Codes d’erreur : `invalid_event`, `config_invalid`, `config_missing`, `journal_unavailable`, `provider_rejected`, `provider_unavailable`, `provider_timeout`.
 - Si le journal est indisponible, **aucun email n’est envoyé** (`journal_unavailable`) : on préfère un échec visible à un doublon possible.
 
 ---
@@ -192,7 +200,7 @@ Journaux JSON sur une ligne (`console.info` / `console.error`), collectés par l
 | Niveau | Contenu |
 | --- | --- |
 | Fixtures (`tests/fixtures/quick-chat-events.ts`) | Création, modification d’horaire, double modification (v2, v3), participants sans nom, noms longs/HTML à échapper |
-| Unitaires (Vitest, `tests/unit/`) | Validation d’événement ; politique (désactivation d’un événement, destinataire unique, config invalide) ; gabarits (référence, horaire avec fuseau, action par couple, échappement HTML) ; adaptateur Cloudflare avec liaison `EMAIL` simulée (champs transmis, `messageId`, délai dépassé, correspondance de chaque famille de codes, code inconnu, message brut jamais propagé) ; orchestrateur avec journal et transport en mémoire (nominal, doublon, en cours, échec puis renvoi, journal indisponible) ; absence de donnée personnelle dans les journaux |
+| Unitaires (Vitest, `tests/unit/`) | Validation d’événement ; politique (désactivation d’un événement, destinataire unique, config invalide) ; gabarits (référence, horaire avec fuseau, action par couple, échappement HTML) ; adaptateur Cloudflare avec liaison `EMAIL` simulée (champs transmis, `messageId`, délai dépassé → `provider_timeout`, correspondance de chaque famille de codes, code inconnu, message brut jamais propagé) ; orchestrateur avec journal et transport en mémoire (nominal, doublon, en cours, échec puis renvoi, délai dépassé puis rejeu sans renvoi, `pending` expiré → `uncertain`, journal indisponible) ; absence de donnée personnelle dans les journaux |
 | Base (pgTAP, `supabase/tests/notifications.test.sql`) | Contraintes `CHECK`, unicité de la clé, `anon` et `authenticated` sans lecture ni écriture, cascade à la suppression du compte |
 | Smoke opt-in (`npm run test:email`, hors CI) | Envoie les fixtures « création » et « modification » à `E2E_EMAIL_TO` par Cloudflare Email Service, puis rejoue pour vérifier le `duplicate`. La liaison Workers n’existant pas sous Node, le smoke fournit à `createCloudflareEmailTransport` une liaison de test qui appelle l’[API REST](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/) (`POST /accounts/{account_id}/email/sending/send`, jeton `CLOUDFLARE_EMAIL_API_TOKEN` limité à l’envoi d’emails, hors dépôt) ; l’adaptateur de production reste unique |
 
@@ -225,12 +233,14 @@ apps/plateforme/server/notifications/
 **Décidé**
 
 - **Fournisseur d’envoi** — Cloudflare Email Service, d’après le schéma d’architecture lié à l’issue (« Emails notifications (Cloudflare) »). Cohérent avec l’hébergement sur Cloudflare Workers : liaison native, pas de clé d’API, pas de nouveau prestataire hors Cloudflare.
+- **Canal d’envoi de F-008** — liaison Workers `send_email`, et non le relais SMTP que Cloudflare Email Service propose aussi (`smtp.mx.cloudflare.net`, port 465 en TLS implicite, utilisateur littéral `api_token`, mot de passe = jeton d’API). Le SMTP imposerait un secret côté Worker, des sockets TCP et une bibliothèque SMTP, sans `messageId` ni codes d’erreur typés.
+- **Emails d’authentification Supabase** (hors périmètre F-008) — le même relais SMTP peut être configuré comme SMTP personnalisé du projet Supabase pour unifier l’expéditeur. À régler dans le tableau de bord (**Authentication → Emails → SMTP Settings**), jamais dans `supabase/config.toml` : l’activer localement enverrait de vrais emails au lieu de les capturer par `local_smtp`, et `supabase config push` écraserait la configuration d’authentification distante. Le jeton reste hors du dépôt ; relever ensuite la limite `email_sent` (2 par heure par défaut).
 
 **À confirmer**
 
-1. **Activation du domaine d’envoi** — intégration du domaine expéditeur dans Cloudflare Email Service (`wrangler email sending enable`) par un administrateur de la zone `mongulu.cm`, et vérification de l’offre Workers requise pour envoyer à des destinataires quelconques (service en bêta).
-2. **Domaine et adresse d’expédition** — proposition `notifications@manzi-mfa-2.mongulu.cm`, adresse de réponse `collectif@mongulu.cm`.
+1. **Domaine d’envoi** — `mongulu.cm` semble déjà intégré à Cloudflare Email Service (exemple d’envoi fourni depuis `welcome@mongulu.cm`) : confirmer son statut dans le tableau de bord, et vérifier l’offre Workers requise pour envoyer à des destinataires quelconques (service en bêta).
+2. **Adresse d’expédition** — proposition `Manzi-mfa <notifications@mongulu.cm>`, adresse de réponse `collectif@mongulu.cm`.
 3. **Fuseau d’affichage** — `Africa/Douala` par défaut ; fuseau par participant à prévoir dans le profil (F-004 / F-017).
 4. **Événements** — création et modification seulement ; annulation et rappel J-1 à décider pour F-007.
 5. **Exigence envers F-007** — persister une `version` entière incrémentée à chaque modification et appeler `notifyQuickChat` après validation de la transaction.
-6. **Relances** — V1 : renvoi manuel sûr (rejouer l’événement) ; relance automatique à définir.
+6. **Relances** — V1 : renvoi manuel sûr (rejouer l’événement renvoie les `failed`, jamais les `uncertain`) ; relance automatique à définir.

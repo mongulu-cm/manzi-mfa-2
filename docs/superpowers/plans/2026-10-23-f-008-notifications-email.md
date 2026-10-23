@@ -22,10 +22,11 @@
 
 ## Review Focus
 
-- Clé d’idempotence `quick-chat:<id>:v<version>:<type>:<role>` en clé primaire du journal : seule protection contre les doublons, Cloudflare n’ayant pas d’idempotence native.
-- Réservation en base avant envoi ; journal indisponible ⇒ aucun envoi.
+- Clé d’idempotence `quick-chat:<id>:v<version>:<type>:<role>` en clé primaire du journal : seule protection contre les doublons, aucune idempotence n’étant documentée par Cloudflare.
+- Réservation en base avant envoi, transitions conditionnelles ; journal indisponible ⇒ aucun envoi.
+- Issue inconnue (délai dépassé, `pending` expiré) ⇒ `uncertain`, jamais renvoyé automatiquement ni par rejeu.
 - Échappement HTML de toutes les valeurs dynamiques des gabarits.
-- Correspondance des codes Cloudflare (spec § 5.1) : validation, expéditeur/destinataire, compte suspendu, en-têtes → `provider_rejected` ; limites de débit/quota, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu, délai dépassé → `provider_unavailable`. Le message brut de l’erreur n’est jamais propagé.
+- Correspondance des codes Cloudflare (spec § 5.1) : validation, expéditeur/destinataire, compte suspendu, en-têtes → `provider_rejected` ; limites de débit/quota, `E_DELIVERY_FAILED`, `E_INTERNAL_SERVER_ERROR`, code inconnu → `provider_unavailable` ; délai dépassé → `provider_timeout`. Le message brut de l’erreur n’est jamais propagé.
 - Politique RLS : `anon` et `authenticated` n’ont aucun accès à `notification_deliveries`.
 
 ---
@@ -87,9 +88,9 @@
 - [ ] Interface locale `EmailSendBinding` : `send({ to, from, replyTo, subject, text, html }): Promise<{ messageId: string }>` (sous-ensemble de l’[API Workers](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)).
 - [ ] `createCloudflareEmailTransport({ binding, timeoutMs = 10_000 })` : transmet le message, retourne `{ providerMessageId }` depuis `messageId` ; résultat sans `messageId` → `provider_unavailable`.
 - [ ] Liaison absente → `config_missing` à la création du transport.
-- [ ] Correspondance des codes (spec § 5.1, Review Focus) ; `NotificationError` porte `providerCode` (le `code` Cloudflare) mais jamais le message de l’erreur d’origine ; délai dépassé → `provider_unavailable` sans `providerCode`.
+- [ ] Correspondance des codes (spec § 5.1, Review Focus) ; `NotificationError` porte `providerCode` (le `code` Cloudflare) mais jamais le message de l’erreur d’origine ; délai dépassé → `provider_timeout` sans `providerCode`.
 - [ ] Ajouter la liaison `send_email` à `apps/plateforme/wrangler.jsonc` ; vérifier que `npm run build` et `wrangler deploy --dry-run` l’acceptent.
-- [ ] Tests avec liaison simulée : champs transmis ; succès ; un code par famille (`E_VALIDATION_ERROR`, `E_RECIPIENT_SUPPRESSED`, `E_SENDER_NOT_VERIFIED`, `E_HEADER_NOT_ALLOWED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_INTERNAL_SERVER_ERROR`) ; code inconnu ; erreur sans code ; délai dépassé (horloge simulée) ; le message d’origine contenant une adresse n’apparaît pas dans l’erreur levée.
+- [ ] Tests avec liaison simulée : champs transmis ; succès ; un code par famille (`E_VALIDATION_ERROR`, `E_RECIPIENT_SUPPRESSED`, `E_SENDER_NOT_VERIFIED`, `E_HEADER_NOT_ALLOWED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`, `E_INTERNAL_SERVER_ERROR`) ; code inconnu ; erreur sans code ; délai dépassé (horloge simulée) → `provider_timeout` ; le message d’origine contenant une adresse n’apparaît pas dans l’erreur levée.
 
 ### Task 6: Schéma et journal des envois
 
@@ -101,12 +102,13 @@
 - Test: `tests/unit/notifications-journal.test.ts`
 
 - [ ] Lire la skill `supabase-server`.
-- [ ] Déclarer `public.notification_deliveries` (spec § 5.3), RLS activée, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, `GRANT ALL … TO service_role`, trigger `updated_at` (réutiliser `private.set_updated_at()` si PR #35 est fusionnée, sinon le déclarer ici et signaler le conflit dans la PR).
+- [ ] Déclarer `public.notification_deliveries` (spec § 5.3, `status` ∈ `pending`, `sent`, `failed`, `uncertain`), RLS activée, `REVOKE ALL … FROM PUBLIC, anon, authenticated`, `GRANT ALL … TO service_role`, trigger `updated_at` (réutiliser `private.set_updated_at()` si PR #35 est fusionnée, sinon le déclarer ici et signaler le conflit dans la PR).
 - [ ] Générer la migration par `declarative sync`, la relire.
 - [ ] pgTAP : colonnes et `CHECK`, PK, aucun `SELECT`/`INSERT` possible pour `anon` et `authenticated`, cascade à la suppression d’un utilisateur.
-- [ ] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress'`, `markSent(key, providerMessageId)`, `markFailed(key, errorCode, providerCode?)` (colonne `last_provider_code`).
+- [ ] `DeliveryJournal` : `reserve(planned, event, now)` → `'send' | 'duplicate' | 'in_progress' | 'uncertain'` (spec § 5.4, `pending` expiré passé à `uncertain`), `markSent(key, providerMessageId)`, `markFailed(key, errorCode, providerCode?)` (colonne `last_provider_code`), `markUncertain(key, errorCode)`.
+- [ ] Transitions conditionnelles (`UPDATE … WHERE status = … AND updated_at = …`) : une réservation concurrente perdue → `in_progress`.
 - [ ] `createMemoryJournal()` (tests) et `createSupabaseJournal(client)` (client admin `@supabase/server`) ; toute erreur Supabase → `journal_unavailable`.
-- [ ] Tests unitaires du journal mémoire et de l’adaptateur Supabase avec client simulé (insert en conflit, lecture `sent`, `pending` récent, `pending` expiré, `failed`, erreur).
+- [ ] Tests unitaires du journal mémoire et de l’adaptateur Supabase avec client simulé (insert en conflit, lecture `sent`, `pending` récent, `pending` expiré → `uncertain`, `uncertain`, `failed`, réservation concurrente perdue, erreur).
 
 ### Task 7: Orchestration `notifyQuickChat`
 
@@ -115,8 +117,8 @@
 - Test: `tests/unit/notifications-notify.test.ts`
 
 - [ ] `notifyQuickChat(input, deps)` avec `deps = { policy, transport, journal, logger, render options, from, replyTo, now }` : valide, planifie, puis pour chaque message réserve → envoie → marque (spec § 5.4) ; retourne le rapport.
-- [ ] Les erreurs d’un destinataire n’empêchent pas l’envoi à l’autre ; `journal_unavailable` ⇒ statut `failed` sans appel au transport.
-- [ ] Tests sur fixtures (critère 1) : création → 2 `sent` ; rejeu → 2 `duplicate` ; v2 puis v3 → nouveaux envois ; événement désactivé → `skipped` ; échec transport → `failed` puis renvoi → `sent` avec `attempts = 2` ; `in_progress` ; aucun email/nom dans les lignes journalisées.
+- [ ] Les erreurs d’un destinataire n’empêchent pas l’envoi à l’autre ; `journal_unavailable` ⇒ statut `failed` sans appel au transport ; `provider_timeout` ⇒ `markUncertain`, statut `uncertain`, ligne `email.uncertain` au niveau erreur.
+- [ ] Tests sur fixtures (critère 1) : création → 2 `sent` ; rejeu → 2 `duplicate` ; v2 puis v3 → nouveaux envois ; événement désactivé → `skipped` ; échec transport → `failed` puis renvoi → `sent` avec `attempts = 2` ; délai dépassé → `uncertain` puis rejeu → `uncertain` sans appel au transport ; `pending` expiré → `uncertain` ; `in_progress` ; aucun email/nom dans les lignes journalisées.
 
 ### Task 8: Smoke test opt-in, configuration et documentation
 
@@ -127,7 +129,7 @@
 - [ ] Smoke : ignoré sans `E2E_EMAIL_TO`, `NUXT_NOTIFICATIONS_FROM`, `CLOUDFLARE_ACCOUNT_ID` et `CLOUDFLARE_EMAIL_API_TOKEN` ; fournit à `createCloudflareEmailTransport` une liaison de test appelant l’API REST (`POST https://api.cloudflare.com/client/v4/accounts/{account_id}/email/sending/send`, `messageId` absent de la réponse REST → valeur fixe `rest`) ; envoie les fixtures création et modification au destinataire de test (mentor et mentoré = `E2E_EMAIL_TO` avec alias `+mentor` / `+mentee`), journal mémoire, puis rejoue et vérifie `duplicate`.
 - [ ] `runtimeConfig.notifications` : `provider: 'log'`, `from: ''`, `replyTo: 'collectif@mongulu.cm'`, `timeZone: 'Africa/Douala'`, `policy: ''` ; `runtimeConfig.supabaseSecretKey: ''` (serveur).
 - [ ] `.env.example` : `NUXT_NOTIFICATIONS_*`, `NUXT_SUPABASE_SECRET_KEY` (vide, commentaire « binding Secret Cloudflare, jamais committé »), `E2E_EMAIL_TO`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_EMAIL_API_TOKEN` (smoke uniquement, jamais committé).
-- [ ] README : section « Notifications email » (contrat, configuration, liaison `send_email`, activation du domaine d’envoi par `wrangler email sending enable` et enregistrements DNS ajoutés par Cloudflare, quotas et métriques Email Sending, smoke test, lecture du journal).
+- [ ] README : section « Notifications email » (contrat, configuration, liaison `send_email`, activation du domaine d’envoi par `wrangler email sending enable` et enregistrements DNS relevés lors de l’activation, quotas et métriques Email Sending, smoke test, lecture du journal, résolution manuelle d’une ligne `uncertain`, relais SMTP Cloudflare pour les emails d’authentification Supabase configuré dans le tableau de bord — spec § 9).
 - [ ] `PRIVACY.md` : traitement « emails transactionnels Quick Chat », Cloudflare Email Service comme prestataire d’envoi, conservation du journal ; date de version mise à jour.
 
 ### Task 9: Vérification finale
