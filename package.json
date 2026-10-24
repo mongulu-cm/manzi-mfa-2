@@ -47,7 +47,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
-    "@storybook-vue/nuxt": "^10.0.0",
+    "@storybook-vue/nuxt": "^10.0.3",
     "@storybook/addon-a11y": "^10.6.1",
     "@storybook/addon-vitest": "^10.6.2",
     "@storybook/vue3": "^10.6.1",
