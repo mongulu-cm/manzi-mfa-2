@@ -3,7 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 -- Assertion functions are available to test roles only until this transaction rolls back.
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA extensions TO anon, authenticated;
 SET search_path = public, extensions;
-SELECT plan(39);
+SELECT plan(45);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
   ('a0000000-0000-0000-0000-000000000001', 'a@example.invalid', '{"name":"  Membre Test  ","picture":"https://image.example.invalid/photo.png"}'),
@@ -41,6 +41,12 @@ SELECT throws_ok($$UPDATE public.profiles SET headline=repeat('a', 121) WHERE id
 SELECT throws_ok($$UPDATE public.profiles SET bio=repeat('a', 1001) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Bio > 1000 caractères refusé');
 SELECT throws_ok($$UPDATE public.profiles SET resume_url=repeat('a', 501) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Resume URL > 500 caractères refusé');
 SELECT throws_ok($$UPDATE public.profiles SET skills=array_fill('ts'::text, ARRAY[31]) WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétences > 30 éléments refusé');
+SELECT throws_ok($$UPDATE public.profiles SET skills=ARRAY[repeat('a', 51)] WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétence > 50 caractères refusée');
+SELECT throws_ok($$UPDATE public.profiles SET skills=ARRAY[''] WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétence vide refusée');
+SELECT throws_ok($$UPDATE public.profiles SET skills=ARRAY[E' \t\n'] WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétence blanche refusée');
+SELECT throws_ok($$UPDATE public.profiles SET skills=ARRAY[NULL]::text[] WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétence NULL refusée');
+SELECT throws_ok($$UPDATE public.profiles SET skills=ARRAY[['ts', 'vue']] WHERE id = (SELECT auth.uid())$$, '23514', NULL, 'Compétences multidimensionnelles refusées');
+SELECT lives_ok($$UPDATE public.profiles SET skills=ARRAY[repeat('👋', 50)] WHERE id = (SELECT auth.uid())$$, 'Compétence de 50 caractères acceptée');
 SELECT lives_ok($$UPDATE public.profiles SET role='mentee', years_of_experience=10, linkedin_url='https://www.linkedin.com/in/test' WHERE id = (SELECT auth.uid())$$, 'Valeurs valides acceptées');
 SELECT throws_ok($$UPDATE public.profiles SET created_at = now() WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'created_at non modifiable');
 SELECT throws_ok($$UPDATE public.profiles SET id = gen_random_uuid() WHERE id = (SELECT auth.uid())$$, '42501', NULL, 'id non modifiable');
@@ -54,10 +60,10 @@ UPDATE public.profiles SET role='mentor', is_onboarded=false WHERE id='a0000000-
 UPDATE public.profiles SET role='mentee', is_onboarded=true WHERE id='a0000000-0000-0000-0000-000000000004';
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', 'a0000000-0000-0000-0000-000000000001', true);
-SELECT is((SELECT count(*)::integer FROM public.profiles WHERE id='a0000000-0000-0000-0000-000000000002'), 1, 'Mentor actif et onboardé visible');
+SELECT is((SELECT count(*)::integer FROM public.profiles WHERE id='a0000000-0000-0000-0000-000000000002'), 0, 'Profil brut du mentor tiers invisible');
 SELECT is((SELECT count(*)::integer FROM public.profiles WHERE id='a0000000-0000-0000-0000-000000000003'), 0, 'Mentor non onboardé invisible');
 SELECT is((SELECT count(*)::integer FROM public.profiles WHERE id='a0000000-0000-0000-0000-000000000004'), 0, 'Autre mentoré invisible');
-SELECT is((SELECT count(*)::integer FROM public.profiles), 2, 'Soi-même et mentors visibles uniquement');
+SELECT is((SELECT count(*)::integer FROM public.profiles), 1, 'Seul son propre profil brut est visible');
 RESET ROLE;
 
 SELECT ok(NOT has_function_privilege('anon', 'private.create_profile()', 'EXECUTE'), 'Aucune exécution anonyme');

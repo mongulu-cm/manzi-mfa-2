@@ -42,8 +42,11 @@ export async function createSignedDocumentUrl(
   path: string,
   expiresInSeconds = 3600,
 ): Promise<string> {
-  const folder = path.split('/')[0]
-  if (folder !== userId) {
+  // userId vient de l'identité vérifiée ; le chemin doit rester identique après normalisation HTTP.
+  const [folder, filename, ...remaining] = path.split('/')
+  if (folder !== userId || !userId || /[^A-Za-z0-9-]/.test(userId)
+    || !filename || /[^A-Za-z0-9._-]/.test(filename)
+    || filename === '.' || filename === '..' || remaining.length > 0) {
     throw new Error('Accès non autorisé au document')
   }
   const { data, error } = await client.storage.from('documents').createSignedUrl(path, expiresInSeconds)

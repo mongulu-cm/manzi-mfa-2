@@ -22,7 +22,7 @@ function mockClient(result: { data: unknown, error: unknown }) {
     })
   }
   chain.then = (resolve: (v: unknown) => unknown) => resolve(result)
-  const client = { from: vi.fn(() => chain) } as unknown as SupabaseClient
+  const client = { from: vi.fn(() => chain), rpc: vi.fn(() => chain) } as unknown as SupabaseClient
   return { client, calls }
 }
 
@@ -85,11 +85,13 @@ describe('updateUserProfile', () => {
 })
 
 describe('fetchActiveMentors', () => {
-  it('filters and maps mentors', async () => {
-    const { client, calls } = mockClient({ data: [row, { ...row, id: 'u2', display_name: null, headline: null, company_or_school: null, years_of_experience: null, skills: null }], error: null })
+  it('uses the restricted directory RPC and maps only public fields', async () => {
+    const { client } = mockClient({ data: [row, { ...row, id: 'u2', display_name: null, headline: null, company_or_school: null, years_of_experience: null, skills: null }], error: null })
     const m = await fetchActiveMentors(client)
-    expect(calls.select).toEqual([['id, display_name, avatar_url, headline, company_or_school, years_of_experience, skills, bio']])
-    expect(calls.eq).toEqual([['role', 'mentor'], ['is_active', true], ['is_onboarded', true]])
+    expect(client.rpc).toHaveBeenCalledWith('list_active_mentors')
+    expect(client.from).not.toHaveBeenCalled()
+    expect(m[0]).not.toHaveProperty('resumeUrl')
+    expect(m[0]).not.toHaveProperty('linkedinUrl')
     expect(m[0]).toMatchObject({ id: 'u1', displayName: 'Ada', headline: 'Eng' })
     expect(m[1]).toMatchObject({ displayName: '', headline: '', companyOrSchool: '', yearsOfExperience: 0, skills: [] })
   })

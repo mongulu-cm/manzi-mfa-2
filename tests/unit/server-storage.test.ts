@@ -66,6 +66,38 @@ describe('createSignedDocumentUrl', () => {
     await expect(createSignedDocumentUrl(m.client, 'u1', 'u2/a.pdf')).rejects.toThrow('Accès non autorisé')
     expect(m.from).not.toHaveBeenCalled()
   })
+  it.each([
+    'u1/../victim/cv.pdf',
+    'u1/%2e%2e/victim/cv.pdf',
+    'u1/.%2e/victim/cv.pdf',
+    'u1/%252e%252e/victim/cv.pdf',
+    'u1/..\\victim/cv.pdf',
+    'u1/cv.pdf?download=other',
+    'u1/cv.pdf#other',
+    'u1/cv%2epdf',
+    'u1/cv.pdf\n',
+    'u1/folder/cv.pdf',
+    'u1//cv.pdf',
+    'u1/',
+    'u1',
+    'u1/.',
+    'u1/..',
+  ])('refuse le chemin non canonique %j avant tout appel Storage', async (path) => {
+    const m = make({ data: { signedUrl: 'https://s/x' }, error: null })
+    await expect(createSignedDocumentUrl(m.client, 'u1', path)).rejects.toThrow('Accès non autorisé')
+    expect(m.from).not.toHaveBeenCalled()
+  })
+  it.each(['', '../u1', 'u1/..', 'u1\\..', 'u1%2f..', 'u1?x', 'u1#x', 'u1\n'])('refuse une identité non canonique %j', async (userId) => {
+    const m = make({ data: { signedUrl: 'https://s/x' }, error: null })
+    await expect(createSignedDocumentUrl(m.client, userId, `${userId}/cv.pdf`)).rejects.toThrow('Accès non autorisé')
+    expect(m.from).not.toHaveBeenCalled()
+  })
+  it.each(['cv.pdf', 'cv-final_2026.pdf', 'file', 'a..b.pdf'])('signe exactement le nom sûr %s', async (filename) => {
+    const m = make({ data: { signedUrl: 'https://s/x' }, error: null })
+    const path = buildStoragePath('a0000000-0000-0000-0000-000000000001', 'documents', filename)
+    await createSignedDocumentUrl(m.client, 'a0000000-0000-0000-0000-000000000001', path)
+    expect(m.createSignedUrl).toHaveBeenCalledWith(path, 3600)
+  })
   it('utilise l\'expiration fournie', async () => {
     const m = make({ data: { signedUrl: 'u' }, error: null })
     await createSignedDocumentUrl(m.client, 'u1', 'u1/p', 60)

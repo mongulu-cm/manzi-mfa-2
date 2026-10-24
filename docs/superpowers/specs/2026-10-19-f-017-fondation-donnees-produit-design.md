@@ -62,7 +62,8 @@ Conformément aux bonnes pratiques Supabase (`supabase-postgres-best-practices`)
 ### 2.3. Politiques RLS (Row Level Security)
 1. **Lecture** :
    - Un utilisateur authentifié peut lire son propre profil complet (`id = auth.uid()`).
-   - Tout utilisateur authentifié peut lire les profils des mentors actifs et complétés (`role = 'mentor' AND is_active = true AND is_onboarded = true`).
+   - La table brute est lisible uniquement par son propriétaire, y compris pour un mentor actif et complété.
+   - L'annuaire passe par `public.list_active_mentors()`, une RPC réservée aux utilisateurs authentifiés avec une identité JWT. Elle retourne uniquement `id`, `display_name`, `avatar_url`, `headline`, `company_or_school`, `years_of_experience`, `skills` et `bio` des mentors actifs et complétés. `resume_url` et `linkedin_url` restent privés.
    - Les utilisateurs anonymes n'ont aucun accès en lecture à la table `profiles`.
 2. **Mise à jour** :
    - Seul le propriétaire peut mettre à jour son propre profil (`id = auth.uid()`).
@@ -90,7 +91,7 @@ Conformément aux bonnes pratiques Supabase (`supabase-postgres-best-practices`)
 
 ### 3.2. Politiques de sécurité Storage (`storage.objects`)
 - **Bucket `avatars`** :
-  - **SELECT** : Autorisé à tous (`bucket_id = 'avatars'`).
+   - **SELECT** : Le propriétaire seul peut lister ses objets via l'API ; les images restent accessibles par leur URL publique.
   - **INSERT / UPDATE / DELETE** : Autorisé uniquement à l'utilisateur authentifié sur son propre dossier (`bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text`).
 - **Bucket `documents`** :
   - **SELECT / INSERT / UPDATE / DELETE** : Autorisé uniquement à l'utilisateur authentifié sur son propre dossier (`bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text`).
@@ -110,6 +111,7 @@ Conformément à la décision d'architecture : *« Ne pas exposer directement le
    - Vérification de l'authentification de l'utilisateur (`userClaims.id`).
    - Upload sécurisé de fichier (vérification du type MIME, validation de taille, stockage sous `{uid}/...`).
    - Génération d'URL signée pour la consultation sécurisée des documents privés.
+   - La signature exige un chemin canonique `{uid}/{filename}` avec un nom de fichier ASCII sûr ; les traversées, encodages, antislashs, paramètres et fragments sont refusés avant l'appel Storage, même avec un client administrateur.
 
 ---
 

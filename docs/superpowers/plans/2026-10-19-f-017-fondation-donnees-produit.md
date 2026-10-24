@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-19-f-017-fondation-donnees-produit-design.md`
 
+**Correction de sécurité après revue :** la lecture des mentors tiers sur la table `profiles` décrite dans les exemples ci-dessous est remplacée par la RPC `public.list_active_mentors()`, qui impose une projection publique en SQL. La table brute reste propriétaire uniquement. La signature des documents impose un chemin canonique avant tout appel au SDK. Les tests `mentor_directory.test.sql` et `server-storage.test.ts` couvrent ces frontières.
+
 ## Global Constraints
 
 - Respect strict des conventions Supabase : identifiants en minuscules avec snake_case, contraintes CHECK explicites, indexation partielle des requêtes courantes, triggers `SECURITY DEFINER` avec `SET search_path TO ''`.
@@ -204,7 +206,12 @@ CREATE POLICY "documents_delete_own" ON storage.objects
 
 - [ ] **Step 3: Documenter le schéma déclaratif dans `supabase/schemas/storage.sql`**
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Valider les migrations et les politiques Storage**
+
+Run: `npm run test:db` après application des migrations sur une base Supabase locale réinitialisée.
+Expected: Tous les tests pgTAP de profils, annuaire et Storage passent.
+
+- [ ] **Step 5: Commit**
 
 ```bash
 git add supabase/migrations/20261019120100_storage_buckets.sql supabase/schemas/storage.sql supabase/tests/storage.test.sql
