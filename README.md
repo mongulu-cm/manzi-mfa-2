@@ -17,7 +17,7 @@ La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première con
 
 ## Démarrage
 
-Node.js 24 LTS et npm. Une version Node 22 >= 22.19 est également supportée.
+Node.js 24 LTS >= 24.15.0 et npm. Node.js 22 >= 22.22.3 est également supporté. Ces minimums correspondent aux exigences de Nuxt 4.6.
 
 ```sh
 nvm use
