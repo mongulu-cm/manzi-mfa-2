@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1672" height="941" viewBox="0 0 1672 941">
+  <!-- Style tldraw : traits à main levée, fond blanc, couleurs sobres. Faits vérifiés de la PR #35 uniquement. -->
+  <defs>
+    <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="5"/>
+    </filter>
+    <marker id="head" viewBox="0 0 20 20" refX="16" refY="10" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M2 3 L17 10 L2 17" fill="none" stroke="#2f2f2f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: 'Noteworthy', 'Marker Felt', 'Bradley Hand', sans-serif; fill: #2f2f2f; }
+    .title { font-size: 46px; font-weight: 700; }
+    .subtitle { font-size: 24px; fill: #5b5b5b; }
+    .label { font-size: 30px; font-weight: 700; letter-spacing: 1px; }
+    .item { font-size: 23px; }
+    .small { font-size: 20px; fill: #555; }
+    .note { font-size: 22px; fill: #6b7a3a; }
+    .box { fill: #fbf7ee; stroke: #2f2f2f; stroke-width: 3; }
+    .accent { fill: none; stroke: #6b7a3a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    .warn { fill: none; stroke: #9a5a3c; stroke-width: 3; stroke-linecap: round; }
+    .arrow { fill: none; stroke: #2f2f2f; stroke-width: 3.2; stroke-linecap: round; }
+  </style>
+  <rect width="1672" height="941" fill="#ffffff"/>
+
+  <text class="title" x="836" y="78" text-anchor="middle">F-017 · Fondation de données produit</text>
+  <text class="subtitle" x="836" y="118" text-anchor="middle">PR #35 — problème → changements → résultat vérifié</text>
+  <path class="accent" filter="url(#wobble)" d="M520 134 Q836 150 1152 134"/>
+
+  <g filter="url(#wobble)">
+    <rect class="box" x="48" y="190" width="430" height="560" rx="18"/>
+    <rect class="box" x="590" y="190" width="520" height="560" rx="18"/>
+    <rect class="box" x="1222" y="190" width="402" height="560" rx="18"/>
+    <path class="arrow" marker-end="url(#head)" d="M486 470 Q535 455 580 470"/>
+    <path class="arrow" marker-end="url(#head)" d="M1118 470 Q1167 455 1212 470"/>
+  </g>
+
+  <!-- PROBLÈME -->
+  <g filter="url(#wobble)"><circle class="warn" cx="92" cy="240" r="22"/><path class="warn" d="M92 228 L92 244 M92 252 L92 254"/></g>
+  <text class="label" x="128" y="251">PROBLÈME</text>
+  <text class="item" x="78" y="318">Profils mentor &amp; mentoré</text>
+  <text class="item" x="78" y="350">sans fondation de données</text>
+  <text class="item" x="78" y="408">Absence de stockage</text>
+  <text class="item" x="78" y="440">pour avatars et CVs</text>
+  <text class="item" x="78" y="508">Exigence : RLS strict,</text>
+  <text class="item" x="78" y="540">respect vie privée (RGPD),</text>
+  <text class="item" x="78" y="572">aucun accès direct brut</text>
+  <text class="item" x="78" y="640">Frontière Nitro contrôlée</text>
+  <text class="small" x="78" y="700">Issue #13 · Vague 1</text>
+
+  <!-- CHANGEMENTS -->
+  <g filter="url(#wobble)"><rect class="accent" x="618" y="220" width="40" height="40" rx="6"/><path class="accent" d="M626 240 L650 240 M638 228 L638 252"/></g>
+  <text class="label" x="672" y="251">CHANGEMENTS</text>
+  <text class="item" x="620" y="318">• Schéma PostgreSQL public.profiles</text>
+  <text class="item" x="620" y="352">   11 colonnes · CHECKs · GIN skills</text>
+  <text class="item" x="620" y="408">• Supabase Storage : 2 buckets</text>
+  <text class="item" x="620" y="442">   avatars (2 Mo) &amp; documents (5 Mo, PDF)</text>
+  <text class="item" x="620" y="498">• Sécurité RLS &amp; triggers</text>
+  <text class="item" x="620" y="532">   isolation propriétaire · index partiel</text>
+  <text class="item" x="620" y="566">   set_updated_at invoker &amp; grant UPDATE</text>
+  <text class="item" x="620" y="622">• Services serveur Nuxt Nitro</text>
+  <text class="item" x="620" y="656">   database.ts &amp; storage.ts vérifiés</text>
+  <text class="item" x="620" y="712">• URLs signées vérifiées par userId</text>
+
+  <!-- RÉSULTAT VÉRIFIÉ -->
+  <g filter="url(#wobble)"><circle class="accent" cx="1266" cy="240" r="22"/><path class="accent" d="M1255 241 L1263 250 L1279 230"/></g>
+  <text class="label" x="1302" y="251">RÉSULTAT VÉRIFIÉ</text>
+  <g filter="url(#wobble)">
+    <path class="accent" d="M1250 312 L1258 320 L1272 302"/>
+    <path class="accent" d="M1250 372 L1258 380 L1272 362"/>
+    <path class="accent" d="M1250 432 L1258 440 L1272 422"/>
+    <path class="accent" d="M1250 492 L1258 500 L1272 482"/>
+  </g>
+  <text class="item" x="1286" y="320">138 tests unitaires</text>
+  <text class="item" x="1286" y="380">78 assertions pgTAP</text>
+  <text class="item" x="1286" y="440">16 retours cubic résolus</text>
+  <text class="item" x="1286" y="500">npm run check : OK</text>
+  <text class="item" x="1252" y="568">Couverture Vitest V8 :</text>
+  <text class="item" x="1252" y="600">100 % fonctions</text>
+  <text class="item" x="1252" y="632">100 % lignes</text>
+  <text class="small" x="1252" y="700">Fallow 0 erreur · A11y OK</text>
+
+  <text class="note" x="836" y="840" text-anchor="middle">Isolation RLS prouvée sous pgTAP · Documents privés protégés par signature d’URL</text>
+  <path class="accent" filter="url(#wobble)" d="M380 860 Q836 874 1292 860"/>
+</svg>
