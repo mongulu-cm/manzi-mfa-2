@@ -38,6 +38,7 @@
   //   exclu du graphe applicatif.
   // - storybook : importé via le sous-chemin 'storybook/test' dans les stories
   // - vue : fourni au runtime par Nuxt, importé directement seulement dans les stories.
+  // - vue-tsc : chargé dynamiquement par `nuxt typecheck` dans @nuxt/cli.
   // - @supabase/server : dépendance déjà ajoutée par l’utilisateur, conservée pour
   //   le futur backend ; cette intégration SPA utilise supabase-js côté navigateur.
   "ignoreDependencies": [
@@ -46,6 +47,7 @@
     "@supabase/server",
     "@tanstack/intent",
     "storybook",
-    "vue"
+    "vue",
+    "vue-tsc"
   ]
 }
