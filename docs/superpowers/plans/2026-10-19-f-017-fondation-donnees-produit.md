@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-19-f-017-fondation-donnees-produit-design.md`
 
-**Correction de sécurité après revue :** la lecture des mentors tiers sur la table `profiles` décrite dans les exemples ci-dessous est remplacée par la RPC `public.list_active_mentors()`, qui impose une projection publique en SQL. La table brute reste propriétaire uniquement. La signature des documents impose un chemin canonique avant tout appel au SDK. Les tests `mentor_directory.test.sql` et `server-storage.test.ts` couvrent ces frontières.
+**Frontière de lecture :** la table `profiles` reste lisible uniquement par son propriétaire. La découverte des mentors passe par la RPC `public.list_active_mentors()`, qui impose une projection publique en SQL. La signature des documents impose un chemin canonique avant tout appel au SDK. Les tests `mentor_directory.test.sql` et `server-storage.test.ts` couvrent ces frontières.
 
 ## Global Constraints
 
@@ -23,7 +23,7 @@
 
 - Tentative de mise à jour d'un profil par un tiers ou avec un rôle invalide : la politique RLS et la contrainte CHECK rejettent l'opération de façon sûre.
 - Tentative d'accès à un document privé dans `documents` sans être le propriétaire du dossier : rejet strict par RLS.
-- Profil mentor non complété (`is_onboarded = false`) ou inactif (`is_active = false`) : invisible dans la liste publique des mentors.
+- Profil mentor non complété (`is_onboarded = false`) ou inactif (`is_active = false`) : absent de la RPC `public.list_active_mentors()`. Les profils bruts des tiers restent invisibles quel que soit leur statut.
 - URLs LinkedIn malformées ou non sécurisées (ex: HTTP au lieu de HTTPS ou domaine externe) : rejetées par la contrainte regex de validation.
 - Suppression d'un utilisateur dans `auth.users` : suppression en cascade automatique de son profil et cohérence de la base.
 
@@ -32,99 +32,49 @@
 ### Task 1: Migration SQL et Schéma déclaratif pour l'évolution de la table `profiles`
 
 **Files:**
-- Create: `supabase/migrations/20261019120000_product_data_foundation.sql`
+- Migration initiale : `supabase/migrations/20261019120000_product_data_foundation.sql`
+- Migration corrective : `supabase/migrations/20261024100134_secure_profile_boundaries.sql`
 - Modify: `supabase/schemas/profiles.sql`
 - Modify: `supabase/tests/profiles.test.sql`
+- Create: `supabase/tests/mentor_directory.test.sql`
 
 **Interfaces:**
 - Produces: Colonnes `role`, `headline`, `company_or_school`, `years_of_experience`, `linkedin_url`, `skills`, `bio`, `resume_url`, `is_onboarded`, `is_active`, `updated_at` sur `public.profiles`.
-- Produces: Politiques RLS autorisant le propriétaire à modifier son profil et les utilisateurs authentifiés à consulter les profils mentors actifs/onboardés.
+- Produces: Politiques RLS réservant la lecture complète et la mise à jour du profil à son propriétaire.
+- Produces: RPC `public.list_active_mentors()` accessible aux utilisateurs authentifiés, qui retourne uniquement `id`, `display_name`, `avatar_url`, `headline`, `company_or_school`, `years_of_experience`, `skills` et `bio` pour les mentors actifs et onboardés.
 
-- [ ] **Step 1: Écrire les assertions de test pgTAP dans `supabase/tests/profiles.test.sql`**
+- [ ] **Step 1: Écrire les assertions pgTAP dans `supabase/tests/profiles.test.sql` et `supabase/tests/mentor_directory.test.sql`**
 
 Ajouter les tests vérifiant :
-- Validation des colonnes et contraintes CHECK (`role IN ('mentor', 'mentee')`, `years_of_experience BETWEEN 0 AND 70`, `linkedin_url`).
-- Mise à jour autorisée pour le propriétaire de son propre profil (`UPDATE public.profiles SET headline = 'DevOps Senior' WHERE id = auth.uid()`).
-- Interdiction de modifier le profil d'un tiers.
-- Lecture autorisée des profils mentors actifs et onboardés par un autre utilisateur authentifié.
-- Invisibilité des profils mentorés tiers et des mentors non onboardés.
+- Validation des colonnes et contraintes CHECK (`role IN ('mentor', 'mentee')`, `years_of_experience BETWEEN 0 AND 70`, `linkedin_url`, limites des textes et compétences).
+- Lecture complète et mise à jour autorisées pour le propriétaire de son propre profil (`UPDATE public.profiles SET headline = 'DevOps Senior' WHERE id = auth.uid()`).
+- Impossibilité de lire ou modifier le profil brut d'un tiers, y compris celui d'un mentor actif et onboardé ; `resume_url` et `linkedin_url` restent privés.
+- Lecture des mentors actifs et onboardés via `public.list_active_mentors()` par un autre utilisateur authentifié.
+- Exclusion des mentorés, mentors non onboardés et mentors inactifs du résultat de la RPC.
+- Projection SQL de la RPC sans `resume_url` ni `linkedin_url`, refus des appels anonymes et résultat vide sans identité utilisateur.
 
-- [ ] **Step 2: Écrire la migration SQL `supabase/migrations/20261019120000_product_data_foundation.sql`**
+- [ ] **Step 2: Déclarer le modèle final dans `supabase/schemas/profiles.sql`**
 
-```sql
-ALTER TABLE "public"."profiles"
-  ADD COLUMN IF NOT EXISTS "role" text CHECK ("role" IN ('mentor', 'mentee')),
-  ADD COLUMN IF NOT EXISTS "headline" text CHECK ("headline" IS NULL OR char_length("headline") <= 120),
-  ADD COLUMN IF NOT EXISTS "company_or_school" text CHECK ("company_or_school" IS NULL OR char_length("company_or_school") <= 120),
-  ADD COLUMN IF NOT EXISTS "years_of_experience" integer CHECK ("years_of_experience" >= 0 AND "years_of_experience" <= 70),
-  ADD COLUMN IF NOT EXISTS "linkedin_url" text CHECK ("linkedin_url" IS NULL OR "linkedin_url" ~* '^https://([a-z0-9-]+\.)*linkedin\.com(/.*)?$'),
-  ADD COLUMN IF NOT EXISTS "skills" text[] DEFAULT '{}'::text[] CHECK (cardinality("skills") <= 30),
-  ADD COLUMN IF NOT EXISTS "bio" text CHECK ("bio" IS NULL OR char_length("bio") <= 1000),
-  ADD COLUMN IF NOT EXISTS "resume_url" text CHECK ("resume_url" IS NULL OR char_length("resume_url") <= 500),
-  ADD COLUMN IF NOT EXISTS "is_onboarded" boolean NOT NULL DEFAULT false,
-  ADD COLUMN IF NOT EXISTS "is_active" boolean NOT NULL DEFAULT true,
-  ADD COLUMN IF NOT EXISTS "updated_at" timestamp with time zone NOT NULL DEFAULT now();
+Ce fichier est la source canonique des colonnes, contraintes, index, fonctions, triggers et privilèges. Conserver uniquement `profiles_read_own` pour la lecture de la table et `profiles_update_own` pour sa mise à jour, avec les droits UPDATE limités aux colonnes éditables.
 
-CREATE INDEX IF NOT EXISTS "idx_profiles_active_mentors"
-  ON "public"."profiles" ("id")
-  WHERE "role" = 'mentor' AND "is_active" = true AND "is_onboarded" = true;
+Déclarer `public.list_active_mentors()` avec une liste de colonnes de retour fixe, les filtres `role = 'mentor'`, `is_active = true`, `is_onboarded = true` et une identité `auth.uid()` non nulle. Cette fonction SQL `STABLE SECURITY DEFINER` utilise un `search_path` vide pour lire la projection publique malgré la RLS propriétaire. Révoquer son droit EXECUTE par défaut à `PUBLIC` et à `anon`, puis l'accorder à `authenticated` et `service_role`.
 
-CREATE INDEX IF NOT EXISTS "idx_profiles_skills"
-  ON "public"."profiles" USING GIN ("skills");
+- [ ] **Step 3: Générer et relire la migration depuis le schéma déclaratif**
 
--- Politique pour permettre à l'utilisateur de mettre à jour son propre profil
-CREATE POLICY "profiles_update_own" ON "public"."profiles"
-  FOR UPDATE
-  TO "authenticated"
-  USING ((( SELECT auth.uid() AS uid) = id))
-  WITH CHECK ((( SELECT auth.uid() AS uid) = id));
+Run: `npx supabase db schema declarative sync -f secure_profile_boundaries --no-apply`
 
--- Politique pour permettre la lecture des mentors publics actifs et onboardés
-CREATE POLICY "profiles_read_active_mentors" ON "public"."profiles"
-  FOR SELECT
-  TO "authenticated"
-  USING ("role" = 'mentor' AND "is_active" = true AND "is_onboarded" = true);
+La migration corrective `supabase/migrations/20261024100134_secure_profile_boundaries.sql` supprime la politique de lecture interprofils de la migration initiale, renforce la contrainte des compétences et crée la RPC avec ses privilèges. Appliquer toute la chaîne des migrations pour obtenir le modèle final ; ne pas réintroduire la lecture des mentors tiers sur la table brute.
 
-REVOKE ALL ON TABLE "public"."profiles" FROM "authenticated";
-GRANT SELECT ON TABLE "public"."profiles" TO "authenticated";
-GRANT UPDATE ("display_name", "headline", "company_or_school", "years_of_experience", "linkedin_url", "skills", "bio", "resume_url", "role", "is_onboarded") ON TABLE "public"."profiles" TO "authenticated";
+- [ ] **Step 4: Valider les migrations et la cohérence de schéma**
 
-CREATE OR REPLACE FUNCTION private.set_updated_at()
-  RETURNS TRIGGER
-  LANGUAGE plpgsql
-  SET search_path TO ''
-AS $function$
-BEGIN
-  NEW.updated_at = now();
-  NEW.created_at = OLD.created_at;
-  NEW.id = OLD.id;
-  RETURN NEW;
-END;
-$function$;
-
-REVOKE ALL ON FUNCTION private.set_updated_at() FROM PUBLIC, anon, authenticated;
-
-DROP TRIGGER IF EXISTS tr_profiles_set_updated_at ON public.profiles;
-CREATE TRIGGER tr_profiles_set_updated_at
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION private.set_updated_at();
-```
-
-- [ ] **Step 3: Mettre à jour le fichier déclaratif `supabase/schemas/profiles.sql`**
-
-Reporter la structure complète à jour de la table et des politiques RLS.
-
-- [ ] **Step 4: Valider le lint SQL et la cohérence de schéma**
-
-Run: `npm run test:db` (après application des migrations avec reset Supabase local)
-Expected: Tous les tests pgTAP passent.
+Run: `npm run test:db` après application des migrations sur une base Supabase locale réinitialisée.
+Expected: Tous les tests pgTAP de profils et d'annuaire passent, notamment la confidentialité des colonnes privées lors d'un accès direct à la table.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/20261019120000_product_data_foundation.sql supabase/schemas/profiles.sql supabase/tests/profiles.test.sql
-git commit -m "feat(db): ajouter les champs métier et politiques RLS de profils"
+git add supabase/migrations/20261019120000_product_data_foundation.sql supabase/migrations/20261024100134_secure_profile_boundaries.sql supabase/schemas/profiles.sql supabase/tests/profiles.test.sql supabase/tests/mentor_directory.test.sql
+git commit -m "feat(db): ajouter les champs métier et sécuriser l'annuaire des mentors"
 ```
 
 ---
@@ -145,64 +95,17 @@ git commit -m "feat(db): ajouter les champs métier et politiques RLS de profils
 Vérifier la création des deux buckets et tester l'isolation RLS :
 - Un utilisateur peut uploader dans son dossier `{uid}/...`.
 - Un utilisateur ne peut pas uploader dans le dossier d'un tiers.
-- La lecture du bucket public `avatars` est permise.
+- Les avatars sont accessibles par leur URL publique ; le listing des objets via l’API est réservé au propriétaire du dossier.
 - La lecture du bucket privé `documents` est refusée aux tiers.
 
 - [ ] **Step 2: Créer la migration `supabase/migrations/20261019120100_storage_buckets.sql`**
 
-```sql
--- Création des buckets de stockage
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES 
-  ('avatars', 'avatars', true, 2097152, ARRAY['image/jpeg', 'image/png', 'image/webp']),
-  ('documents', 'documents', false, 5242880, ARRAY['application/pdf'])
-ON CONFLICT (id) DO UPDATE SET
-  public = EXCLUDED.public,
-  file_size_limit = EXCLUDED.file_size_limit,
-  allowed_mime_types = EXCLUDED.allowed_mime_types;
+Le schéma canonique `supabase/schemas/storage.sql` définit les buckets et les politiques appliqués par `supabase/migrations/20261019120100_storage_buckets.sql` :
+- `avatars` est public pour la lecture par URL CDN, avec une limite de 2 Mo par fichier et les types JPEG/PNG/WebP. La politique SELECT `avatars_select_own` réserve le listing API au propriétaire ; INSERT, UPDATE et DELETE sont également limités à son dossier.
+- `documents` est privé, avec une limite de 5 Mo par fichier et le type PDF. Les quatre opérations sont limitées au dossier du propriétaire.
+- Les politiques de propriété comparent `(storage.foldername(name))[1]` à `(SELECT auth.uid()::text)` ; aucun SELECT public sur `storage.objects` n'est accordé.
 
--- Politiques RLS pour avatars
-CREATE POLICY "avatars_select_public" ON storage.objects
-  FOR SELECT
-  TO public
-  USING (bucket_id = 'avatars');
-
-CREATE POLICY "avatars_insert_own" ON storage.objects
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-
-CREATE POLICY "avatars_update_own" ON storage.objects
-  FOR UPDATE
-  TO authenticated
-  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-
-CREATE POLICY "avatars_delete_own" ON storage.objects
-  FOR DELETE
-  TO authenticated
-  USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-
--- Politiques RLS pour documents privés
-CREATE POLICY "documents_select_own" ON storage.objects
-  FOR SELECT
-  TO authenticated
-  USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-
-CREATE POLICY "documents_insert_own" ON storage.objects
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (bucket_id = 'documents' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-
-CREATE POLICY "documents_update_own" ON storage.objects
-  FOR UPDATE
-  TO authenticated
-  USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-
-CREATE POLICY "documents_delete_own" ON storage.objects
-  FOR DELETE
-  TO authenticated
-  USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = (SELECT auth.uid()::text));
-```
+Réutiliser ces définitions plutôt qu'une copie de SQL dans le plan.
 
 - [ ] **Step 3: Documenter le schéma déclaratif dans `supabase/schemas/storage.sql`**
 
@@ -317,11 +220,11 @@ git commit -m "feat(types): définir le contrat TypeScript pour les profils et l
 Tester avec mocks Supabase :
 - `fetchUserProfile` retourne le profil typé ou lève une erreur gérée si introuvable.
 - `updateUserProfile` applique la validation en amont et effectue la mise à jour SQL.
-- `fetchActiveMentors` filtre correctement les mentors actifs et onboardés.
+- `fetchActiveMentors` appelle `client.rpc('list_active_mentors')`, mappe sa projection publique vers `MentorPublicProfile` et masque les erreurs SQL ; aucun SELECT interprofils sur la table brute.
 
 - [ ] **Step 2: Implémenter `apps/plateforme/server/utils/database.ts`**
 
-Implémenter les fonctions d'accès aux profils avec gestion des erreurs sans fuite d'informations sensibles.
+Implémenter `fetchUserProfile` et `updateUserProfile` sur la table `profiles` avec le client de l'utilisateur vérifié. Implémenter `fetchActiveMentors` via `client.rpc('list_active_mentors')` ; les filtres d'éligibilité et la projection publique sont imposés par SQL. Gérer les erreurs sans fuite d'informations sensibles.
 
 - [ ] **Step 3: Vérifier les tests unitaires et la couverture**
 
