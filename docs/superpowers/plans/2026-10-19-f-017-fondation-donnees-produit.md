@@ -98,7 +98,7 @@ Vérifier la création des deux buckets et tester l'isolation RLS :
 - Les avatars sont accessibles par leur URL publique ; le listing des objets via l’API est réservé au propriétaire du dossier.
 - La lecture du bucket privé `documents` est refusée aux tiers.
 
-- [ ] **Step 2: Créer la migration `supabase/migrations/20261019120100_storage_buckets.sql`**
+- [ ] **Step 2: Déclarer les buckets et politiques dans `supabase/schemas/storage.sql`**
 
 Le schéma canonique `supabase/schemas/storage.sql` définit les buckets et les politiques appliqués par `supabase/migrations/20261019120100_storage_buckets.sql` :
 - `avatars` est public pour la lecture par URL CDN, avec une limite de 2 Mo par fichier et les types JPEG/PNG/WebP. La politique SELECT `avatars_select_own` réserve le listing API au propriétaire ; INSERT, UPDATE et DELETE sont également limités à son dossier.
@@ -107,7 +107,10 @@ Le schéma canonique `supabase/schemas/storage.sql` définit les buckets et les 
 
 Réutiliser ces définitions plutôt qu'une copie de SQL dans le plan.
 
-- [ ] **Step 3: Documenter le schéma déclaratif dans `supabase/schemas/storage.sql`**
+- [ ] **Step 3: Générer et relire la migration depuis le schéma canonique**
+
+Run: `npx supabase db schema declarative sync -f storage_buckets --no-apply`
+Expected: La migration générée correspond aux définitions de `supabase/schemas/storage.sql`. Versionner le schéma et la migration ensemble ; ne pas écrire la migration avant le schéma.
 
 - [ ] **Step 4: Valider les migrations et les politiques Storage**
 
