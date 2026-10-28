@@ -84,6 +84,8 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - run: npm run build:app
+      - run: npm run test:pwa
 
   database:
     name: Profils et isolation RLS

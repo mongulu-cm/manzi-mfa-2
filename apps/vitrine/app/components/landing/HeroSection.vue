@@ -5,12 +5,12 @@ const loginUrl = computed(() => getLoginUrl())
 
 <template>
   <section
-    class="hero-section rounded-3xl bg-[#F5F1E8] p-6 sm:p-10 lg:p-14"
+    class="hero-section rounded-3xl bg-[#F5F1E8] p-3 sm:p-10 lg:p-14"
     aria-labelledby="hero-title"
   >
     <div class="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
       <!-- Colonne texte -->
-      <div class="lg:col-span-7">
+      <div class="min-w-0 lg:col-span-7">
         <h1
           id="hero-title"
           class="font-serif text-3xl font-bold leading-tight text-[#1F1F1F] sm:text-5xl lg:text-6xl"
@@ -50,7 +50,7 @@ const loginUrl = computed(() => getLoginUrl())
       </div>
 
       <!-- Colonne image avec badge flottant -->
-      <div class="relative lg:col-span-5">
+      <div class="relative min-w-0 lg:col-span-5">
         <div class="overflow-hidden rounded-3xl shadow-sm">
           <img
             src="/images/landing/hero-mentor.svg"
@@ -64,7 +64,7 @@ const loginUrl = computed(() => getLoginUrl())
 
         <!-- Badge flottant de profil illustratif -->
         <div
-          class="absolute -bottom-4 left-4 flex items-center gap-3 rounded-2xl border border-[#E0DDD4] bg-white p-3.5 shadow-md sm:left-6 sm:p-4"
+          class="absolute -bottom-4 right-3 left-3 flex items-center gap-3 rounded-2xl border border-[#E0DDD4] bg-white p-3.5 shadow-md sm:right-auto sm:left-6 sm:max-w-[calc(100%_-_3rem)] sm:p-4"
         >
           <div
             class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#576F1F] text-white"
@@ -84,7 +84,7 @@ const loginUrl = computed(() => getLoginUrl())
               />
             </svg>
           </div>
-          <div>
+          <div class="min-w-0 break-words">
             <p class="text-sm font-bold text-[#1F1F1F]">
               Exemple de mentor
             </p>

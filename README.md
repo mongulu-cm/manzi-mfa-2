@@ -63,6 +63,7 @@ Avant un démarrage local, suivre aussi les instructions Supabase de `AGENTS.md`
 | `npm run test:stories` | Interactions et contrôle axe des stories |
 | `npm run test:coverage` | Couverture V8 des tests unitaires ; seuils CI : 95 % statements, 85 % branches, 100 % fonctions et lignes |
 | `npm run test:e2e` | SSR, navigation entre sites, SPA, clavier et responsive |
+| `npm run build:app && npm run test:pwa` | PWA de production sur Wrangler local : manifeste, service worker, repli hors ligne et isolation du cache |
 
 Les workspaces npm (`apps/*`, `layers/*`) utilisent un seul `package-lock.json`. `npm ci` prépare les deux applications. Les sorties `.nuxt/`, `.output/` et `.wrangler/` restent propres à chacune.
 
@@ -93,6 +94,18 @@ Les pages, l'authentification et les règles serveur propres à un site restent 
 `shared/`, lorsqu'il sera nécessaire, sert aux types et fonctions sans dépendance Vue ou Nitro utilisés côté navigateur et serveur. Il ne contient pas de composants Vue.
 
 Les deux applications utilisent `UApp`, les annonces de navigation et un lien d'évitement clavier. Garder les secrets dans `runtimeConfig` serveur et les valeurs publiques sous `NUXT_PUBLIC_*`.
+
+## PWA et responsive (F-016)
+
+La plateforme est la PWA installable ; la vitrine conserve son rendu SSR. Le manifeste `/manifest.webmanifest` définit l’identité, la langue française, le démarrage à `/`, le périmètre de la plateforme et l’affichage autonome. L’icône et l’icône Apple utilisent le logo original de la Layer, sans transformation. Le navigateur choisit quand proposer l’installation : menu d’installation dans Chrome/Edge, ou Partager → Sur l’écran d’accueil sur iOS. HTTPS est nécessaire en production ; localhost convient pour les tests.
+
+Le service worker est généré au build par `@vite-pwa/nuxt` et enregistré uniquement en production. Il conserve seulement `offline.html`, le logo et le manifeste. Les documents de l’application, les réponses API, les profils, les échanges OAuth et les ressources Supabase restent sur le réseau. Une navigation sans réseau après une première visite affiche « Connexion indisponible » avec un lien « Réessayer » ; ce lien revient à l’accueil une fois le réseau rétabli. Les routes `/auth/` et `/api/` sont exclues du repli pour ne pas masquer une erreur de callback ou une réponse serveur. L’accès au compte nécessite une connexion Internet ; cette version ne fournit pas de parcours métier hors ligne.
+
+Le manifeste et `/sw.js` sont revalidés (`Cache-Control: no-cache`). Une nouvelle version du service worker attend la fermeture des onglets existants et ne force pas le rechargement pendant une connexion. Déployer normalement avec `npm run deploy:app` pour publier ensemble les ressources et le Worker ; vérifier ensuite le manifeste, l’activation du service worker et le repli dans les outils Application du navigateur. Pour retirer une installation locale, supprimer l’application et effacer les données du site dans le navigateur.
+
+Les formats de référence sont `320 × 568` (mobile minimum), `390 × 844` (mobile tactile), `640 × 960` (tablette), `1024 × 768` et `1280 × 900` (desktop), et `844 × 390` (paysage). Ils suivent les ruptures de `DESIGN.md`. Les tests vérifient les limites de chaque contenu/action, en plus du débordement global : un masquage CSS ne doit pas dissimuler une action. Le parcours tactile couvre l’échec de connexion, une nouvelle tentative, un profil long, l’erreur de profil puis la déconnexion ; le clavier, les liens d’évitement et axe sont également contrôlés. La connexion LinkedIn est le seul formulaire actuellement livré : les futurs formulaires métier devront conserver les mêmes exigences de labels, erreurs associées, focus et cibles de `44 × 44 px` minimum.
+
+`npm run test:pwa`, après `npm run build:app` et `npx playwright install chromium`, démarre le build Cloudflare en local. Il vérifie les ressources réellement générées, le chargement en ligne, le repli hors ligne et la reprise, ainsi que l’absence de documents personnels dans Cache Storage. Ces tests ne contactent pas LinkedIn et n’envoient aucun e-mail.
 
 ## Cloudflare Workers Builds
 

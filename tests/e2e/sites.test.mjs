@@ -72,12 +72,12 @@ const authUser = {
   app_metadata: { provider: 'linkedin_oidc', providers: ['linkedin_oidc'] },
   identities: [], created_at: '2026-10-06T00:00:00Z',
 }
-function authSession() {
+function authSession(user = authUser) {
   const exp = Math.floor(Date.now() / 1000) + 3600
   const access_token = [
     { alg: 'HS256', typ: 'JWT' }, { sub: authUser.id, exp, aud: 'authenticated' },
   ].map(value => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.') + '.test'
-  return { access_token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'test-refresh-token', user: authUser }
+  return { access_token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'test-refresh-token', user }
 }
 async function mockAuth(page, options = {}) {
   const calls = { exchanges: 0, authorizations: 0 }
@@ -107,14 +107,14 @@ async function mockAuth(page, options = {}) {
         const body = route.request().postDataJSON()
         assert.equal(body.auth_code, 'test-code')
         assert.ok(body.code_verifier)
-        await route.fulfill({ json: authSession() })
+        await route.fulfill({ json: authSession({ ...authUser, email: options.email || authUser.email }) })
       },
-      '/auth/v1/user': () => route.fulfill({ json: authUser }),
+      '/auth/v1/user': () => route.fulfill({ json: { ...authUser, email: options.email || authUser.email } }),
       '/auth/v1/logout': () => route.fulfill({ status: 204 }),
       '/rest/v1/profiles': async () => {
         assert.equal(url.searchParams.get('id'), `eq.${authUser.id}`)
         if (options.profileError) await route.fulfill({ status: 500, json: { message: 'database unavailable' } })
-        else await route.fulfill({ json: { id: authUser.id, display_name: 'Membre Test', avatar_url: null, created_at: authUser.created_at } })
+        else await route.fulfill({ json: { id: authUser.id, display_name: options.profileName || 'Membre Test', avatar_url: null, created_at: authUser.created_at } })
       },
     }
     await (handlers[url.pathname]?.() ?? route.abort())
@@ -484,6 +484,69 @@ test('les cartes illustratives annoncent la connexion sans promettre un profil i
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
+
+const responsiveViewports = [
+  { width: 320, height: 568 }, { width: 390, height: 844 },
+  { width: 640, height: 960 }, { width: 1024, height: 768 },
+  { width: 1280, height: 900 }, { width: 844, height: 390 },
+]
+
+async function assertResponsiveContent(page) {
+  const outside = await page.locator('main h1, main h2, main h3, main p, main img, main blockquote, main dd, a, button')
+    .evaluateAll(elements => elements.filter((element) => {
+      const box = element.getBoundingClientRect()
+      return box.width > 0 && box.height > 0 && (box.left < -1 || box.right > innerWidth + 1)
+    }).map(element => element.outerHTML.slice(0, 180)))
+  assert.deepEqual(outside, [], 'Le contenu et les actions restent dans le viewport')
+  for (const action of await page.locator('header a, main a, main button, footer nav a').all()) {
+    if (await action.isVisible()) assertTouchTarget(await action.boundingBox())
+  }
+}
+
+test('les contenus et actions restent accessibles aux formats de référence et en paysage', async () => {
+  const page = await browser.newPage()
+  try {
+    for (const viewport of responsiveViewports) {
+      await page.setViewportSize(viewport)
+      for (const url of [vitrineUrl, `${appUrl}/login`]) {
+        await page.goto(url)
+        await page.locator('h1').waitFor()
+        await assertResponsiveContent(page)
+      }
+    }
+  }
+  finally { await page.close() }
+}, { timeout: 90_000 })
+
+test('un parcours tactile permet de réessayer, lire un profil long et se déconnecter', async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await context.newPage()
+  try {
+    const options = { authorizationError: true, profileError: true, profileName: 'Un membre du collectif avec un nom particulièrement long et plusieurs prénoms', email: 'une.adresse.particulierement.longue.pour.verifier.le.retoursurmobile@example.invalid' }
+    await mockAuth(page, options)
+    await page.goto(`${appUrl}/login`)
+    const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+    await connect.tap()
+    await page.getByRole('alert').getByText(/La connexion a échoué/).waitFor()
+    options.authorizationError = false
+    await connect.tap()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('alert').getByText(/Impossible de charger votre profil/).waitFor()
+    options.profileError = false
+    await page.getByRole('button', { name: 'Réessayer' }).tap()
+    await page.getByRole('heading', { name: `Bienvenue, ${options.profileName}` }).waitFor()
+    await page.getByText(options.email, { exact: true }).waitFor()
+    for (const viewport of responsiveViewports) {
+      await page.setViewportSize(viewport)
+      await assertResponsiveContent(page)
+    }
+    await page.getByRole('button', { name: 'Se déconnecter' }).tap()
+    await page.waitForURL(`${appUrl}/login`)
+    await page.goto(appUrl)
+    await page.waitForURL(`${appUrl}/login`)
+  }
+  finally { await context.close() }
+}, { timeout: 60_000 })
 
 test('une adresse FTP propose un contact explicite sur tous les liens applicatifs', async () => {
   // Nuxt verrouille un serveur de développement par application : ce dernier

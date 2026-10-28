@@ -28,6 +28,7 @@
     "build:storybook": "storybook build -o storybook-static",
     "test:stories": "vitest run",
     "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "test:pwa": "node --test tests/pwa/*.test.mjs",
     "check": "npm run lint && npm run typecheck && npm run build",
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:coverage": "vitest run --config vitest.unit.config.ts --coverage",

@@ -96,7 +96,7 @@ const emit = defineEmits<{ connect: [] }>()
     <footer class="space-y-4 text-center text-caption text-muted">
       <nav
         aria-label="Liens utiles"
-        class="flex flex-wrap justify-center gap-x-4"
+        class="flex flex-wrap justify-center gap-x-4 gap-y-2"
       >
         <ULink
           to="mailto:collectif@mongulu.cm"
