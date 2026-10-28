@@ -12,35 +12,43 @@ function detectedBrowserName(edge: boolean, firefox: boolean, chrome: boolean, i
   return ios ? 'Safari' : 'votre navigateur'
 }
 
-function installationGuidance(ios: boolean, browserName: string) {
-  if (ios) {
+function iosInstallationGuidance(browserName: string) {
+  if (browserName === 'Chrome') {
     return {
-      documentationBrowserName: 'Safari',
-      documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iph42ab2f3a7/ios',
-      instructions: browserName === 'Safari'
-        ? 'Dans Safari, touchez Partager, puis Sur l’écran d’accueil et Ajouter.'
-        : `Pour installer depuis ${browserName} sur iPhone ou iPad, ouvrez cette page dans Safari, puis Partager → Sur l’écran d’accueil → Ajouter.`,
+      documentationBrowserName: 'Chrome',
+      documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DiOS',
+      instructions: 'Dans Chrome sur iPhone ou iPad, touchez Partager à droite de la barre d’adresse, puis Ajouter à l’écran d’accueil. Vérifiez le nom, puis touchez Ajouter.',
     }
   }
   if (browserName === 'Firefox') {
     return {
       documentationBrowserName: 'Firefox',
-      documentationUrl: 'https://support.mozilla.org/en-US/kb/use-web-apps-firefox-android',
-      instructions: 'Dans Firefox, ouvrez le menu ⋮, puis Installer. Confirmez l’ajout sur l’écran d’accueil.',
+      documentationUrl: 'https://support.mozilla.org/en-US/kb/add-website-shortcut-your-home-screen-ios',
+      instructions: 'Dans Firefox sur iPhone ou iPad, touchez Partager dans la barre d’adresse, puis ajoutez le site à l’écran d’accueil. Vérifiez le nom, puis touchez Ajouter.',
     }
   }
-  if (browserName === 'Edge') {
+  return {
+    documentationBrowserName: 'Safari',
+    documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iphea86e5236/ios',
+    instructions: (browserName === 'Safari' ? '' : 'Ouvrez cette page dans Safari pour utiliser cette procédure. ')
+      + 'Dans Safari, touchez Partager (via le menu de la page si nécessaire), puis Sur l’écran d’accueil. Activez Ouvrir comme app web si cette option apparaît, puis touchez Ajouter.',
+  }
+}
+
+function installationGuidance(ios: boolean, browserName: string) {
+  if (ios) return iosInstallationGuidance(browserName)
+  if (browserName === 'Firefox') {
     return {
-      documentationBrowserName: 'Edge',
-      documentationUrl: 'https://support.microsoft.com/fr-fr/microsoft-edge',
-      instructions: 'Edge n’a pas proposé d’installation directe. Consultez son aide pour les options disponibles sur votre téléphone.',
+      documentationBrowserName: 'Firefox',
+      documentationUrl: 'https://support.mozilla.org/en-US/kb/use-web-apps-firefox-android',
+      instructions: 'Dans Firefox sur Android, ouvrez le menu ⋮ et choisissez l’ajout de l’app à l’écran d’accueil. Dans le panneau Android, touchez Ajouter automatiquement ou faites glisser l’icône sur l’écran d’accueil.',
     }
   }
   return {
     documentationBrowserName: 'Chrome',
     documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid',
-    instructions: (browserName === 'Chrome' ? '' : 'Ce navigateur n’a pas proposé d’installation directe. Ouvrez cette page dans Chrome sur Android pour suivre cette procédure. ')
-      + 'Dans Chrome, ouvrez le menu ⋮, puis Ajouter à l’écran d’accueil → Installer. Si cette option est absente, l’installation n’est pas disponible pour cette page dans ce navigateur.',
+    instructions: (browserName === 'Chrome' ? '' : 'Ouvrez cette page dans Chrome sur Android pour utiliser cette procédure. ')
+      + 'Dans Chrome sur Android, ouvrez ⋮ → Installer et créer un raccourci → Installer, puis suivez les instructions à l’écran.',
   }
 }
 

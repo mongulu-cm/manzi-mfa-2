@@ -10,8 +10,8 @@ const meta = {
     mobile: true,
     browserName: 'Safari',
     documentationBrowserName: 'Safari',
-    documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iph42ab2f3a7/ios',
-    instructions: 'Dans Safari, ouvrez Partager, puis Sur l’écran d’accueil. Activez « Ouvrir comme app web » si cette option apparaît, puis touchez Ajouter.',
+    documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iphea86e5236/ios',
+    instructions: 'Dans Safari, touchez Partager (via le menu de la page si nécessaire), puis Sur l’écran d’accueil. Activez Ouvrir comme app web si cette option apparaît, puis touchez Ajouter.',
     onInstall: fn(),
   },
 } satisfies Meta<typeof PwaInstallCard>
@@ -31,7 +31,7 @@ export const SafariHelp: Story = {
     const button = canvas.getByRole('button', { name: 'Installer l’application' })
     await userEvent.click(button)
     await expect(button).toHaveAttribute('aria-expanded', 'true')
-    await expect(canvas.getByRole('status')).toHaveTextContent('Dans Safari, ouvrez Partager')
+    await expect(canvas.getByRole('status')).toHaveTextContent('Dans Safari, touchez Partager')
     await expect(canvas.getByRole('link', { name: /Consulter la procédure officielle/ })).toHaveAttribute('href', args.documentationUrl)
     await expect(args.onInstall).not.toHaveBeenCalled()
     await userEvent.click(button)

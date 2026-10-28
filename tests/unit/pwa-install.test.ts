@@ -12,28 +12,37 @@ function proposal(prompt = vi.fn().mockResolvedValue(undefined), userChoice = Pr
   return Object.assign(new Event('beforeinstallprompt', { cancelable: true }), { prompt, userChoice })
 }
 
+const guides = {
+  chromeAndroid: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid',
+  chromeIOS: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DiOS',
+  firefoxAndroid: 'https://support.mozilla.org/en-US/kb/use-web-apps-firefox-android',
+  firefoxIOS: 'https://support.mozilla.org/en-US/kb/add-website-shortcut-your-home-screen-ios',
+  safari: 'https://support.apple.com/fr-fr/guide/iphone/iphea86e5236/ios',
+} as const
+
 describe('installation de la PWA', () => {
   it.each([
-    ['iPhone Safari', 'iPhone', 1, true, 'Safari', 'support.apple.com', 'Dans Safari, touchez Partager', 'Safari'],
-    ['FxiOS iPhone', 'iPhone', 1, true, 'Firefox', 'support.apple.com', 'depuis Firefox sur iPhone ou iPad, ouvrez cette page dans Safari', 'Safari'],
-    ['CriOS iPhone', 'iPhone', 1, true, 'Chrome', 'support.apple.com', 'depuis Chrome sur iPhone ou iPad, ouvrez cette page dans Safari', 'Safari'],
-    ['EdgiOS iPhone', 'iPhone', 1, true, 'Edge', 'support.apple.com', 'depuis Edge sur iPhone ou iPad, ouvrez cette page dans Safari', 'Safari'],
-    ['Safari iPad', 'MacIntel', 5, true, 'Safari', 'support.apple.com', 'Dans Safari, touchez Partager', 'Safari'],
-    ['Safari desktop', 'MacIntel', 0, false, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
-    ['Firefox Android', 'Linux', 1, true, 'Firefox', 'support.mozilla.org', 'Dans Firefox, ouvrez le menu ⋮, puis Installer', 'Firefox'],
-    ['Chrome Android', 'Linux', 1, true, 'Chrome', 'support.google.com', 'Dans Chrome, ouvrez le menu ⋮, puis Ajouter à l’écran d’accueil', 'Chrome'],
-    ['EdgA Android', 'Linux', 1, true, 'Edge', 'support.microsoft.com', 'Edge n’a pas proposé d’installation directe', 'Edge'],
-    ['Chrome desktop', 'Linux', 0, false, 'Chrome', 'support.google.com', 'Dans Chrome, ouvrez le menu ⋮', 'Chrome'],
-    ['Chrome Android SamsungBrowser/26.0', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
-    ['Chrome Android OPR/85.0', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
-    ['Unknown Android', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
-  ])('détecte mobile et navigateur : %s', (userAgent, platform, maxTouchPoints, mobile, browserName, documentationHost, instructions, documentationBrowserName) => {
+    ['iPhone Safari', 'iPhone', 1, true, 'Safari', 'support.apple.com', 'Dans Safari, touchez Partager', 'Safari', guides.safari],
+    ['FxiOS iPhone', 'iPhone', 1, true, 'Firefox', 'support.mozilla.org', 'Dans Firefox sur iPhone ou iPad, touchez Partager', 'Firefox', guides.firefoxIOS],
+    ['CriOS iPhone', 'iPhone', 1, true, 'Chrome', 'support.google.com', 'Dans Chrome sur iPhone ou iPad, touchez Partager', 'Chrome', guides.chromeIOS],
+    ['EdgiOS iPhone', 'iPhone', 1, true, 'Edge', 'support.apple.com', 'Ouvrez cette page dans Safari', 'Safari', guides.safari],
+    ['Safari iPad', 'MacIntel', 5, true, 'Safari', 'support.apple.com', 'Dans Safari, touchez Partager', 'Safari', guides.safari],
+    ['Safari desktop', 'MacIntel', 0, false, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome', guides.chromeAndroid],
+    ['Firefox Android', 'Linux', 1, true, 'Firefox', 'support.mozilla.org', 'Dans Firefox sur Android, ouvrez le menu ⋮', 'Firefox', guides.firefoxAndroid],
+    ['Chrome Android', 'Linux', 1, true, 'Chrome', 'support.google.com', 'Installer et créer un raccourci → Installer', 'Chrome', guides.chromeAndroid],
+    ['EdgA Android', 'Linux', 1, true, 'Edge', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome', guides.chromeAndroid],
+    ['Chrome desktop', 'Linux', 0, false, 'Chrome', 'support.google.com', 'Installer et créer un raccourci → Installer', 'Chrome', guides.chromeAndroid],
+    ['Chrome Android SamsungBrowser/26.0', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome', guides.chromeAndroid],
+    ['Chrome Android OPR/85.0', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome', guides.chromeAndroid],
+    ['Unknown Android', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome', guides.chromeAndroid],
+  ])('détecte mobile et navigateur : %s', (userAgent, platform, maxTouchPoints, mobile, browserName, documentationHost, instructions, documentationBrowserName, documentationUrl) => {
     const { installer } = environment({ userAgent, platform, maxTouchPoints, standalone: false })
     expect(installer.state.mobile).toBe(mobile)
     expect(installer.state.browserName).toBe(browserName)
     expect(new URL(installer.state.documentationUrl).host).toBe(documentationHost)
     expect(installer.state.instructions).toContain(instructions)
     expect(installer.state.documentationBrowserName).toBe(documentationBrowserName)
+    expect(installer.state.documentationUrl).toBe(documentationUrl)
     installer.dispose()
   })
 

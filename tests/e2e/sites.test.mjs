@@ -574,7 +574,7 @@ test('le bouton d’installation dans l’espace connecté gère un refus puis u
     assert.equal(await page.evaluate(() => window.installCalls), 1)
     await page.evaluate(() => window.finishInstall({ outcome: 'dismissed' }))
     await page.waitForFunction(() => !document.querySelector('button[aria-busy="true"]'))
-    await page.getByRole('status').getByText(/Dans Chrome/).waitFor()
+    await page.getByRole('status').getByText(/Dans Chrome sur Android/).waitFor()
     assert.equal(await page.evaluate(() => window.installCalls), 1, 'Une proposition consommée ne doit pas être réutilisée')
     await page.evaluate(() => {
       const event = new Event('beforeinstallprompt', { cancelable: true })
@@ -610,19 +610,21 @@ test('une erreur d’installation propose toujours l’aide du navigateur', asyn
     await button.click()
     await page.getByRole('alert').getByText(/Le navigateur n’a pas ouvert l’installation/).waitFor()
     assert.equal(await button.isEnabled(), true)
-    await page.getByRole('status').getByText(/Dans Chrome/).waitFor()
+    await page.getByRole('status').getByText(/Dans Chrome sur Android/).waitFor()
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
 
 for (const platform of [
-  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, touchez Partager/, documentationHost: 'support.apple.com', documentationBrowser: 'Safari' },
-  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Dans Firefox, ouvrez le menu/, documentationHost: 'support.mozilla.org', documentationBrowser: 'Firefox' },
-  { name: 'Chrome Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', help: /Dans Chrome/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
-  { name: 'Edge Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 EdgA/130.0', help: /Edge n’a pas proposé/, documentationHost: 'support.microsoft.com', documentationBrowser: 'Edge' },
-  { name: 'Samsung Internet', userAgent: 'Mozilla/5.0 (Linux; Android 14) SamsungBrowser/26.0 Chrome/130.0 Mobile Safari/537.36', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
-  { name: 'Opera Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 OPR/85.0', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
-  { name: 'navigateur Android inconnu', userAgent: 'UnknownBrowser Android 14', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
+  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, touchez Partager/, documentationHost: 'support.apple.com', documentationBrowser: 'Safari', documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iphea86e5236/ios' },
+  { name: 'Chrome iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/130.0 Mobile/15E148 Safari/604.1', help: /Dans Chrome sur iPhone ou iPad/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DiOS' },
+  { name: 'Firefox iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 FxiOS/130.0 Mobile/15E148 Safari/605.1.15', help: /Dans Firefox sur iPhone ou iPad/, documentationHost: 'support.mozilla.org', documentationBrowser: 'Firefox', documentationUrl: 'https://support.mozilla.org/en-US/kb/add-website-shortcut-your-home-screen-ios' },
+  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Dans Firefox sur Android, ouvrez le menu/, documentationHost: 'support.mozilla.org', documentationBrowser: 'Firefox', documentationUrl: 'https://support.mozilla.org/en-US/kb/use-web-apps-firefox-android' },
+  { name: 'Chrome Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', help: /Dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Edge Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 EdgA/130.0', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Samsung Internet', userAgent: 'Mozilla/5.0 (Linux; Android 14) SamsungBrowser/26.0 Chrome/130.0 Mobile Safari/537.36', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Opera Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 OPR/85.0', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'navigateur Android inconnu', userAgent: 'UnknownBrowser Android 14', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
   { name: 'Chrome desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36', hidden: true },
   { name: 'Firefox desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0', hidden: true },
   { name: 'Safari desktop', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Version/17.0 Safari/605.1.15', hidden: true },
@@ -651,6 +653,7 @@ for (const platform of [
         const documentationUrl = new URL(await documentation.getAttribute('href'))
         assert.equal(documentationUrl.protocol, 'https:')
         assert.equal(documentationUrl.hostname, platform.documentationHost)
+        assert.equal(await documentation.getAttribute('href'), platform.documentationUrl)
         assert.equal(await documentation.getAttribute('aria-label'), `Consulter la procédure officielle d’installation depuis ${platform.documentationBrowser}`)
         const bounds = await button.boundingBox()
         assert.ok(bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= 320)
