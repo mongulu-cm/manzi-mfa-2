@@ -616,10 +616,13 @@ test('une erreur d’installation propose toujours l’aide du navigateur', asyn
 }, { timeout: 30_000 })
 
 for (const platform of [
-  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, touchez Partager/ },
-  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Dans Firefox, ouvrez le menu/ },
-  { name: 'Chrome Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', help: /Dans Chrome/ },
-  { name: 'Edge Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 EdgA/130.0', help: /Edge n’a pas proposé/ },
+  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, touchez Partager/, documentationHost: 'support.apple.com', documentationBrowser: 'Safari' },
+  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Dans Firefox, ouvrez le menu/, documentationHost: 'support.mozilla.org', documentationBrowser: 'Firefox' },
+  { name: 'Chrome Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', help: /Dans Chrome/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
+  { name: 'Edge Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 EdgA/130.0', help: /Edge n’a pas proposé/, documentationHost: 'support.microsoft.com', documentationBrowser: 'Edge' },
+  { name: 'Samsung Internet', userAgent: 'Mozilla/5.0 (Linux; Android 14) SamsungBrowser/26.0 Chrome/130.0 Mobile Safari/537.36', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
+  { name: 'Opera Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 OPR/85.0', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
+  { name: 'navigateur Android inconnu', userAgent: 'UnknownBrowser Android 14', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome' },
   { name: 'Chrome desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36', hidden: true },
   { name: 'Firefox desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0', hidden: true },
   { name: 'Safari desktop', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Version/17.0 Safari/605.1.15', hidden: true },
@@ -645,7 +648,10 @@ for (const platform of [
         await button.tap()
         await page.getByRole('status').getByText(platform.help).waitFor()
         const documentation = page.getByRole('link', { name: /Consulter la procédure officielle/ })
-        assert.match(await documentation.getAttribute('href'), /^https:\/\/support\.(apple|mozilla|microsoft|google)\./)
+        const documentationUrl = new URL(await documentation.getAttribute('href'))
+        assert.equal(documentationUrl.protocol, 'https:')
+        assert.equal(documentationUrl.hostname, platform.documentationHost)
+        assert.equal(await documentation.getAttribute('aria-label'), `Consulter la procédure officielle d’installation depuis ${platform.documentationBrowser}`)
         const bounds = await button.boundingBox()
         assert.ok(bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= 320)
         const violations = await page.evaluate(async (source) => {

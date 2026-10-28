@@ -14,22 +14,36 @@ function proposal(prompt = vi.fn().mockResolvedValue(undefined), userChoice = Pr
 
 describe('installation de la PWA', () => {
   it.each([
-    ['iPhone Safari', 'iPhone', 1, true, 'Safari', 'support.apple.com'],
-    ['FxiOS iPhone', 'iPhone', 1, true, 'Firefox', 'support.apple.com'],
-    ['CriOS iPhone', 'iPhone', 1, true, 'Chrome', 'support.apple.com'],
-    ['EdgiOS iPhone', 'iPhone', 1, true, 'Edge', 'support.apple.com'],
-    ['Safari iPad', 'MacIntel', 5, true, 'Safari', 'support.apple.com'],
-    ['Safari desktop', 'MacIntel', 0, false, 'votre navigateur', 'support.google.com'],
-    ['Firefox Android', 'Linux', 1, true, 'Firefox', 'support.mozilla.org'],
-    ['Chrome Android', 'Linux', 1, true, 'Chrome', 'support.google.com'],
-    ['EdgA Android', 'Linux', 1, true, 'Edge', 'support.microsoft.com'],
-    ['Chrome desktop', 'Linux', 0, false, 'Chrome', 'support.google.com'],
-  ])('détecte mobile et navigateur : %s', (userAgent, platform, maxTouchPoints, mobile, browserName, documentationHost) => {
+    ['iPhone Safari', 'iPhone', 1, true, 'Safari', 'support.apple.com', 'Dans Safari, touchez Partager', 'Safari'],
+    ['FxiOS iPhone', 'iPhone', 1, true, 'Firefox', 'support.apple.com', 'depuis Firefox sur iPhone ou iPad, ouvrez cette page dans Safari', 'Safari'],
+    ['CriOS iPhone', 'iPhone', 1, true, 'Chrome', 'support.apple.com', 'depuis Chrome sur iPhone ou iPad, ouvrez cette page dans Safari', 'Safari'],
+    ['EdgiOS iPhone', 'iPhone', 1, true, 'Edge', 'support.apple.com', 'depuis Edge sur iPhone ou iPad, ouvrez cette page dans Safari', 'Safari'],
+    ['Safari iPad', 'MacIntel', 5, true, 'Safari', 'support.apple.com', 'Dans Safari, touchez Partager', 'Safari'],
+    ['Safari desktop', 'MacIntel', 0, false, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
+    ['Firefox Android', 'Linux', 1, true, 'Firefox', 'support.mozilla.org', 'Dans Firefox, ouvrez le menu ⋮, puis Installer', 'Firefox'],
+    ['Chrome Android', 'Linux', 1, true, 'Chrome', 'support.google.com', 'Dans Chrome, ouvrez le menu ⋮, puis Ajouter à l’écran d’accueil', 'Chrome'],
+    ['EdgA Android', 'Linux', 1, true, 'Edge', 'support.microsoft.com', 'Edge n’a pas proposé d’installation directe', 'Edge'],
+    ['Chrome desktop', 'Linux', 0, false, 'Chrome', 'support.google.com', 'Dans Chrome, ouvrez le menu ⋮', 'Chrome'],
+    ['Chrome Android SamsungBrowser/26.0', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
+    ['Chrome Android OPR/85.0', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
+    ['Unknown Android', 'Linux', 1, true, 'votre navigateur', 'support.google.com', 'Ouvrez cette page dans Chrome sur Android', 'Chrome'],
+  ])('détecte mobile et navigateur : %s', (userAgent, platform, maxTouchPoints, mobile, browserName, documentationHost, instructions, documentationBrowserName) => {
     const { installer } = environment({ userAgent, platform, maxTouchPoints, standalone: false })
     expect(installer.state.mobile).toBe(mobile)
     expect(installer.state.browserName).toBe(browserName)
     expect(new URL(installer.state.documentationUrl).host).toBe(documentationHost)
-    if (documentationHost === 'support.apple.com') expect(installer.state.instructions).toContain('Safari')
+    expect(installer.state.instructions).toContain(instructions)
+    expect(installer.state.documentationBrowserName).toBe(documentationBrowserName)
+    installer.dispose()
+  })
+
+  it.each(['Chrome Android SamsungBrowser/26.0', 'Chrome Android OPR/85.0', 'Unknown Android'])('permet la proposition native fournie par %s', async (userAgent) => {
+    const { installer, browser } = environment({ userAgent, platform: 'Linux', maxTouchPoints: 1, standalone: false })
+    const event = proposal()
+    browser.dispatchEvent(event)
+    await installer.install()
+    expect(event.defaultPrevented).toBe(true)
+    expect(event.prompt).toHaveBeenCalledTimes(1)
     installer.dispose()
   })
 

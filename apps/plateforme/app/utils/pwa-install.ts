@@ -15,6 +15,7 @@ function detectedBrowserName(edge: boolean, firefox: boolean, chrome: boolean, i
 function installationGuidance(ios: boolean, browserName: string) {
   if (ios) {
     return {
+      documentationBrowserName: 'Safari',
       documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iph42ab2f3a7/ios',
       instructions: browserName === 'Safari'
         ? 'Dans Safari, touchez Partager, puis Sur l’écran d’accueil et Ajouter.'
@@ -23,19 +24,23 @@ function installationGuidance(ios: boolean, browserName: string) {
   }
   if (browserName === 'Firefox') {
     return {
+      documentationBrowserName: 'Firefox',
       documentationUrl: 'https://support.mozilla.org/en-US/kb/use-web-apps-firefox-android',
       instructions: 'Dans Firefox, ouvrez le menu ⋮, puis Installer. Confirmez l’ajout sur l’écran d’accueil.',
     }
   }
   if (browserName === 'Edge') {
     return {
+      documentationBrowserName: 'Edge',
       documentationUrl: 'https://support.microsoft.com/fr-fr/microsoft-edge',
       instructions: 'Edge n’a pas proposé d’installation directe. Consultez son aide pour les options disponibles sur votre téléphone.',
     }
   }
   return {
+    documentationBrowserName: 'Chrome',
     documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid',
-    instructions: 'Dans Chrome, ouvrez le menu ⋮, puis Ajouter à l’écran d’accueil → Installer. Si cette option est absente, l’installation n’est pas disponible pour cette page dans ce navigateur.',
+    instructions: (browserName === 'Chrome' ? '' : 'Ce navigateur n’a pas proposé d’installation directe. Ouvrez cette page dans Chrome sur Android pour suivre cette procédure. ')
+      + 'Dans Chrome, ouvrez le menu ⋮, puis Ajouter à l’écran d’accueil → Installer. Si cette option est absente, l’installation n’est pas disponible pour cette page dans ce navigateur.',
   }
 }
 
@@ -49,12 +54,14 @@ export function createPwaInstaller(browser: Window) {
   const firefox = /Firefox|FxiOS/.test(navigator.userAgent)
   const edge = /EdgA|EdgiOS/.test(navigator.userAgent)
   const chrome = /Chrome|CriOS/.test(navigator.userAgent)
+    && !/SamsungBrowser|OPR|Opera|YaBrowser|Vivaldi|HuaweiBrowser|DuckDuckGo/.test(navigator.userAgent)
   const browserName = detectedBrowserName(edge, firefox, chrome, ios)
-  const { instructions, documentationUrl } = installationGuidance(ios, browserName)
+  const { instructions, documentationUrl, documentationBrowserName } = installationGuidance(ios, browserName)
   const state = reactive({
     mobile,
     browserName,
     documentationUrl,
+    documentationBrowserName,
     help: false,
     available: false,
     installed: displayMode.matches || navigator.standalone === true,

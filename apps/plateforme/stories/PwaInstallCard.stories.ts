@@ -1,3 +1,4 @@
+import { reactive } from 'vue'
 import type { Meta, StoryObj } from '@storybook/vue3'
 import { expect, fn } from 'storybook/test'
 import PwaInstallCard from '../app/components/PwaInstallCard.vue'
@@ -8,6 +9,7 @@ const meta = {
   args: {
     mobile: true,
     browserName: 'Safari',
+    documentationBrowserName: 'Safari',
     documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iph42ab2f3a7/ios',
     instructions: 'Dans Safari, ouvrez Partager, puis Sur l’écran d’accueil. Activez « Ouvrir comme app web » si cette option apparaît, puis touchez Ajouter.',
     onInstall: fn(),
@@ -63,6 +65,38 @@ export const Error: Story = {
     await expect(canvas.getByRole('alert')).toHaveTextContent('L’installation n’a pas pu démarrer.')
     await expect(canvas.getByRole('status')).toBeVisible()
     await userEvent.click(canvas.getByRole('button', { name: 'Installer l’application' }))
+    await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
+  },
+}
+
+export const HelpClearsAfterNewPrompt: Story = {
+  args: { help: true },
+  render: args => ({
+    components: { PwaInstallCard },
+    setup() {
+      const state = reactive({ ...args })
+      function acceptNewPrompt() {
+        state.help = false
+        state.error = ''
+        state.available = false
+      }
+      function offerNewPrompt() {
+        state.available = true
+      }
+      return { state, acceptNewPrompt, offerNewPrompt }
+    },
+    template: '<div><PwaInstallCard v-bind="state" /><button type="button" @click="acceptNewPrompt">Simuler une nouvelle installation acceptée</button><button type="button" @click="offerNewPrompt">Simuler une nouvelle proposition</button></div>',
+  }),
+  play: async ({ canvas, userEvent }) => {
+    await expect(canvas.getByRole('status')).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: 'Simuler une nouvelle installation acceptée' }))
+    await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
+    await expect(canvas.getByRole('button', { name: 'Installer l’application' })).toHaveAttribute('aria-expanded', 'false')
+    await userEvent.click(canvas.getByRole('button', { name: 'Installer l’application' }))
+    await expect(canvas.getByRole('status')).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: 'Simuler une nouvelle proposition', exact: true }))
+    await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
+    await userEvent.click(canvas.getByRole('button', { name: 'Simuler une nouvelle installation acceptée' }))
     await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
   },
 }
