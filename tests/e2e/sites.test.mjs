@@ -378,7 +378,7 @@ function assertTouchTarget(bounds) {
 }
 
 async function assertLoginActionsAndAccessibility(page) {
-  assert.equal(await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).count(), 1, 'LinkedIn reste le seul fournisseur proposé')
+  assert.equal(await page.getByRole('button', { name: /^Continuer avec/ }).count(), 1, 'LinkedIn reste le seul fournisseur proposé')
   const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
   const bounds = await connect.boundingBox()
   assertTouchTarget(bounds)
