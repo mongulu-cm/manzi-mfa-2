@@ -15,16 +15,10 @@ function activate() {
 </script>
 
 <template>
-  <UCard
+  <div
     v-if="!installed"
-    :ui="{ root: 'bg-white ring-(--mongulu-divider)', body: 'space-y-4 p-5 sm:p-8' }"
+    class="space-y-4"
   >
-    <h2 class="font-display text-2xl text-default">
-      Manzi-mfa à portée de main
-    </h2>
-    <p class="text-muted">
-      Ajoutez l’application à votre écran d’accueil pour retrouver facilement votre espace.
-    </p>
     <UButton
       label="Installer l’application"
       icon="i-lucide-download"
@@ -49,5 +43,5 @@ function activate() {
       variant="soft"
       :title="error"
     />
-  </UCard>
+  </div>
 </template>

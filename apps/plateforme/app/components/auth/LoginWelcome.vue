@@ -61,6 +61,12 @@ const emit = defineEmits<{ connect: [] }>()
               class="bg-white text-default"
               @click="emit('connect')"
             />
+            <div
+              v-if="$slots.install"
+              class="mt-3"
+            >
+              <slot name="install" />
+            </div>
             <p
               v-if="loading"
               id="login-progress"
@@ -91,7 +97,6 @@ const emit = defineEmits<{ connect: [] }>()
           </template>
         </UAuthForm>
       </UCard>
-      <slot name="install" />
     </main>
 
     <footer class="space-y-4 text-center text-caption text-muted">
