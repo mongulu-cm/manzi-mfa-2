@@ -13,7 +13,12 @@
     "NUXT_NOTIFICATIONS_PROVIDER": "cloudflare"
   },
   "workers_dev": true,
-  "previews": {},
+  "previews": {
+    "vars": {
+      "NUXT_NOTIFICATIONS_FROM_EMAIL": "noreply@mongulu.cm",
+      "NUXT_NOTIFICATIONS_PROVIDER": "cloudflare"
+    }
+  },
   "routes": [
     {
       "pattern": "app.manzi-mfa-2.mongulu.cm",
