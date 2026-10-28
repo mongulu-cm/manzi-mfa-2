@@ -378,7 +378,7 @@ function assertTouchTarget(bounds) {
 }
 
 async function assertLoginActionsAndAccessibility(page) {
-  assert.equal(await page.getByRole('button').count(), 1, 'LinkedIn reste le seul fournisseur proposé')
+  assert.equal(await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).count(), 1, 'LinkedIn reste le seul fournisseur proposé')
   const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
   const bounds = await connect.boundingBox()
   assertTouchTarget(bounds)
@@ -547,6 +547,113 @@ test('un parcours tactile permet de réessayer, lire un profil long et se décon
   }
   finally { await context.close() }
 }, { timeout: 60_000 })
+
+test('le bouton d’installation dans l’espace connecté gère un refus puis une nouvelle proposition', async () => {
+  const page = await browser.newPage()
+  try {
+    await mockAuth(page)
+    await page.goto(`${appUrl}/login`)
+    await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('button', { name: 'Installer l’application' }).waitFor()
+    assert.equal(await page.evaluate(() => {
+      window.installCalls = 0
+      const event = new Event('beforeinstallprompt', { cancelable: true })
+      event.prompt = async () => {
+        window.installCalls++
+      }
+      event.userChoice = new Promise((resolve) => {
+        window.finishInstall = resolve
+      })
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    }), true)
+    const button = page.getByRole('button', { name: 'Installer l’application' })
+    await button.click()
+    assert.equal(await button.isDisabled(), true)
+    assert.equal(await page.evaluate(() => window.installCalls), 1)
+    await page.evaluate(() => window.finishInstall({ outcome: 'dismissed' }))
+    await page.waitForFunction(() => !document.querySelector('button[aria-busy="true"]'))
+    await button.click()
+    await page.getByRole('status').getByText(/Cherchez Installer l’application/).waitFor()
+    assert.equal(await page.evaluate(() => window.installCalls), 1, 'Une proposition consommée ne doit pas être réutilisée')
+    await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt', { cancelable: true })
+      event.prompt = async () => {
+        window.installCalls++
+      }
+      event.userChoice = Promise.resolve({ outcome: 'accepted' })
+      window.dispatchEvent(event)
+    })
+    await button.click()
+    assert.equal(await page.evaluate(() => window.installCalls), 2)
+    assert.equal(await button.isVisible(), true, 'L’acceptation seule ne prouve pas la fin de l’installation')
+    await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')))
+    await button.waitFor({ state: 'detached' })
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+test('une erreur d’installation propose toujours l’aide du navigateur', async () => {
+  const page = await browser.newPage()
+  try {
+    await page.goto(`${appUrl}/login`)
+    const button = page.getByRole('button', { name: 'Installer l’application' })
+    await button.waitFor()
+    await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt', { cancelable: true })
+      event.prompt = async () => {
+        throw new Error('installation refusée par le navigateur')
+      }
+      event.userChoice = Promise.resolve({ outcome: 'dismissed' })
+      window.dispatchEvent(event)
+    })
+    await button.click()
+    await page.getByRole('alert').getByText(/L’installation n’a pas pu démarrer/).waitFor()
+    assert.equal(await button.isEnabled(), true)
+    await button.click()
+    await page.getByRole('status').getByText(/Cherchez Installer l’application/).waitFor()
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+for (const platform of [
+  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, ouvrez Partager/ },
+  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Ouvrez le menu de votre navigateur/ },
+  { name: 'application installée', standalone: true },
+]) {
+  test(`installation : ${platform.name}`, async () => {
+    const context = await browser.newContext({ userAgent: platform.userAgent, viewport: { width: 320, height: 568 }, hasTouch: true })
+    if (platform.standalone) {
+      await context.addInitScript(() => {
+        const original = window.matchMedia.bind(window)
+        window.matchMedia = query => query === '(display-mode: standalone)'
+          ? { ...original(query), matches: true, addEventListener() {}, removeEventListener() {} }
+          : original(query)
+      })
+    }
+    const page = await context.newPage()
+    try {
+      await page.goto(`${appUrl}/login`)
+      await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).waitFor()
+      const button = page.getByRole('button', { name: 'Installer l’application' })
+      if (platform.standalone) assert.equal(await button.count(), 0)
+      else {
+        await button.tap()
+        await page.getByRole('status').getByText(platform.help).waitFor()
+        const bounds = await button.boundingBox()
+        assert.ok(bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= 320)
+        const violations = await page.evaluate(async (source) => {
+          eval(source)
+          const result = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })
+          return result.violations.filter(v => ['serious', 'critical'].includes(v.impact))
+        }, axe.source)
+        assert.deepEqual(violations, [])
+      }
+    }
+    finally { await context.close() }
+  }, { timeout: 30_000 })
+}
 
 test('une adresse FTP propose un contact explicite sur tous les liens applicatifs', async () => {
   // Nuxt verrouille un serveur de développement par application : ce dernier

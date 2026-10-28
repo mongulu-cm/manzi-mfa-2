@@ -107,6 +107,8 @@ Les formats de référence sont `320 × 568` (mobile minimum), `390 × 844` (mob
 
 `npm run test:pwa`, après `npm run build:app` et `npx playwright install chromium`, démarre le build Cloudflare en local. Il vérifie les ressources réellement générées, le chargement en ligne, le repli hors ligne et la reprise, ainsi que l’absence de documents personnels dans Cache Storage. Ces tests ne contactent pas LinkedIn et n’envoient aucun e-mail.
 
+Le bouton « Installer l’application » est accessible sur la page de connexion et dans l’espace connecté. Quand le navigateur fournit une proposition d’installation native (`beforeinstallprompt`), le bouton ouvre cette proposition ; sinon, il affiche les étapes adaptées à iOS, Android ou desktop. Un refus ne force pas une nouvelle proposition. Le bouton disparaît dans une fenêtre d’application autonome ou après l’événement `appinstalled` ; un onglet ordinaire ne permet pas toujours de détecter une installation existante. Aucun cookie ni indicateur persistant propre au site n’est créé pour mémoriser ce choix. Les tests simulent ces événements et les indications de plateforme ; ils ne remplacent pas un test d’installation sur appareil physique.
+
 ## Cloudflare Workers Builds
 
 Chaque application possède son `wrangler.jsonc` et utilise le preset Nitro `cloudflare_module`. La plateforme a `ssr: false` mais conserve Nitro : de futures API serveur pourront y être ajoutées sans transformer le projet en site statique.
