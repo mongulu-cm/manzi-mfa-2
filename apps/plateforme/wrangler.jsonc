@@ -14,6 +14,7 @@
   },
   "workers_dev": true,
   "previews": {
+    "send_email": [{ "name": "EMAIL" }],
     "vars": {
       "NUXT_NOTIFICATIONS_FROM_EMAIL": "noreply@mongulu.cm",
       "NUXT_NOTIFICATIONS_PROVIDER": "cloudflare"
