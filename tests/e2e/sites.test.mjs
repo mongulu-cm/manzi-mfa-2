@@ -549,7 +549,7 @@ test('un parcours tactile permet de réessayer, lire un profil long et se décon
 }, { timeout: 60_000 })
 
 test('le bouton d’installation dans l’espace connecté gère un refus puis une nouvelle proposition', async () => {
-  const page = await browser.newPage()
+  const page = await browser.newPage({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36' })
   try {
     await mockAuth(page)
     await page.goto(`${appUrl}/login`)
@@ -574,8 +574,7 @@ test('le bouton d’installation dans l’espace connecté gère un refus puis u
     assert.equal(await page.evaluate(() => window.installCalls), 1)
     await page.evaluate(() => window.finishInstall({ outcome: 'dismissed' }))
     await page.waitForFunction(() => !document.querySelector('button[aria-busy="true"]'))
-    await button.click()
-    await page.getByRole('status').getByText(/Cherchez Installer l’application/).waitFor()
+    await page.getByRole('status').getByText(/Dans Chrome/).waitFor()
     assert.equal(await page.evaluate(() => window.installCalls), 1, 'Une proposition consommée ne doit pas être réutilisée')
     await page.evaluate(() => {
       const event = new Event('beforeinstallprompt', { cancelable: true })
@@ -595,7 +594,7 @@ test('le bouton d’installation dans l’espace connecté gère un refus puis u
 }, { timeout: 30_000 })
 
 test('une erreur d’installation propose toujours l’aide du navigateur', async () => {
-  const page = await browser.newPage()
+  const page = await browser.newPage({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36' })
   try {
     await page.goto(`${appUrl}/login`)
     const button = page.getByRole('button', { name: 'Installer l’application' })
@@ -609,18 +608,22 @@ test('une erreur d’installation propose toujours l’aide du navigateur', asyn
       window.dispatchEvent(event)
     })
     await button.click()
-    await page.getByRole('alert').getByText(/L’installation n’a pas pu démarrer/).waitFor()
+    await page.getByRole('alert').getByText(/Le navigateur n’a pas ouvert l’installation/).waitFor()
     assert.equal(await button.isEnabled(), true)
-    await button.click()
-    await page.getByRole('status').getByText(/Cherchez Installer l’application/).waitFor()
+    await page.getByRole('status').getByText(/Dans Chrome/).waitFor()
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
 
 for (const platform of [
-  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, ouvrez Partager/ },
-  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Ouvrez le menu de votre navigateur/ },
-  { name: 'application installée', standalone: true },
+  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, touchez Partager/ },
+  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Dans Firefox, ouvrez le menu/ },
+  { name: 'Chrome Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', help: /Dans Chrome/ },
+  { name: 'Edge Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 EdgA/130.0', help: /Edge n’a pas proposé/ },
+  { name: 'Chrome desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36', hidden: true },
+  { name: 'Firefox desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0', hidden: true },
+  { name: 'Safari desktop', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Version/17.0 Safari/605.1.15', hidden: true },
+  { name: 'application installée', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', standalone: true },
 ]) {
   test(`installation : ${platform.name}`, async () => {
     const context = await browser.newContext({ userAgent: platform.userAgent, viewport: { width: 320, height: 568 }, hasTouch: true })
@@ -637,10 +640,12 @@ for (const platform of [
       await page.goto(`${appUrl}/login`)
       await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).waitFor()
       const button = page.getByRole('button', { name: 'Installer l’application' })
-      if (platform.standalone) assert.equal(await button.count(), 0)
+      if (platform.standalone || platform.hidden) assert.equal(await button.count(), 0)
       else {
         await button.tap()
         await page.getByRole('status').getByText(platform.help).waitFor()
+        const documentation = page.getByRole('link', { name: /Consulter la procédure officielle/ })
+        assert.match(await documentation.getAttribute('href'), /^https:\/\/support\.(apple|mozilla|microsoft|google)\./)
         const bounds = await button.boundingBox()
         assert.ok(bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= 320)
         const violations = await page.evaluate(async (source) => {

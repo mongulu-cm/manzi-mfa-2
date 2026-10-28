@@ -6,6 +6,9 @@ const meta = {
   title: 'Plateforme/Installation',
   component: PwaInstallCard,
   args: {
+    mobile: true,
+    browserName: 'Safari',
+    documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iph42ab2f3a7/ios',
     instructions: 'Dans Safari, ouvrez Partager, puis Sur l’écran d’accueil. Activez « Ouvrir comme app web » si cette option apparaît, puis touchez Ajouter.',
     onInstall: fn(),
   },
@@ -27,6 +30,7 @@ export const SafariHelp: Story = {
     await userEvent.click(button)
     await expect(button).toHaveAttribute('aria-expanded', 'true')
     await expect(canvas.getByRole('status')).toHaveTextContent('Dans Safari, ouvrez Partager')
+    await expect(canvas.getByRole('link', { name: /Consulter la procédure officielle/ })).toHaveAttribute('href', args.documentationUrl)
     await expect(args.onInstall).not.toHaveBeenCalled()
     await userEvent.click(button)
     await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
@@ -49,11 +53,16 @@ export const Installed: Story = {
     await expect(canvas.queryByRole('button')).not.toBeInTheDocument()
   },
 }
+export const Desktop: Story = {
+  ...Installed,
+  args: { mobile: false },
+}
 export const Error: Story = {
   args: { error: 'L’installation n’a pas pu démarrer. Utilisez le menu de votre navigateur.' },
   play: async ({ canvas, userEvent }) => {
     await expect(canvas.getByRole('alert')).toHaveTextContent('L’installation n’a pas pu démarrer.')
-    await userEvent.click(canvas.getByRole('button', { name: 'Installer l’application' }))
     await expect(canvas.getByRole('status')).toBeVisible()
+    await userEvent.click(canvas.getByRole('button', { name: 'Installer l’application' }))
+    await expect(canvas.queryByRole('status')).not.toBeInTheDocument()
   },
 }
