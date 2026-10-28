@@ -22,4 +22,4 @@ Sources : issue #12, PR #53, README.md, apps/plateforme/nuxt.config.ts et tests/
 - Navigation au clavier et au toucher.
 - Chargement hors ligne et reprise testés.
 
-Ces résultats reposent sur les tests automatisés et l’inspection locale ; l’installation sur un appareil Android physique reste à tester par l’utilisateur.
+Ces résultats reposent sur les tests automatisés et l’inspection locale ; l’installation native sur des appareils physiques iOS et Android reste à tester par l’utilisateur.

@@ -23,4 +23,4 @@ Annotation : « OAuth et API : hors cache du service worker. »
 
 ## Consignes
 
-Style tldraw, fond blanc, traits simples, blocs et flèches lisibles, annotations manuscrites, couleurs sobres. Ne pas ajouter de promesse de fonctionnement métier hors ligne ou de test Android physique.
+Style tldraw, fond blanc, traits simples, blocs et flèches lisibles, annotations manuscrites, couleurs sobres. Ne pas ajouter de promesse de fonctionnement métier hors ligne ou de test sur des appareils physiques iOS ou Android.

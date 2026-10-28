@@ -20,4 +20,4 @@ Disposition linéaire problème → changements → résultat. Style tldraw impo
 
 ## Fidélité
 
-Conserver les libellés du fichier source. Ne pas annoncer de validation Android physique, de fusion ou de déploiement de production. Aucun secret, nom de compte ni donnée personnelle.
+Conserver les libellés du fichier source. Ne pas annoncer de validation sur des appareils physiques iOS ou Android, de fusion ou de déploiement de production. Aucun secret, nom de compte ni donnée personnelle.
