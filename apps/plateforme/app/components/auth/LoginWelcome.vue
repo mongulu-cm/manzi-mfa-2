@@ -24,7 +24,7 @@ const emit = defineEmits<{ connect: [] }>()
     <main
       id="main-content"
       tabindex="-1"
-      class="py-8"
+      class="space-y-5 py-8"
       aria-labelledby="login-title"
     >
       <UCard :ui="{ root: 'bg-white ring-(--mongulu-divider)', body: 'p-5 sm:p-8' }">
@@ -61,6 +61,12 @@ const emit = defineEmits<{ connect: [] }>()
               class="bg-white text-default"
               @click="emit('connect')"
             />
+            <div
+              v-if="$slots.install"
+              class="mt-3"
+            >
+              <slot name="install" />
+            </div>
             <p
               v-if="loading"
               id="login-progress"
@@ -96,7 +102,7 @@ const emit = defineEmits<{ connect: [] }>()
     <footer class="space-y-4 text-center text-caption text-muted">
       <nav
         aria-label="Liens utiles"
-        class="flex flex-wrap justify-center gap-x-4"
+        class="flex flex-wrap justify-center gap-x-4 gap-y-2"
       >
         <ULink
           to="mailto:collectif@mongulu.cm"

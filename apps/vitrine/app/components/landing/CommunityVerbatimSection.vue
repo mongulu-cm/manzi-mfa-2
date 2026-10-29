@@ -1,6 +1,6 @@
 <template>
   <section
-    class="community-verbatim-section rounded-3xl bg-[#E6F0D6] p-6 sm:p-10 lg:p-14"
+    class="community-verbatim-section rounded-3xl bg-[#E6F0D6] p-3 sm:p-10 lg:p-14"
     aria-labelledby="community-title"
   >
     <div class="grid grid-cols-1 items-center gap-10 lg:grid-cols-12">
@@ -41,9 +41,9 @@
 
       <!-- Colonne droite: Carte Verbatim -->
       <div class="lg:col-span-6">
-        <div class="rounded-3xl bg-white/70 p-6 shadow-sm backdrop-blur-sm sm:p-8">
+        <div class="rounded-3xl bg-white/70 p-4 shadow-sm backdrop-blur-sm sm:p-8">
           <!-- Stack avatars -->
-          <div class="flex items-center">
+          <div class="flex flex-wrap items-center gap-3">
             <div class="flex -space-x-3 overflow-hidden">
               <img
                 src="/images/landing/avatar-1.svg"
@@ -70,7 +70,7 @@
                 class="inline-block h-10 w-10 rounded-full ring-2 ring-white"
               >
             </div>
-            <span class="ml-3 rounded-full bg-[#3D4D1A] px-3 py-1 text-xs font-bold text-white">
+            <span class="rounded-full bg-[#3D4D1A] px-3 py-1 text-xs font-bold text-white">
               +2k (exemple)
             </span>
           </div>

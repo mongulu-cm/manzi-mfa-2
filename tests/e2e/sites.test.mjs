@@ -72,12 +72,12 @@ const authUser = {
   app_metadata: { provider: 'linkedin_oidc', providers: ['linkedin_oidc'] },
   identities: [], created_at: '2026-10-06T00:00:00Z',
 }
-function authSession() {
+function authSession(user = authUser) {
   const exp = Math.floor(Date.now() / 1000) + 3600
   const access_token = [
     { alg: 'HS256', typ: 'JWT' }, { sub: authUser.id, exp, aud: 'authenticated' },
   ].map(value => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.') + '.test'
-  return { access_token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'test-refresh-token', user: authUser }
+  return { access_token, token_type: 'bearer', expires_in: 3600, expires_at: exp, refresh_token: 'test-refresh-token', user }
 }
 async function mockAuth(page, options = {}) {
   const calls = { exchanges: 0, authorizations: 0 }
@@ -107,14 +107,14 @@ async function mockAuth(page, options = {}) {
         const body = route.request().postDataJSON()
         assert.equal(body.auth_code, 'test-code')
         assert.ok(body.code_verifier)
-        await route.fulfill({ json: authSession() })
+        await route.fulfill({ json: authSession({ ...authUser, email: options.email || authUser.email }) })
       },
-      '/auth/v1/user': () => route.fulfill({ json: authUser }),
+      '/auth/v1/user': () => route.fulfill({ json: { ...authUser, email: options.email || authUser.email } }),
       '/auth/v1/logout': () => route.fulfill({ status: 204 }),
       '/rest/v1/profiles': async () => {
         assert.equal(url.searchParams.get('id'), `eq.${authUser.id}`)
         if (options.profileError) await route.fulfill({ status: 500, json: { message: 'database unavailable' } })
-        else await route.fulfill({ json: { id: authUser.id, display_name: 'Membre Test', avatar_url: null, created_at: authUser.created_at } })
+        else await route.fulfill({ json: { id: authUser.id, display_name: options.profileName || 'Membre Test', avatar_url: null, created_at: authUser.created_at } })
       },
     }
     await (handlers[url.pathname]?.() ?? route.abort())
@@ -378,7 +378,7 @@ function assertTouchTarget(bounds) {
 }
 
 async function assertLoginActionsAndAccessibility(page) {
-  assert.equal(await page.getByRole('button').count(), 1, 'LinkedIn reste le seul fournisseur proposé')
+  assert.equal(await page.getByRole('button', { name: /^Continuer avec/ }).count(), 1, 'LinkedIn reste le seul fournisseur proposé')
   const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
   const bounds = await connect.boundingBox()
   assertTouchTarget(bounds)
@@ -484,6 +484,190 @@ test('les cartes illustratives annoncent la connexion sans promettre un profil i
   }
   finally { await page.close() }
 }, { timeout: 30_000 })
+
+const responsiveViewports = [
+  { width: 320, height: 568 }, { width: 390, height: 844 },
+  { width: 640, height: 960 }, { width: 1024, height: 768 },
+  { width: 1280, height: 900 }, { width: 844, height: 390 },
+]
+
+async function assertResponsiveContent(page) {
+  const outside = await page.locator('main h1, main h2, main h3, main p, main img, main blockquote, main dd, a, button')
+    .evaluateAll(elements => elements.filter((element) => {
+      const box = element.getBoundingClientRect()
+      return box.width > 0 && box.height > 0 && (box.left < -1 || box.right > innerWidth + 1)
+    }).map(element => element.outerHTML.slice(0, 180)))
+  assert.deepEqual(outside, [], 'Le contenu et les actions restent dans le viewport')
+  for (const action of await page.locator('header a, main a, main button, footer nav a').all()) {
+    if (await action.isVisible()) assertTouchTarget(await action.boundingBox())
+  }
+}
+
+test('les contenus et actions restent accessibles aux formats de référence et en paysage', async () => {
+  const page = await browser.newPage()
+  try {
+    for (const viewport of responsiveViewports) {
+      await page.setViewportSize(viewport)
+      for (const url of [vitrineUrl, `${appUrl}/login`]) {
+        await page.goto(url)
+        await page.locator('h1').waitFor()
+        await assertResponsiveContent(page)
+      }
+    }
+  }
+  finally { await page.close() }
+}, { timeout: 90_000 })
+
+test('un parcours tactile permet de réessayer, lire un profil long et se déconnecter', async () => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
+  const page = await context.newPage()
+  try {
+    const options = { authorizationError: true, profileError: true, profileName: 'Un membre du collectif avec un nom particulièrement long et plusieurs prénoms', email: 'une.adresse.particulierement.longue.pour.verifier.le.retoursurmobile@example.invalid' }
+    await mockAuth(page, options)
+    await page.goto(`${appUrl}/login`)
+    const connect = page.getByRole('button', { name: 'Continuer avec LinkedIn' })
+    await connect.tap()
+    await page.getByRole('alert').getByText(/La connexion a échoué/).waitFor()
+    options.authorizationError = false
+    await connect.tap()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('alert').getByText(/Impossible de charger votre profil/).waitFor()
+    options.profileError = false
+    await page.getByRole('button', { name: 'Réessayer' }).tap()
+    await page.getByRole('heading', { name: `Bienvenue, ${options.profileName}` }).waitFor()
+    await page.getByText(options.email, { exact: true }).waitFor()
+    for (const viewport of responsiveViewports) {
+      await page.setViewportSize(viewport)
+      await assertResponsiveContent(page)
+    }
+    await page.getByRole('button', { name: 'Se déconnecter' }).tap()
+    await page.waitForURL(`${appUrl}/login`)
+    await page.goto(appUrl)
+    await page.waitForURL(`${appUrl}/login`)
+  }
+  finally { await context.close() }
+}, { timeout: 60_000 })
+
+test('le bouton d’installation dans l’espace connecté gère un refus puis une nouvelle proposition', async () => {
+  const page = await browser.newPage({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36' })
+  try {
+    await mockAuth(page)
+    await page.goto(`${appUrl}/login`)
+    await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+    await page.waitForURL(`${appUrl}/`)
+    await page.getByRole('button', { name: 'Installer l’application' }).waitFor()
+    assert.equal(await page.evaluate(() => {
+      window.installCalls = 0
+      const event = new Event('beforeinstallprompt', { cancelable: true })
+      event.prompt = async () => {
+        window.installCalls++
+      }
+      event.userChoice = new Promise((resolve) => {
+        window.finishInstall = resolve
+      })
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    }), true)
+    const button = page.getByRole('button', { name: 'Installer l’application' })
+    await button.click()
+    assert.equal(await button.isDisabled(), true)
+    assert.equal(await page.evaluate(() => window.installCalls), 1)
+    await page.evaluate(() => window.finishInstall({ outcome: 'dismissed' }))
+    await page.waitForFunction(() => !document.querySelector('button[aria-busy="true"]'))
+    await page.getByRole('status').getByText(/Dans Chrome sur Android/).waitFor()
+    assert.equal(await page.evaluate(() => window.installCalls), 1, 'Une proposition consommée ne doit pas être réutilisée')
+    await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt', { cancelable: true })
+      event.prompt = async () => {
+        window.installCalls++
+      }
+      event.userChoice = Promise.resolve({ outcome: 'accepted' })
+      window.dispatchEvent(event)
+    })
+    await button.click()
+    assert.equal(await page.evaluate(() => window.installCalls), 2)
+    assert.equal(await button.isVisible(), true, 'L’acceptation seule ne prouve pas la fin de l’installation')
+    await page.evaluate(() => window.dispatchEvent(new Event('appinstalled')))
+    await button.waitFor({ state: 'detached' })
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+test('une erreur d’installation propose toujours l’aide du navigateur', async () => {
+  const page = await browser.newPage({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0 Mobile Safari/537.36' })
+  try {
+    await page.goto(`${appUrl}/login`)
+    const button = page.getByRole('button', { name: 'Installer l’application' })
+    await button.waitFor()
+    await page.evaluate(() => {
+      const event = new Event('beforeinstallprompt', { cancelable: true })
+      event.prompt = async () => {
+        throw new Error('installation refusée par le navigateur')
+      }
+      event.userChoice = Promise.resolve({ outcome: 'dismissed' })
+      window.dispatchEvent(event)
+    })
+    await button.click()
+    await page.getByRole('alert').getByText(/Le navigateur n’a pas ouvert l’installation/).waitFor()
+    assert.equal(await button.isEnabled(), true)
+    await page.getByRole('status').getByText(/Dans Chrome sur Android/).waitFor()
+  }
+  finally { await page.close() }
+}, { timeout: 30_000 })
+
+for (const platform of [
+  { name: 'Safari iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1', help: /Dans Safari, touchez Partager/, documentationHost: 'support.apple.com', documentationBrowser: 'Safari', documentationUrl: 'https://support.apple.com/fr-fr/guide/iphone/iphea86e5236/ios' },
+  { name: 'Chrome iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/130.0 Mobile/15E148 Safari/604.1', help: /Dans Chrome sur iPhone ou iPad/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DiOS' },
+  { name: 'Firefox iPhone', userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 FxiOS/130.0 Mobile/15E148 Safari/605.1.15', help: /Dans Firefox sur iPhone ou iPad/, documentationHost: 'support.mozilla.org', documentationBrowser: 'Firefox', documentationUrl: 'https://support.mozilla.org/en-US/kb/add-website-shortcut-your-home-screen-ios' },
+  { name: 'Firefox Android', userAgent: 'Mozilla/5.0 (Android 14; Mobile; rv:130.0) Gecko/130.0 Firefox/130.0', help: /Dans Firefox sur Android, ouvrez le menu/, documentationHost: 'support.mozilla.org', documentationBrowser: 'Firefox', documentationUrl: 'https://support.mozilla.org/en-US/kb/use-web-apps-firefox-android' },
+  { name: 'Chrome Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', help: /Dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Edge Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 EdgA/130.0', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Samsung Internet', userAgent: 'Mozilla/5.0 (Linux; Android 14) SamsungBrowser/26.0 Chrome/130.0 Mobile Safari/537.36', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Opera Android', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36 OPR/85.0', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'navigateur Android inconnu', userAgent: 'UnknownBrowser Android 14', help: /Ouvrez cette page dans Chrome sur Android/, documentationHost: 'support.google.com', documentationBrowser: 'Chrome', documentationUrl: 'https://support.google.com/chrome/answer/9658361?hl=fr&co=GENIE.Platform%3DAndroid' },
+  { name: 'Chrome desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/130.0 Safari/537.36', hidden: true },
+  { name: 'Firefox desktop', userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0', hidden: true },
+  { name: 'Safari desktop', userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) Version/17.0 Safari/605.1.15', hidden: true },
+  { name: 'application installée', userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130.0 Mobile Safari/537.36', standalone: true },
+]) {
+  test(`installation : ${platform.name}`, async () => {
+    const context = await browser.newContext({ userAgent: platform.userAgent, viewport: { width: 320, height: 568 }, hasTouch: true })
+    if (platform.standalone) {
+      await context.addInitScript(() => {
+        const original = window.matchMedia.bind(window)
+        window.matchMedia = query => query === '(display-mode: standalone)'
+          ? { ...original(query), matches: true, addEventListener() {}, removeEventListener() {} }
+          : original(query)
+      })
+    }
+    const page = await context.newPage()
+    try {
+      await page.goto(`${appUrl}/login`)
+      await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).waitFor()
+      const button = page.getByRole('button', { name: 'Installer l’application' })
+      if (platform.standalone || platform.hidden) assert.equal(await button.count(), 0)
+      else {
+        await button.tap()
+        await page.getByRole('status').getByText(platform.help).waitFor()
+        const documentation = page.getByRole('link', { name: /Consulter la procédure officielle/ })
+        const documentationUrl = new URL(await documentation.getAttribute('href'))
+        assert.equal(documentationUrl.protocol, 'https:')
+        assert.equal(documentationUrl.hostname, platform.documentationHost)
+        assert.equal(await documentation.getAttribute('href'), platform.documentationUrl)
+        assert.equal(await documentation.getAttribute('aria-label'), `Consulter la procédure officielle d’installation depuis ${platform.documentationBrowser}`)
+        const bounds = await button.boundingBox()
+        assert.ok(bounds.height >= 44 && bounds.x >= 0 && bounds.x + bounds.width <= 320)
+        const violations = await page.evaluate(async (source) => {
+          eval(source)
+          const result = await window.axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })
+          return result.violations.filter(v => ['serious', 'critical'].includes(v.impact))
+        }, axe.source)
+        assert.deepEqual(violations, [])
+      }
+    }
+    finally { await context.close() }
+  }, { timeout: 30_000 })
+}
 
 test('une adresse FTP propose un contact explicite sur tous les liens applicatifs', async () => {
   // Nuxt verrouille un serveur de développement par application : ce dernier
