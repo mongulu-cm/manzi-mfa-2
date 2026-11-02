@@ -22,6 +22,9 @@ describe('ressources d’entretien', () => {
 
   it.each([
     ['identifiant invalide', { id: 'Pas Un Slug' }, 'identifiant invalide'],
+    ['identifiant absent', { id: undefined }, 'identifiant invalide'],
+    ['URL absente', { url: undefined }, 'URL invalide'],
+    ['langue héritée', { language: 'toString' }, 'langue inconnue'],
     ['titre vide', { title: '  ' }, 'titre manquant'],
     ['description vide', { description: '' }, 'description manquante'],
     ['catégorie inconnue', { category: 'ia' }, 'catégorie inconnue'],
@@ -34,6 +37,10 @@ describe('ressources d’entretien', () => {
   ])('refuse une ressource avec %s', (_, change, message) => {
     const invalid = { ...base, ...change } as InterviewResource
     expect(() => validateResources([invalid])).toThrow(message)
+  })
+
+  it('signale un titre manquant sans planter sur la détection des doublons', () => {
+    expect(() => validateResources([{ ...base, title: undefined as unknown as string }])).toThrow('titre manquant')
   })
 
   it('nomme la ressource fautive même sans identifiant', () => {

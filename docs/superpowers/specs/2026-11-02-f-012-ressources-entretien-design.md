@@ -93,12 +93,12 @@ Liens vérifiés le 2026-11-02 par requête HTTP.
 
 - Titre (H3, Alegreya), description, badges `UBadge` : « Ressource externe » et langue (« En anglais » / « En français »).
 - Domaine affiché (ex. `exercism.org`) : le visiteur sait où il va.
-- Lien `ULink` externe : libellé visible « Consulter la ressource », nom accessible « Consulter <titre> sur <domaine> (site externe) », icône `i-lucide-external-link` décorative (`aria-hidden`), `rel="noopener noreferrer"`, `target="_blank"` annoncé dans le nom accessible.
+- Lien `ULink` externe : libellé visible « Consulter la ressource », nom accessible « Consulter la ressource : <titre> sur <domaine> (site externe, nouvel onglet) » (le libellé visible en tête, WCAG 2.5.3), icône `i-lucide-external-link` décorative (`aria-hidden`), `rel="noopener noreferrer"`, `target="_blank"` annoncé dans le nom accessible.
 - Cible tactile ≥ 44 × 44 px, focus visible, pas d’état transmis par la seule couleur.
 
 ### 4.3 Navigation et SEO
 
-- Lien « Ressources » dans l’en-tête de la vitrine (`SiteHeaderActions`) et dans le pied de page.
+- Lien « Ressources » dans l’en-tête de la vitrine (`SiteHeaderActions`, repère `<nav aria-label="Navigation principale">`) et dans le pied de page. Un seul lien ne justifie pas de menu replié sur mobile : il reste visible à 320 px sans débordement, et le pied de page le reprend.
 - `useSeoMeta` : titre et description propres ; page incluse dans le rendu SSR.
 
 ---
@@ -107,7 +107,7 @@ Liens vérifiés le 2026-11-02 par requête HTTP.
 
 | Niveau | Mécanisme | Effet |
 | --- | --- | --- |
-| Contenu (CI) | `validateResources` testé unitairement : champs requis, `id` uniques, URL `https:` sans identifiant ni `utm_*`/`ref`, URL et titres uniques, catégorie et langue connues | Une ressource invalide fait échouer la CI ; elle n’est jamais publiée |
+| Contenu (CI) | `validateResources` testé unitairement : champs requis, `id` uniques, URL `https:` sans identifiant ni `utm_*`/`ref`/`fbclid`/`gclid`, URL et titres uniques, catégorie et langue connues | Une ressource invalide fait échouer la CI ; elle n’est jamais publiée |
 | Rendu | La page n’affiche que des ressources validées ; une catégorie vide n’est pas rendue | Pas de section vide |
 | Disponibilité (opt-in, hors CI) | `npm run test:resource-links` : requête GET avec délai, classe `ok` (2xx/3xx), `à vérifier` (401, 403, 429 : protections anti-robot), `cassé` (404, 410, 5xx, erreur réseau) | Rapport pour décider d’une PR de correction ; aucune requête réseau en CI |
 | Visiteur | Lien « Signaler un lien cassé » vers le collectif | Remontée humaine des liens morts |

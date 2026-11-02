@@ -24,7 +24,7 @@ useSeoMeta({
       Ressources pour préparer vos entretiens
     </h1>
     <p class="mt-4 max-w-3xl text-base text-muted sm:text-lg">
-      Une sélection de services externes pour vous entraîner aux entretiens techniques : méthode, entretiens blancs, algorithmique, conception de systèmes et pratique.
+      Une sélection de services externes pour vous entraîner aux entretiens techniques : méthode, entretiens blancs, algorithmique, conception de systèmes, front-end, pratique et parcours.
     </p>
     <ResourceLibrary
       :resources="resources"

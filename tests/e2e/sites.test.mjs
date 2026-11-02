@@ -385,10 +385,10 @@ test('la vitrine présente les ressources d’entretien externes en SSR', async 
   page.on('pageerror', error => errors.push(error.message))
   try {
     await page.goto(vitrineUrl)
-    await page.locator('header').getByRole('link', { name: 'Ressources', exact: true }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Ressources', exact: true }).click()
     await page.waitForURL(`${vitrineUrl}/ressources`)
     assert.match(await page.title(), /Ressources pour préparer vos entretiens — Manzi-mfa/)
-    const external = page.getByRole('link', { name: 'Consulter Exercism sur exercism.org (site externe, nouvel onglet)' })
+    const external = page.getByRole('link', { name: 'Consulter la ressource : Exercism sur exercism.org (site externe, nouvel onglet)' })
     assert.equal(await external.getAttribute('href'), 'https://exercism.org/')
     assert.equal(await external.getAttribute('target'), '_blank')
     assert.match(await external.getAttribute('rel'), /noopener/)
@@ -410,6 +410,7 @@ test('la vitrine présente les ressources d’entretien externes en SSR', async 
       })
       assert.deepEqual(violations, [])
     }
+    await page.goto(vitrineUrl)
     const footerLink = page.locator('footer').getByRole('link', { name: 'Ressources d’entretien' })
     await footerLink.focus()
     await page.keyboard.press('Enter')

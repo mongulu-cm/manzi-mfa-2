@@ -68,7 +68,7 @@
     <path class="accent" d="M1250 432 L1258 440 L1272 422"/>
     <path class="accent" d="M1250 492 L1258 500 L1272 482"/>
   </g>
-  <text class="item" x="1286" y="320">376 tests unitaires</text>
+  <text class="item" x="1286" y="320">380 tests unitaires</text>
   <text class="item" x="1286" y="380">39 tests de stories</text>
   <text class="item" x="1286" y="440">34 tests E2E</text>
   <text class="item" x="1286" y="500">9 contrôles CI réussis</text>

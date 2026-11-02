@@ -5,9 +5,10 @@ import type { InterviewResource } from '../../utils/interview-resources'
 const props = defineProps<{ resource: InterviewResource }>()
 
 const domain = computed(() => resourceDomain(props.resource.url))
-// Le nom accessible précise la destination et l'ouverture dans un nouvel onglet.
+// Le nom accessible commence par le libellé visible (WCAG 2.5.3) puis précise la destination
+// et l'ouverture dans un nouvel onglet.
 const linkLabel = computed(() =>
-  `Consulter ${props.resource.title} sur ${domain.value} (site externe, nouvel onglet)`)
+  `Consulter la ressource : ${props.resource.title} sur ${domain.value} (site externe, nouvel onglet)`)
 </script>
 
 <template>

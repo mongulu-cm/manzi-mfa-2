@@ -5,13 +5,15 @@ const loginUrl = computed(() => getLoginUrl())
 
 <template>
   <div class="flex items-center gap-4">
-    <ULink
-      to="/ressources"
-      class="inline-flex min-h-11 items-center text-sm font-semibold text-default hover:text-primary"
-      active-class="text-primary underline"
-    >
-      Ressources
-    </ULink>
+    <nav aria-label="Navigation principale">
+      <ULink
+        to="/ressources"
+        class="inline-flex min-h-11 items-center text-sm font-semibold text-default hover:text-primary"
+        active-class="text-primary underline"
+      >
+        Ressources
+      </ULink>
+    </nav>
     <UButton
       :to="loginUrl"
       :external="isAppConfigured"

@@ -14,7 +14,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   play: async ({ canvas }) => {
-    const link = canvas.getByRole('link', { name: 'Consulter Exercism sur exercism.org (site externe, nouvel onglet)' })
+    const link = canvas.getByRole('link', { name: 'Consulter la ressource : Exercism sur exercism.org (site externe, nouvel onglet)' })
     await expect(link).toHaveAttribute('href', 'https://exercism.org/')
     await expect(link).toHaveAttribute('target', '_blank')
     await expect(link).toHaveAttribute('rel', expect.stringContaining('noreferrer'))

@@ -43,7 +43,7 @@
 
 ### Task 4: Page `/ressources` et navigation
 
-**Files:** Create `apps/vitrine/app/pages/ressources.vue`, `apps/vitrine/app/components/resources/ResourceLibrary.vue`, `apps/vitrine/stories/resources/ResourceLibrary.stories.ts` (section, une catégorie, vide) ; Modify `apps/vitrine/app/components/SiteHeaderActions.vue`, `apps/vitrine/app/layouts/default.vue`, stories de `SiteHeaderActions`
+**Files:** Create `apps/vitrine/app/pages/ressources.vue`, `apps/vitrine/app/components/resources/ResourceLibrary.vue`, `apps/vitrine/stories/resources/ResourceLibrary.stories.ts` (section, une catégorie, vide) ; Modify `apps/vitrine/app/components/SiteHeaderActions.vue`, `apps/vitrine/app/layouts/default.vue`, `tests/e2e/sites.test.mjs` (ordre de tabulation)
 
 - [x] H1, encadré `UAlert` « Ressources externes », sections par catégorie (H2), grille responsive, lien « Signaler un lien cassé ».
 - [x] `useSeoMeta` (titre, description).
