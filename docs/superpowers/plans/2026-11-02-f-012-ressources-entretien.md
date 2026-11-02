@@ -22,52 +22,52 @@
 
 **Files:** Create `apps/vitrine/app/utils/interview-resources.ts`, `tests/unit/interview-resources.test.ts`
 
-- [ ] Types `ResourceCategory`, `ResourceLanguage`, `InterviewResource` ; libellés et ordre des catégories.
-- [ ] `validateResources(list)` : champs requis non vides, `id` slug unique, URL `https:` sans identifiants ni `utm_*`/`ref`/`fbclid`, URL et titres uniques, catégorie et langue connues ; lève une erreur listant les `id` fautifs.
-- [ ] `resourceDomain(url)` (sans `www.`) et `groupByCategory(list)` dans l’ordre des catégories, sans catégorie vide.
-- [ ] Tests : un cas invalide par règle, domaine, groupement.
+- [x] Types `ResourceCategory`, `ResourceLanguage`, `InterviewResource` ; libellés et ordre des catégories.
+- [x] `validateResources(list)` : champs requis non vides, `id` slug unique, URL `https:` sans identifiants ni `utm_*`/`ref`/`fbclid`, URL et titres uniques, catégorie et langue connues ; lève une erreur listant les `id` fautifs.
+- [x] `resourceDomain(url)` (sans `www.`) et `groupByCategory(list)` dans l’ordre des catégories, sans catégorie vide.
+- [x] Tests : un cas invalide par règle, domaine, groupement.
 
 ### Task 2: Sélection initiale
 
 **Files:** Create `apps/vitrine/app/data/interview-resources.ts` ; Modify `tests/unit/interview-resources.test.ts`
 
-- [ ] Les neuf ressources de la spec § 3, descriptions en français.
-- [ ] Test : la sélection réelle passe `validateResources`.
+- [x] Les neuf ressources de la spec § 3, descriptions en français.
+- [x] Test : la sélection réelle passe `validateResources`.
 
 ### Task 3: Carte de ressource
 
 **Files:** Create `apps/vitrine/app/components/resources/ResourceCard.vue`, `apps/vitrine/stories/resources/ResourceCard.stories.ts`
 
-- [ ] `UBadge` « Ressource externe » et langue, domaine, `ULink` externe avec nom accessible complet, icône décorative, `rel="noopener noreferrer"`.
-- [ ] Stories : défaut, contenu long, ressource en français, mobile ; interaction : nom accessible et attributs du lien.
+- [x] `UBadge` « Ressource externe » et langue, domaine, `ULink` externe avec nom accessible complet, icône décorative, `rel="noopener noreferrer"`.
+- [x] Stories : défaut, contenu long, ressource en français, mobile ; interaction : nom accessible et attributs du lien.
 
 ### Task 4: Page `/ressources` et navigation
 
-**Files:** Create `apps/vitrine/app/pages/ressources.vue`, `apps/vitrine/stories/resources/ResourcesPage.stories.ts` (section) ; Modify `apps/vitrine/app/components/SiteHeaderActions.vue`, `apps/vitrine/app/layouts/default.vue`, stories de `SiteHeaderActions`
+**Files:** Create `apps/vitrine/app/pages/ressources.vue`, `apps/vitrine/app/components/resources/ResourceLibrary.vue`, `apps/vitrine/stories/resources/ResourceLibrary.stories.ts` (section, une catégorie, vide) ; Modify `apps/vitrine/app/components/SiteHeaderActions.vue`, `apps/vitrine/app/layouts/default.vue`, stories de `SiteHeaderActions`
 
-- [ ] H1, encadré `UAlert` « Ressources externes », sections par catégorie (H2), grille responsive, lien « Signaler un lien cassé ».
-- [ ] `useSeoMeta` (titre, description).
-- [ ] Lien « Ressources » dans l’en-tête et le pied de page.
+- [x] H1, encadré `UAlert` « Ressources externes », sections par catégorie (H2), grille responsive, lien « Signaler un lien cassé ».
+- [x] `useSeoMeta` (titre, description).
+- [x] Lien « Ressources » dans l’en-tête et le pied de page.
 
 ### Task 5: Vérification des liens (opt-in)
 
 **Files:** Create `tests/smoke/resource-links.mjs` ; Modify `package.json` (`test:resource-links`), `.fallowrc.json`
 
-- [ ] GET avec délai de 15 s et user-agent navigateur ; classement `ok` / `à vérifier` (401, 403, 429) / `cassé` ; code de sortie non nul seulement si `cassé`.
+- [x] GET avec délai de 15 s et user-agent navigateur ; classement `ok` / `à vérifier` (401, 403, 429) / `cassé` ; code de sortie non nul seulement si `cassé`.
 
 ### Task 6: E2E et documentation
 
 **Files:** Modify `tests/e2e/sites.test.mjs`, `README.md`
 
-- [ ] E2E : SSR de `/ressources`, nombre de cartes, noms accessibles, liens d’en-tête et de pied de page, clavier, 320 px et desktop, axe.
-- [ ] README : section « Ressources d’entretien » (ajout ou retrait par PR, règles de validation, vérification des liens, lien avec F-013).
+- [x] E2E : SSR de `/ressources`, nombre de cartes, noms accessibles, liens d’en-tête et de pied de page, clavier, 320 px et desktop, axe.
+- [x] README : section « Ressources d’entretien » (ajout ou retrait par PR, règles de validation, vérification des liens, lien avec F-013).
 
 ### Task 7: Vérification finale
 
-- [ ] `npm run check`
-- [ ] `npm run test:coverage`
-- [ ] `npm run build:storybook && npm run test:stories`
-- [ ] `npm run test:e2e`
-- [ ] `npx fallow --ci --format compact`
-- [ ] `npm run test:resource-links`
+- [x] `npm run check`
+- [x] `npm run test:coverage`
+- [x] `npm run build:storybook && npm run test:stories`
+- [x] `npm run test:e2e`
+- [x] `npx fallow --ci --format compact` (aucune remarque sur F-012 ; trois remarques de complexité préexistantes sur `main`, hors périmètre)
+- [x] `npm run test:resource-links`
 - [ ] PR en **Draft**, suivi avec `ce-babysit-pr` ; passage en Ready uniquement sur accord explicite.
