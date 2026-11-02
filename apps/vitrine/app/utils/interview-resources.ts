@@ -53,11 +53,15 @@ function urlProblem(value: string): string | undefined {
   return undefined
 }
 
+function isFilled(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== ''
+}
+
 function resourceProblems(resource: InterviewResource): string[] {
   const problems: string[] = []
   if (typeof resource.id !== 'string' || !SLUG.test(resource.id)) problems.push('identifiant invalide')
-  if (!resource.title?.trim()) problems.push('titre manquant')
-  if (!resource.description?.trim()) problems.push('description manquante')
+  if (!isFilled(resource.title)) problems.push('titre manquant')
+  if (!isFilled(resource.description)) problems.push('description manquante')
   if (!RESOURCE_CATEGORIES.includes(resource.category)) problems.push('catégorie inconnue')
   if (!Object.hasOwn(LANGUAGE_LABELS, resource.language)) problems.push('langue inconnue')
   const url = typeof resource.url === 'string' ? urlProblem(resource.url) : 'URL invalide'
@@ -77,7 +81,7 @@ export function validateResources(resources: InterviewResource[]): InterviewReso
     ...duplicates(resources.map(resource => resource.id)),
     ...duplicates(resources.map(resource => resource.url)),
     // Un titre manquant est déjà signalé ci-dessus : ne pas lever de TypeError ici.
-    ...duplicates(resources.map(resource => resource.title?.trim().toLowerCase() ?? '').filter(Boolean)),
+    ...duplicates(resources.map(resource => isFilled(resource.title) ? resource.title.trim().toLowerCase() : '').filter(Boolean)),
   ]
   errors.push(...repeated.map(value => `${value} : doublon`))
   if (errors.length) throw new Error(`Ressources invalides — ${errors.join(' ; ')}`)

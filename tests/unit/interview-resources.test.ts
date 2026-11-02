@@ -25,6 +25,8 @@ describe('ressources d’entretien', () => {
     ['identifiant absent', { id: undefined }, 'identifiant invalide'],
     ['URL absente', { url: undefined }, 'URL invalide'],
     ['langue héritée', { language: 'toString' }, 'langue inconnue'],
+    ['titre non textuel', { title: 42 }, 'titre manquant'],
+    ['description non textuelle', { description: ['liste'] }, 'description manquante'],
     ['titre vide', { title: '  ' }, 'titre manquant'],
     ['description vide', { description: '' }, 'description manquante'],
     ['catégorie inconnue', { category: 'ia' }, 'catégorie inconnue'],
