@@ -372,6 +372,54 @@ test('la confidentialité est accessible sur la vitrine, en SSR et à 320px', as
   finally { await page.close() }
 }, { timeout: 60_000 })
 
+test('la vitrine présente les ressources d’entretien externes en SSR', async () => {
+  const response = await fetch(`${vitrineUrl}/ressources`)
+  assert.equal(response.status, 200)
+  const html = await response.text()
+  assert.match(html, /<h1[^>]*>\s*Ressources pour préparer vos entretiens/)
+  assert.match(html, /Ils ne font pas partie de Manzi-mfa, qui ne génère pas d’entretiens par IA/)
+  assert.equal(html.match(/<article[^>]*aria-labelledby="resource-/g)?.length, 9)
+
+  const page = await browser.newPage()
+  const errors = []
+  page.on('pageerror', error => errors.push(error.message))
+  try {
+    await page.goto(vitrineUrl)
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Ressources', exact: true }).click()
+    await page.waitForURL(`${vitrineUrl}/ressources`)
+    assert.match(await page.title(), /Ressources pour préparer vos entretiens — Manzi-mfa/)
+    const external = page.getByRole('link', { name: 'Consulter la ressource : Exercism sur exercism.org (site externe, nouvel onglet)' })
+    assert.equal(await external.getAttribute('href'), 'https://exercism.org/')
+    assert.equal(await external.getAttribute('target'), '_blank')
+    assert.match(await external.getAttribute('rel'), /noopener/)
+    assert.match(await external.getAttribute('rel'), /noreferrer/)
+    assert.equal(await page.getByRole('link', { name: /\(site externe, nouvel onglet\)$/ }).count(), 9)
+    assert.equal(await page.getByText('Ressource externe', { exact: true }).count(), 9)
+    assert.match(await page.getByRole('link', { name: 'Signaler un lien cassé' }).getAttribute('href'), /^mailto:collectif@mongulu\.cm\?subject=/)
+
+    for (const width of [320, 1280]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.reload()
+      await page.getByRole('heading', { level: 1 }).waitFor()
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
+      assertTouchTarget(await external.boundingBox())
+      await page.addScriptTag({ content: axe.source })
+      const violations = await page.evaluate(async () => {
+        const results = await window.axe.run()
+        return results.violations.filter(v => ['serious', 'critical'].includes(v.impact)).map(v => v.id)
+      })
+      assert.deepEqual(violations, [])
+    }
+    await page.goto(vitrineUrl)
+    const footerLink = page.locator('footer').getByRole('link', { name: 'Ressources d’entretien' })
+    await footerLink.focus()
+    await page.keyboard.press('Enter')
+    await page.waitForURL(`${vitrineUrl}/ressources`)
+    assert.deepEqual(errors, [])
+  }
+  finally { await page.close() }
+}, { timeout: 60_000 })
+
 function assertTouchTarget(bounds) {
   assert.ok(bounds, 'L’élément doit être visible et dimensionné')
   assert.ok(bounds.width >= 44 && bounds.height >= 44)
@@ -419,6 +467,9 @@ test('les deux sites restent utilisables au clavier, à 320px et sur desktop', a
       await page.goto(vitrineUrl)
       await page.keyboard.press('Tab')
       await page.keyboard.press('Tab')
+      await page.keyboard.press('Tab')
+      assert.equal((await page.locator(':focus').textContent()).trim(), 'Ressources')
+      assertTouchTarget(await page.locator(':focus').boundingBox())
       await page.keyboard.press('Tab')
       assert.equal(await page.locator(':focus').textContent(), 'Se connecter')
       const bounds = await page.locator(':focus').boundingBox()
