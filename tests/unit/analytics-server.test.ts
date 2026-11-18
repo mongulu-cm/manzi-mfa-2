@@ -23,7 +23,7 @@ it('signale les erreurs Nitro consenties en arrière-plan sans données de requ�
   report(error, {})
   report(error, { event })
   expect(send).not.toHaveBeenCalled()
-  cookies.manzi_analytics_consent_v1 = 'accepted'
+  cookies.manzi_analytics_consent_v2 = 'accepted'
   report(error, { event })
   expect(send).not.toHaveBeenCalled()
   cookies.manzi_analytics_identity_v1 = JSON.stringify({ id: '11111111-1111-4111-8111-111111111111', identified: false })
@@ -39,9 +39,15 @@ it('signale les erreurs Nitro consenties en arrière-plan sans données de requ�
   }))
   expect(JSON.stringify(send.mock.calls)).not.toMatch(/private|email|token/)
   expect(send.mock.calls[0]![1].body.properties.$exception_list[0].stacktrace.frames).toEqual([
-    { platform: 'custom', lang: 'javascript', function: 'Object.handler', filename: '/server/index.js', lineno: 1561, colno: 118, in_app: true },
+    { platform: 'node:javascript', function: 'Object.handler', filename: '/server/index.js', lineno: 1561, colno: 118, in_app: true },
   ])
   send.mockRejectedValueOnce(new Error('offline'))
   report(error, { event })
   await expect(waitUntil.mock.calls[1]![0]).resolves.toBeUndefined()
+  cookies.manzi_analytics_identity_v1 = JSON.stringify({ id: 'membre@example.invalid', identified: true })
+  report(error, { event })
+  await waitUntil.mock.calls[2]![0]
+  expect(send.mock.calls[2]![1].body).toMatchObject({
+    distinct_id: 'membre@example.invalid', properties: { $process_person_profile: true, runtime: 'server' },
+  })
 })

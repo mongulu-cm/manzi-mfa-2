@@ -1,9 +1,9 @@
-import type { AnalyticsEvent, AnalyticsIdentity } from '../../shared/utils/analytics'
-import { analyticsEvents, exceptionProperties, safePage } from '../../shared/utils/analytics'
+import type { AnalyticsEvent, AnalyticsIdentity, AnalyticsPerson } from '../../shared/utils/analytics'
+import { analyticsEmail, analyticsEvents, analyticsPerson, exceptionProperties, safePage } from '../../shared/utils/analytics'
 
 export interface AnalyticsClient {
   capture: (event: string, properties: Record<string, unknown>) => unknown
-  identify: (id: string) => unknown
+  identify: (id: string, properties?: AnalyticsPerson) => unknown
   register: (properties: { distinct_id: string, $device_id: string }) => unknown
   reset: (resetDeviceId: boolean) => unknown
   get_distinct_id: () => string
@@ -22,6 +22,7 @@ export function createAnalyticsService(options: {
   let client: AnalyticsClient | undefined
   let loading: Promise<void> | undefined
   let userId: string | null | undefined
+  let person: AnalyticsPerson | undefined
   let page = '/'
   let lastPage: string | undefined
   let activeIdentity: AnalyticsIdentity | undefined
@@ -46,6 +47,7 @@ export function createAnalyticsService(options: {
       activeIdentity = shared
       // Un onglet plateforme obsolète ne doit pas réidentifier l'ancien compte.
       userId = undefined
+      person = undefined
     }
   }
   function emit(event: string, properties: Record<string, unknown> = {}) {
@@ -65,9 +67,9 @@ export function createAnalyticsService(options: {
     if (userId === null) {
       if (activeIdentity?.identified) client.reset(true)
     }
-    else if (client.get_distinct_id() !== userId) {
-      if (activeIdentity?.identified) client.reset(true)
-      client.identify(userId)
+    else {
+      if (client.get_distinct_id() !== userId && activeIdentity?.identified) client.reset(true)
+      client.identify(userId, person)
     }
     save()
   }
@@ -101,8 +103,10 @@ export function createAnalyticsService(options: {
     track(event: AnalyticsEvent) {
       if (Object.hasOwn(analyticsEvents, event)) emit(event)
     },
-    identify(id: string | null) {
+    identify(id: string | null, properties?: AnalyticsPerson) {
+      if (id !== null && !analyticsEmail(id)) return
       userId = id
+      person = id ? analyticsPerson({ ...properties, email: id }) : undefined
       try {
         if (allowed()) identify()
       }

@@ -19,7 +19,7 @@ export const analyticsEvents = {
 } as const
 export type AnalyticsEvent = keyof typeof analyticsEvents
 
-export const consentCookie = 'manzi_analytics_consent_v1'
+export const consentCookie = 'manzi_analytics_consent_v2'
 export const identityCookie = 'manzi_analytics_identity_v1'
 export const cookieMaxAge = 60 * 60 * 24 * 180
 
@@ -34,12 +34,27 @@ export function cookieDomain(host: string, configured: string) {
 }
 
 export interface AnalyticsIdentity { id: string, identified: boolean }
+export interface AnalyticsPerson { email?: string, name?: string, first_name?: string, last_name?: string }
+
+export function analyticsPerson(value: unknown): AnalyticsPerson {
+  if (!value || typeof value !== 'object') return {}
+  return Object.fromEntries(Object.entries(value).filter(([key, item]) =>
+    ['email', 'name', 'first_name', 'last_name'].includes(key)
+    && typeof item === 'string' && item.trim().length > 0 && item.length <= 254,
+  ))
+}
+
+export function analyticsEmail(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
 export function parseIdentity(value: unknown): AnalyticsIdentity | undefined {
   if (typeof value !== 'string') return
   try {
     const parsed = JSON.parse(value)
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.id)
-      && typeof parsed.identified === 'boolean') return { id: parsed.id, identified: parsed.identified }
+    if (typeof parsed.identified !== 'boolean') return
+    if (parsed.identified ? analyticsEmail(parsed.id) : /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parsed.id)) {
+      return { id: parsed.id, identified: parsed.identified }
+    }
   }
   catch { /* Cookie absent, ancien ou invalide. */ }
 }
@@ -71,7 +86,10 @@ export function filterProperties(properties: Record<string, unknown>) {
 
 export function sanitizeCapture(event: CaptureResult | null, context: { token: string, surface: string, environment: string }): CaptureResult | null {
   if (!event) return null
-  if (!['$pageview', '$identify', '$exception', ...Object.keys(analyticsEvents)].includes(event.event)) return null
+  if (!['$pageview', '$identify', '$set', '$exception', ...Object.keys(analyticsEvents)].includes(event.event)) return null
+  const person = analyticsPerson(event.$set ?? event.properties.$set)
+  const identified = analyticsEmail(event.properties.distinct_id)
+  if (event.event === '$set' && (!identified || !Object.keys(person).length)) return null
   delete event.$set
   delete event.$set_once
   event.properties = {
@@ -79,5 +97,6 @@ export function sanitizeCapture(event: CaptureResult | null, context: { token: s
     schema_version: 1, runtime: 'browser', $geoip_disable: true, $ip: null,
     $process_person_profile: event.event === '$identify' || event.properties.$is_identified === true,
   }
+  if (identified && ['$identify', '$set'].includes(event.event)) event.$set = person
   return event
 }

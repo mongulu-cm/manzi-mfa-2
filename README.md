@@ -9,7 +9,7 @@ Le dépôt contient deux applications Nuxt 4 et une Layer Mongulu commune :
 | `apps/vitrine` | https://manzi-mfa-2.mongulu.cm | SSR, contenu indexable | `manzi-mfa-2` |
 | `apps/plateforme` | https://app.manzi-mfa-2.mongulu.cm | SPA, sans indexation | `manzi-mfa-2-app` |
 
-La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première connexion crée le compte Supabase et son profil ; `/` affiche le nom, la photo et l’e-mail du compte connecté. L’e-mail reste dans Supabase Auth et les profils ne sont lisibles que par leur propriétaire.
+La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première connexion crée le compte Supabase et son profil ; `/` affiche le nom, la photo et l’e-mail du compte connecté. L’e-mail est conservé dans Supabase Auth et, avec consentement, sert d’identifiant PostHog et les profils ne sont lisibles que par leur propriétaire.
 
 ## Confidentialité
 
@@ -17,7 +17,7 @@ La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première con
 
 ## Analytics et erreurs (F-019)
 
-Les deux sites utilisent le même projet PostHog EU pour les pages vues, les parcours produit et les erreurs navigateur/Nitro. La collecte commence après acceptation dans « Préférences de statistiques ». Le cookie commun relie la visite anonyme à l’identifiant Supabase à la connexion ; la déconnexion renouvelle l’identité. Aucun e-mail, nom, formulaire, paramètre OAuth ou message d’erreur brut n’est envoyé. Les replays et l’autocapture sont désactivés.
+Les deux sites utilisent le même projet PostHog EU pour les pages vues, les parcours produit et les erreurs navigateur/Nitro. La collecte commence après acceptation dans « Préférences de statistiques ». Le cookie commun relie la visite anonyme à l’e-mail à la connexion ; la déconnexion renouvelle l’identité. L’e-mail, le nom et le prénom disponibles complètent le profil PostHog après consentement. Aucun formulaire, paramètre OAuth ou message d’erreur brut n’est envoyé. Les replays et l’autocapture sont désactivés.
 
 Voir [le contrat et le guide PostHog](docs/analytics.md) pour les événements, la configuration, les limites, les tests et l’exploitation. Le token de collecte public et le domaine de cookie sont configurés dans les Workers ; un développement local ou une CI sans token n’envoie rien.
 

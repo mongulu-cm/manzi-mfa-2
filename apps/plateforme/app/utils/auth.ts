@@ -26,12 +26,21 @@ export function safeAvatarUrl(value: unknown): string | undefined {
   catch { /* Une image invalide utilise l’avatar de remplacement. */ }
 }
 
+function profileNames(metadata: Record<string, unknown>) {
+  const text = (value: unknown) => typeof value === 'string' ? value.trim().slice(0, 254) || undefined : undefined
+  return {
+    name: text(metadata.name) ?? text(metadata.full_name),
+    firstName: text(metadata.given_name) ?? text(metadata.first_name),
+    lastName: text(metadata.family_name) ?? text(metadata.last_name),
+  }
+}
+
 // Une instance par application, créée par le plugin client ; aucun état global.
 export function createAuthService(client: SupabaseClient | null, redirectOAuth: (url: string) => Promise<void>) {
   const state = reactive({
     configured: Boolean(client),
     ready: false,
-    user: null as { id: string, email?: string } | null,
+    user: null as { id: string, email?: string, name?: string, firstName?: string, lastName?: string } | null,
     profile: null as Profile | null,
     profileLoading: false,
     profileError: '',
@@ -64,7 +73,12 @@ export function createAuthService(client: SupabaseClient | null, redirectOAuth: 
       state.profileError = ''
       state.profileLoading = false
     }
-    state.user = user ? { id: user.id, email: user.email } : null
+    state.user = user
+      ? {
+          id: user.id, email: user.email,
+          ...profileNames(user.user_metadata ?? {}),
+        }
+      : null
   }
 
   async function loadProfile() {

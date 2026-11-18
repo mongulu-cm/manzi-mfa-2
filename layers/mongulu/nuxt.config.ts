@@ -22,7 +22,9 @@ export default defineNuxtConfig({
       analyticsCookieDomain: '',
     },
   },
+  sourcemap: { client: true, server: true },
   nitro: {
+    sourceMap: true,
     publicAssets: [{ dir: fileURLToPath(new URL('./public', import.meta.url)), baseURL: '/' }],
   },
   typescript: { strict: true },

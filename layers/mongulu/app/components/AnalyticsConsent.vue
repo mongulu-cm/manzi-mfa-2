@@ -19,7 +19,7 @@ function choose(choice: 'accepted' | 'rejected') {
       </h2>
       <p class="my-4">
         Avec votre accord, PostHog mesure les visites, les parcours et les erreurs sur nos deux sites.
-        Un identifiant commun relie vos visites à votre compte après connexion, sans transmettre votre nom ni votre e-mail.
+        Après connexion, votre e-mail relie vos visites sur les deux sites ; votre nom et votre prénom complètent votre profil PostHog.
         Vous pouvez refuser ou changer d’avis ici à tout moment.
       </p>
       <div class="flex flex-wrap gap-3">

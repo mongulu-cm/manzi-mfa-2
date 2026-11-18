@@ -74,7 +74,7 @@ after(async () => {
 // OAuth simulé : aucun appel à LinkedIn ni donnée réelle dans ces tests CI.
 const authUser = {
   id: 'a0000000-0000-0000-0000-000000000001', aud: 'authenticated', role: 'authenticated',
-  email: 'membre@example.invalid', user_metadata: { name: 'Membre Test' },
+  email: 'membre@example.invalid', user_metadata: { name: 'Membre Test', given_name: 'Membre', family_name: 'Test' },
   app_metadata: { provider: 'linkedin_oidc', providers: ['linkedin_oidc'] },
   identities: [], created_at: '2026-10-06T00:00:00Z',
 }
@@ -770,14 +770,18 @@ test('PostHog respecte le consentement, relie les deux sites et retire les donn�
     assert.equal(loginPage.properties.distinct_id, anonymousId)
     const identify = events.find(event => event.event === '$identify')
     assert.equal(identify.properties.$anon_distinct_id, anonymousId)
-    assert.equal(identify.properties.distinct_id, authUser.id)
+    assert.equal(identify.properties.distinct_id, authUser.email)
+    assert.equal(identify.$set.email, authUser.email)
+    assert.equal(identify.$set.name, 'Membre Test')
+    assert.equal(identify.$set.first_name, 'Membre')
+    assert.equal(identify.$set.last_name, 'Test')
     const site = await context.newPage()
     await site.goto(vitrineUrl)
     await site.getByRole('button', { name: 'Préférences de statistiques' }).waitFor()
     await site.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { error: new Error('private@example.invalid secret-token') })))
     await waitEvent('$exception')
-    assert.equal(events.find(event => event.event === '$exception').properties.distinct_id, authUser.id)
-    assert.doesNotMatch(JSON.stringify(events), /private@example|private-oauth|secret-token|membre@example|test-refresh|test-code|Membre Test/)
+    assert.equal(events.find(event => event.event === '$exception').properties.distinct_id, authUser.email)
+    assert.doesNotMatch(JSON.stringify(events), /private@example|private-oauth|secret-token|test-refresh|test-code/)
     await site.getByRole('button', { name: 'Préférences de statistiques' }).click()
     await site.getByRole('button', { name: 'Refuser', exact: true }).click()
     const count = requests.length
@@ -786,7 +790,7 @@ test('PostHog respecte le consentement, relie les deux sites et retire les donn�
     await page.getByRole('heading', { name: /Bienvenue/ }).waitFor()
     assert.equal(requests.length, count)
     assert.equal((await context.cookies()).some(cookie => cookie.name === 'manzi_analytics_identity_v1'), false)
-    if (smokeKey) console.log(`PostHog validation : ${events.length} événements synthétiques, personne ${authUser.id}`)
+    if (smokeKey) console.log(`PostHog validation : ${events.length} événements synthétiques, personne ${authUser.email}`)
   }
   finally { await context.close() }
 })

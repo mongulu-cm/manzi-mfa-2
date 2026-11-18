@@ -3,8 +3,8 @@ import { createAnalyticsService } from '../../layers/mongulu/app/utils/analytics
 import { cookieDomain, exceptionProperties, filterProperties, parseIdentity, safePage, sanitizeCapture } from '../../layers/mongulu/shared/utils/analytics'
 
 const anonymous = '11111111-1111-4111-8111-111111111111'
-const user = '22222222-2222-4222-8222-222222222222'
-const other = '33333333-3333-4333-8333-333333333333'
+const user = 'membre@example.invalid'
+const other = 'autre@example.invalid'
 function fixture() {
   let id = anonymous
   let consent = true
@@ -28,6 +28,17 @@ function fixture() {
 }
 
 describe('confidentialité du contrat analytics', () => {
+  it('autorise seulement le profil demandé sur une identité e-mail', () => {
+    const context = { token: 'public-token', surface: 'plateforme', environment: 'test' }
+    for (const event of ['$identify', '$set']) {
+      const captured = sanitizeCapture({ event, properties: { distinct_id: user, $is_identified: true, $set: { email: user, name: 'Membre Test', first_name: 'Membre', last_name: 'Test', token: 'secret', avatar: 'private' } } }, context)
+      expect(captured?.$set).toEqual({ email: user, name: 'Membre Test', first_name: 'Membre', last_name: 'Test' })
+      expect(captured?.properties.$set).toBeUndefined()
+    }
+    expect(sanitizeCapture({ event: '$set', properties: { distinct_id: anonymous }, $set: { name: 'Private' } }, context)).toBeNull()
+    expect(parseIdentity(JSON.stringify({ id: anonymous, identified: true }))).toBeUndefined()
+    expect(parseIdentity(JSON.stringify({ id: user, identified: false }))).toBeUndefined()
+  })
   it('préserve le transport sans profils automatiques ni collecte hors catalogue', () => {
     const context = { token: 'public-token', surface: 'vitrine', environment: 'test' }
     expect(sanitizeCapture(null, context)).toBeNull()
@@ -61,7 +72,7 @@ describe('confidentialité du contrat analytics', () => {
     error.stack = 'TypeError: private\n at fn (https://app.test/_nuxt/abc.js:12:5)\n at secret (https://third.test/customer/secret:1:2)'
     const result = exceptionProperties(error)
     expect(JSON.stringify(result)).not.toMatch(/private|secret|email|third/)
-    expect(result.$exception_list[0]?.stacktrace.frames).toEqual([{ platform: 'custom', lang: 'javascript', function: '<redacted>', filename: '/_nuxt/abc.js', lineno: 12, colno: 5, in_app: true }])
+    expect(result.$exception_list[0]?.stacktrace.frames).toEqual([{ platform: 'web:javascript', function: '<redacted>', filename: '/_nuxt/abc.js', lineno: 12, colno: 5, in_app: true }])
     expect(exceptionProperties('secret').$exception_list[0]?.type).toBe('Error')
     error.name = 'private'
     error.stack = undefined
@@ -70,6 +81,16 @@ describe('confidentialité du contrat analytics', () => {
 })
 
 describe('collecte indépendante du parcours utilisateur', () => {
+  it('enrichit le même compte après le chargement du profil sans fusion supplémentaire', async () => {
+    const f = fixture()
+    await f.service.start()
+    f.service.identify(user, { first_name: 'Membre', last_name: 'Test' })
+    f.service.identify(user, { name: 'Membre Test' })
+    expect(f.client.identify).toHaveBeenLastCalledWith(user, { email: user, name: 'Membre Test' })
+    expect(f.client.reset).not.toHaveBeenCalled()
+    f.service.identify('invalid')
+    expect(f.client.identify).toHaveBeenCalledTimes(2)
+  })
   it('ne charge rien sans configuration ni consentement', async () => {
     const f = fixture()
     f.setConsent(false)
@@ -88,10 +109,10 @@ describe('collecte indépendante du parcours utilisateur', () => {
     await Promise.all([f.service.start(), f.service.start()])
     expect(f.options.load).toHaveBeenCalledTimes(1)
     f.service.identify(user)
-    expect(f.client.identify).toHaveBeenLastCalledWith(user)
+    expect(f.client.identify).toHaveBeenLastCalledWith(user, { email: user })
     f.service.identify(other)
     expect(f.client.reset).toHaveBeenCalledWith(true)
-    expect(f.client.identify).toHaveBeenLastCalledWith(other)
+    expect(f.client.identify).toHaveBeenLastCalledWith(other, { email: other })
     f.service.identify(null)
     expect(f.options.saveIdentity).toHaveBeenLastCalledWith({ id: anonymous, identified: false })
     f.service.identify(null)
@@ -130,15 +151,15 @@ describe('collecte indépendante du parcours utilisateur', () => {
     await f.service.start()
     f.service.identify(user)
     f.client.identify.mockClear()
-    f.setIdentity({ id: other, identified: false })
+    f.setIdentity({ id: anonymous, identified: false })
     f.service.track('auth.login_started')
-    expect(f.client.register).toHaveBeenCalledWith({ distinct_id: other, $device_id: other })
+    expect(f.client.register).toHaveBeenCalledWith({ distinct_id: anonymous, $device_id: anonymous })
     expect(f.client.identify).not.toHaveBeenCalled()
-    expect(f.client.get_distinct_id()).toBe(other)
+    expect(f.client.get_distinct_id()).toBe(anonymous)
     const resets = f.client.reset.mock.calls.length
     f.service.identify(user)
     expect(f.client.reset).toHaveBeenCalledTimes(resets)
-    expect(f.client.identify).toHaveBeenCalledWith(user)
+    expect(f.client.identify).toHaveBeenCalledWith(user, { email: user })
   })
   it('ne transmet rien après un refus, même pendant le chargement', async () => {
     const f = fixture()

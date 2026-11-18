@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { exceptionProperties } from '../../layers/mongulu/shared/utils/analytics'
 
 function frames(stack: string, runtime: 'browser' | 'server' = 'server') {
@@ -8,15 +8,28 @@ function frames(stack: string, runtime: 'browser' | 'server' = 'server') {
 }
 
 describe('stacktraces PostHog', () => {
+  afterEach(() => vi.unstubAllGlobals())
+  it('associe chaque frame au chunk injecté, avant de retirer le chemin privé', () => {
+    const id = '11111111-2222-4333-8444-555555555555'
+    vi.stubGlobal('_posthogChunkIds', {
+      'Error\n    at file:///private/index.js:1:20\n    at other (index.js:99:1)': id,
+      'Error\n    at file:///private/worker.js:1:20': 'invalid',
+      'Error': id,
+    })
+    expect(frames('Error\n    at handler (file:///private/index.js:15:3)')[0]).toMatchObject({
+      platform: 'node:javascript', filename: '/server/index.js', chunk_id: id, lineno: 15, colno: 3,
+    })
+    expect(frames('Error\n    at handler (file:///private/worker.js:15:3)')[0]).not.toHaveProperty('chunk_id')
+  })
   it('conserve les frames Wrangler observées, sans chemin local, dans l’ordre des appels', () => {
     const result = frames(`Error: private message
     at createError (file:///home/private/repo/.output/server/.wrangler/tmp/dev-ABC/index.js:1931:14)
     at Object.handler (file:///home/private/repo/.output/server/.wrangler/tmp/dev-ABC/index.js:1561:118)
     at async file:///home/private/repo/.output/server/.wrangler/tmp/dev-ABC/index.js:2368:7`)
     expect(result).toEqual([
-      { platform: 'custom', lang: 'javascript', function: '<anonymous>', filename: '/server/index.js', lineno: 2368, colno: 7, in_app: true },
-      { platform: 'custom', lang: 'javascript', function: 'Object.handler', filename: '/server/index.js', lineno: 1561, colno: 118, in_app: true },
-      { platform: 'custom', lang: 'javascript', function: 'createError', filename: '/server/index.js', lineno: 1931, colno: 14, in_app: true },
+      { platform: 'node:javascript', function: '<anonymous>', filename: '/server/index.js', lineno: 2368, colno: 7, in_app: true },
+      { platform: 'node:javascript', function: 'Object.handler', filename: '/server/index.js', lineno: 1561, colno: 118, in_app: true },
+      { platform: 'node:javascript', function: 'createError', filename: '/server/index.js', lineno: 1931, colno: 14, in_app: true },
     ])
     expect(JSON.stringify(result)).not.toMatch(/private|home|file:|wrangler|dev-ABC/)
   })

@@ -9,7 +9,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview --port 3000",
     "typecheck": "nuxt typecheck",
-    "deploy": "nuxt build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "postbuild": "node ../../scripts/prepare-analytics-build.mjs"
   },
   "dependencies": {
     "nuxt": "4.6.2",

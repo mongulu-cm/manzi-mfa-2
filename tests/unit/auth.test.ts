@@ -33,6 +33,16 @@ function fixture() {
 }
 
 describe('session de la plateforme', () => {
+  it('conserve uniquement les noms disponibles, sans découper un nom complet', () => {
+    const f = fixture()
+    f.event('SIGNED_IN', { ...user, user_metadata: { name: ' Membre Test ', given_name: 'Membre', family_name: 'Test', private: 'ignored' } })
+    expect(f.service.state.user).toEqual({ ...user, name: 'Membre Test', firstName: 'Membre', lastName: 'Test' })
+    f.event('USER_UPDATED', { ...user, user_metadata: { name: 42, full_name: 'Complet', given_name: '', first_name: 'Prénom', family_name: null, last_name: 'Nom' } })
+    expect(f.service.state.user).toEqual({ ...user, name: 'Complet', firstName: 'Prénom', lastName: 'Nom' })
+    f.event('USER_UPDATED', { ...user, user_metadata: { name: 'Nom composé sans champs séparés' } })
+    expect(f.service.state.user?.firstName).toBeUndefined()
+    expect(f.service.state.user?.lastName).toBeUndefined()
+  })
   afterEach(() => {
     vi.useRealTimers()
   })
