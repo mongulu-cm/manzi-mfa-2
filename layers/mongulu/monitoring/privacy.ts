@@ -1,4 +1,5 @@
 import type { ErrorEvent, EventHint, StackFrame } from '@sentry/nuxt'
+import { isExpectedError } from '../shared/utils/expected-error'
 
 // Keep technical stacks, releases and trace IDs, without collecting user payloads.
 export function sentryPrivacyOptions() {
@@ -45,13 +46,6 @@ export function filterSentryError(event: ErrorEvent, hint: EventHint): ErrorEven
   }
   if (event.transaction) event.transaction = scrubUrl(event.transaction)
   return event
-}
-
-function isExpectedError(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const status = 'statusCode' in error ? error.statusCode : undefined
-  return (typeof status === 'number' && status >= 400 && status < 500)
-    || ('name' in error && error.name === 'AbortError')
 }
 
 function scrubExceptions(event: ErrorEvent): void {

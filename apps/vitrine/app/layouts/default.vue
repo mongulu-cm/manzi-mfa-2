@@ -4,6 +4,7 @@
       <SiteHeaderActions />
     </template>
     <slot />
+    <AnalyticsPreferences />
     <template #footer>
       <div class="flex flex-wrap items-center justify-between gap-4">
         <span>Un projet du Collectif Mongulu.</span>

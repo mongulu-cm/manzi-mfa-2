@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const auth = useAuth()
+const analytics = useAnalytics()
 useSeoMeta({ title: 'Connexion en cours — Manzi-mfa' })
 
 onMounted(async () => {
@@ -7,6 +8,7 @@ onMounted(async () => {
   // Ne conserver ni code OAuth ni description fournisseur dans l’historique.
   window.history.replaceState(window.history.state, '', '/auth/callback')
   const success = await auth.completeCallback(params)
+  if (['code', 'error'].some(key => params.has(key))) analytics.track(success ? 'auth.login_succeeded' : 'auth.login_failed')
   await navigateTo(success ? '/' : '/login', { replace: true })
 })
 </script>

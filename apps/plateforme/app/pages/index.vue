@@ -1,13 +1,17 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
 const auth = useAuth()
+const analytics = useAnalytics()
 useSeoMeta({ title: 'Votre espace — Manzi-mfa' })
 watch(() => auth.state.user?.id, (id) => {
   if (id) void auth.loadProfile()
   else if (!auth.state.sessionError) void navigateTo('/login', { replace: true })
 }, { immediate: true })
 async function logout() {
-  if (await auth.logout()) await navigateTo('/login', { replace: true })
+  if (await auth.logout()) {
+    analytics.track('auth.logout_succeeded')
+    await navigateTo('/login', { replace: true })
+  }
 }
 async function retry() {
   await auth.retrySession()

@@ -12,7 +12,7 @@ const release = process.env.SENTRY_RELEASE || process.env.WORKERS_CI_COMMIT_SHA 
 })()
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/ui', '@sentry/nuxt/module', fileURLToPath(new URL('./monitoring/source-maps.ts', import.meta.url))],
+  modules: ['@nuxt/ui', '@sentry/nuxt/module'],
   $meta: { name: 'mongulu' },
   app: { head: { htmlAttrs: { lang: 'fr' } } },
   css: [
@@ -26,6 +26,11 @@ export default defineNuxtConfig({
   ui: { fonts: false },
   runtimeConfig: {
     public: {
+      posthogKey: '',
+      posthogHost: 'https://eu.i.posthog.com',
+      analyticsSurface: 'vitrine',
+      analyticsEnvironment: 'unconfigured',
+      analyticsCookieDomain: '',
       sentry: {
         dsn: '',
         environment: 'unconfigured',
@@ -36,6 +41,7 @@ export default defineNuxtConfig({
   },
   sourcemap: { client: 'hidden', server: true },
   nitro: {
+    sourceMap: true,
     // Preserve Nitro's debug IDs and source maps instead of bundling a second time.
     cloudflare: {
       wrangler: {
@@ -55,6 +61,6 @@ export default defineNuxtConfig({
     configDir: fileURLToPath(new URL('./monitoring', import.meta.url)),
     release: { name: release },
     telemetry: false,
-    sourcemaps: { disable: 'disable-upload', filesToDeleteAfterUpload: ['.output/public/**/*.map'] },
+    sourcemaps: { disable: 'disable-upload', filesToDeleteAfterUpload: [] },
   },
 })

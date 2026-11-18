@@ -20,6 +20,9 @@ useSeoMeta({ title: 'Se connecter — Manzi-mfa', robots: 'noindex, nofollow' })
     :error="auth.state.actionError || auth.state.sessionError"
     @connect="connect"
   >
+    <template #preferences>
+      <AnalyticsPreferences />
+    </template>
     <template #install>
       <PwaInstallCard
         v-bind="$pwaInstall.state"

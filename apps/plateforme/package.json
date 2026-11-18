@@ -9,8 +9,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview --port 3001",
     "typecheck": "nuxt typecheck",
-    "deploy": "nuxt build && wrangler deploy",
-    "deploy:preview": "node scripts/deploy-preview.mjs"
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:preview": "node scripts/deploy-preview.mjs",
+    "postbuild": "node ../../scripts/prepare-analytics-build.mjs"
   },
   "dependencies": {
     "@nuxt/ui": "^4.11.3",

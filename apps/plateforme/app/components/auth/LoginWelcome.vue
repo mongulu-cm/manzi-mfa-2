@@ -97,6 +97,7 @@ const emit = defineEmits<{ connect: [] }>()
           </template>
         </UAuthForm>
       </UCard>
+      <slot name="preferences" />
     </main>
 
     <footer class="space-y-4 text-center text-caption text-muted">

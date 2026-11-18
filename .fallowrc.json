@@ -9,7 +9,6 @@
     "layers/*/nuxt.config.ts",
     "layers/mongulu/monitoring/sentry.client.config.ts",
     "layers/mongulu/monitoring/sentry-nitro.ts",
-    "layers/mongulu/monitoring/source-maps.ts",
     "layers/*/stories/**/*.stories.ts",
     "apps/*/stories/**/*.stories.ts",
     "tests/e2e/*.test.mjs",
@@ -18,6 +17,7 @@
     "tests/smoke/email.smoke.ts",
     "tests/smoke/resource-links.mjs",
     "tests/smoke/sentry-fixtures.mjs",
+    "scripts/prepare-analytics-build.mjs",
     "vitest.config.ts",
     "vitest.unit.config.ts",
     "vitest.smoke.config.ts"
@@ -46,7 +46,10 @@
   // - vue-tsc : chargé dynamiquement par `nuxt typecheck` dans @nuxt/cli.
   // - @supabase/server : dépendance déjà ajoutée par l’utilisateur, conservée pour
   //   le futur backend ; cette intégration SPA utilise supabase-js côté navigateur.
+  // Les CLI de sourcemaps sont exécutés au build uniquement, jamais dans le Worker.
   "ignoreDependencies": [
+    "@posthog/cli",
+    "@sentry/cli",
     "@storybook/addon-a11y",
     "@storybook-vue/nuxt",
     "@supabase/server",
