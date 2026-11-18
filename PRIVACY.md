@@ -1,6 +1,6 @@
 # Politique de confidentialité — Manzi-mfa
 
-**Version du 6 octobre 2026.**
+**Version du 18 novembre 2026.**
 
 Le Collectif Mongulu explique ici comment les informations sont traitées lors de la consultation de Manzi-mfa et des échanges avec le collectif. Pour toute question ou demande concernant vos données, écrivez à [collectif@mongulu.cm](mailto:collectif@mongulu.cm).
 
@@ -13,7 +13,7 @@ Le Collectif Mongulu explique ici comment les informations sont traitées lors d
 | Sites concernés | https://manzi-mfa-2.mongulu.cm et https://app.manzi-mfa-2.mongulu.cm |
 | Données | Informations techniques, identifiant de compte, nom, e-mail, URL de photo, session locale, préférence d’affichage et courriels |
 | Utilisation | Affichage des pages et du profil, connexion et maintien de session, sécurité, diagnostic et réponse à vos demandes |
-| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos |
+| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos, Sentry pour le diagnostic des erreurs |
 | Conservation | Compte et profil tant que le compte existe ; session jusqu’à déconnexion ou effacement local ; journaux Workers : 3 ou 7 jours selon l’offre ; préférence locale jusqu’à son effacement ; correspondance pendant le traitement de la demande et la durée nécessaire à sa justification |
 | Droits | Accès, rectification, effacement et autres droits selon la législation applicable ; demande par courriel au collectif |
 | Cadre juridique | Les règles de protection des données applicables au traitement, notamment le droit camerounais et, lorsque ses critères territoriaux sont remplis, le RGPD |
@@ -39,6 +39,8 @@ Avant l’ouverture de nouvelles fonctions, cette politique sera actualisée pou
 **Consultation des sites.** Votre navigateur transmet les informations nécessaires à la connexion : notamment votre adresse IP, l’adresse de la ressource demandée et des en-têtes techniques pouvant indiquer le navigateur, la langue ou la page d’origine. Cloudflare reçoit ce trafic pour distribuer les pages et protéger le service. Certaines de ces informations peuvent permettre de vous identifier indirectement.
 
 **Diagnostic technique.** Les journaux d’exécution des Workers sont activés. Ils peuvent contenir l’horodatage, la méthode et l’adresse de la requête, le résultat de l’exécution et les erreurs. Tous les en-têtes et toutes les adresses IP ne sont pas nécessairement enregistrés dans chaque journal. Évitez d’inscrire des informations confidentielles dans les adresses de pages ou leurs paramètres.
+
+**Suivi des erreurs.** Sentry reçoit les erreurs techniques des deux sites pour diagnostiquer les pannes : pile d’appels, version déployée, environnement, application et informations de navigateur ou de runtime. Les paramètres d’URL, en-têtes, cookies, corps des requêtes, profils et données de formulaire sont exclus de cette collecte. L’enregistrement de sessions et les journaux console Sentry sont désactivés. Le projet Sentry empêche le stockage des adresses IP ; son infrastructure reçoit néanmoins les informations réseau nécessaires à la transmission et peut en déduire le pays, conservé avec l’erreur. Les événements sont hébergés dans la région États-Unis du compte Sentry et conservés selon la rétention de son offre, puis supprimés automatiquement.
 
 **Compte LinkedIn.** Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification Supabase Auth. Le nom et l’URL de la photo sont conservés dans les métadonnées de ce compte et copiés dans votre profil applicatif à sa création. Cette version ne synchronise pas le profil applicatif à chaque connexion ; les métadonnées d’authentification peuvent être actualisées par Supabase lors d’une connexion ultérieure.
 
@@ -72,7 +74,7 @@ La simple consultation du site ne constitue pas un consentement général à l�
 
 Les personnes du collectif habilitées à administrer le service ou à traiter votre demande peuvent accéder aux informations nécessaires à leur mission.
 
-Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
+Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Sentry reçoit les erreurs techniques pour le diagnostic des pannes. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
 
 Les polices Alegreya et Hanken Grotesk et le logo sont servis par nos sites : leur chargement ne nécessite pas de requête vers Google Fonts. Supabase héberge les comptes, les sessions et les profils. LinkedIn assure la connexion et fournit les informations autorisées. Les photos restent hébergées à l’adresse fournie par LinkedIn : leur affichage entraîne une requête de votre navigateur vers cet hébergeur, sans transmettre l’adresse de la page Manzi-mfa comme référent.
 
@@ -80,7 +82,7 @@ Les informations relatives aux traitements de Cloudflare figurent dans sa [polit
 
 ### 7. Traitements internationaux
 
-Cloudflare, Supabase et LinkedIn utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
+Sentry héberge les événements d’erreur de ce projet aux États-Unis. Cloudflare, Supabase et LinkedIn utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
 
 Les transferts doivent respecter les conditions du droit applicable. Lorsque le RGPD s’applique, les transferts hors de l’Espace économique européen nécessitent un mécanisme autorisé, tel qu’une décision d’adéquation ou des clauses contractuelles types, selon le transfert concerné. Pour obtenir des informations sur les garanties concernant vos données, contactez collectif@mongulu.cm.
 
@@ -88,11 +90,14 @@ Les transferts doivent respecter les conditions du droit applicable. Lorsque le 
 
 | Informations | Durée ou critère de conservation |
 | --- | --- |
+| Événements d’erreur Sentry | Suppression automatique après 30 jours en offre Developer ou 90 jours en offre Team, Business ou Enterprise ; l’offre au moment de la réception de l’événement détermine sa durée, même si l’abonnement change ensuite |
 | Journaux d’exécution dans Cloudflare Workers Logs | Selon la documentation du prestataire à la date de cette version : 3 jours en offre Free et 7 jours en offre Paid ; suppression à l’expiration de la rétention de l’offre |
 | Autres informations de trafic et de sécurité traitées par Cloudflare | Selon les finalités techniques, les obligations et les règles de conservation du prestataire ; la rétention des journaux Workers ne s’applique pas automatiquement à ces autres données |
 | Préférence locale `nuxt-color-mode`, lorsqu’elle est mémorisée | Jusqu’à son remplacement ou à l’effacement des données du site dans votre navigateur ; aucune expiration automatique configurée par le module |
 | Correspondance et demandes d’exercice de droits | Pendant le traitement de la demande, puis uniquement pendant la durée nécessaire à la preuve de son traitement, à une obligation légale ou à la défense d’un droit ; suppression lorsque ces besoins cessent |
 | Justificatif d’identité éventuellement nécessaire | Seulement le temps nécessaire à la vérification, sauf obligation légale de conservation |
+
+Les [durées de rétention Sentry](https://docs.sentry.io/security-legal-pii/security/data-retention-periods/) détaillent ce critère par offre et type de données.
 
 La [documentation Workers Logs](https://developers.cloudflare.com/workers/observability/logs/workers-logs/) précise les durées propres à ce service. Elles peuvent évoluer avec l’offre du prestataire. Contactez-nous pour connaître les conditions applicables à une demande particulière.
 

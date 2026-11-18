@@ -33,6 +33,7 @@ export default defineNuxtConfig({
     // Secret Cloudflare, transmis à createAdminClient pour le journal des envois.
     supabaseSecretKey: '',
     public: {
+      sentry: { app: 'plateforme' },
       siteUrl: 'https://manzi-mfa-2.mongulu.cm',
       supabaseUrl: '',
       supabasePublishableKey: '',

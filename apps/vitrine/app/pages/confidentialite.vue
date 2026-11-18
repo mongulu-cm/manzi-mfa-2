@@ -21,7 +21,7 @@ useSeoMeta({
     </h1>
     <!-- Texte public issu de PRIVACY.md ; le test E2E vérifie la parité du HTML SSR. -->
     <p>
-      <strong>Version du 6 octobre 2026.</strong>
+      <strong>Version du 18 novembre 2026.</strong>
     </p>
     <p>
       Le Collectif Mongulu explique ici comment les informations sont traitées lors de la consultation de Manzi-mfa et des échanges avec le collectif. Pour toute question ou demande concernant vos données, écrivez à <ULink
@@ -61,6 +61,9 @@ useSeoMeta({
     </p>
     <p>
       <strong>Diagnostic technique.</strong> Les journaux d’exécution des Workers sont activés. Ils peuvent contenir l’horodatage, la méthode et l’adresse de la requête, le résultat de l’exécution et les erreurs. Tous les en-têtes et toutes les adresses IP ne sont pas nécessairement enregistrés dans chaque journal. Évitez d’inscrire des informations confidentielles dans les adresses de pages ou leurs paramètres.
+    </p>
+    <p>
+      <strong>Suivi des erreurs.</strong> Sentry reçoit les erreurs techniques des deux sites pour diagnostiquer les pannes : pile d’appels, version déployée, environnement, application et informations de navigateur ou de runtime. Les paramètres d’URL, en-têtes, cookies, corps des requêtes, profils et données de formulaire sont exclus de cette collecte. L’enregistrement de sessions et les journaux console Sentry sont désactivés. Le projet Sentry empêche le stockage des adresses IP ; son infrastructure reçoit néanmoins les informations réseau nécessaires à la transmission et peut en déduire le pays, conservé avec l’erreur. Les événements sont hébergés dans la région États-Unis du compte Sentry et conservés selon la rétention de son offre, puis supprimés automatiquement.
     </p>
     <p>
       <strong>Compte LinkedIn.</strong> Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification Supabase Auth. Le nom et l’URL de la photo sont conservés dans les métadonnées de ce compte et copiés dans votre profil applicatif à sa création. Cette version ne synchronise pas le profil applicatif à chaque connexion ; les métadonnées d’authentification peuvent être actualisées par Supabase lors d’une connexion ultérieure.
@@ -109,7 +112,7 @@ useSeoMeta({
       Les personnes du collectif habilitées à administrer le service ou à traiter votre demande peuvent accéder aux informations nécessaires à leur mission.
     </p>
     <p>
-      Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
+      Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Sentry reçoit les erreurs techniques pour le diagnostic des pannes. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
     </p>
     <p>
       Les polices Alegreya et Hanken Grotesk et le logo sont servis par nos sites : leur chargement ne nécessite pas de requête vers Google Fonts. Supabase héberge les comptes, les sessions et les profils. LinkedIn assure la connexion et fournit les informations autorisées. Les photos restent hébergées à l’adresse fournie par LinkedIn : leur affichage entraîne une requête de votre navigateur vers cet hébergeur, sans transmettre l’adresse de la page Manzi-mfa comme référent.
@@ -127,7 +130,7 @@ useSeoMeta({
       7. Traitements internationaux
     </h2>
     <p>
-      Cloudflare, Supabase et LinkedIn utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
+      Sentry héberge les événements d’erreur de ce projet aux États-Unis. Cloudflare, Supabase et LinkedIn utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
     </p>
     <p>
       Les transferts doivent respecter les conditions du droit applicable. Lorsque le RGPD s’applique, les transferts hors de l’Espace économique européen nécessitent un mécanisme autorisé, tel qu’une décision d’adéquation ou des clauses contractuelles types, selon le transfert concerné. Pour obtenir des informations sur les garanties concernant vos données, contactez collectif@mongulu.cm.
@@ -136,6 +139,10 @@ useSeoMeta({
       8. Durées de conservation
     </h2>
     <dl class="retention-list">
+      <div>
+        <dt>Événements d’erreur Sentry</dt>
+        <dd>Suppression automatique après 30 jours en offre Developer ou 90 jours en offre Team, Business ou Enterprise ; l’offre au moment de la réception de l’événement détermine sa durée, même si l’abonnement change ensuite</dd>
+      </div>
       <div>
         <dt>Journaux d’exécution dans Cloudflare Workers Logs</dt>
         <dd>Selon la documentation du prestataire à la date de cette version : 3 jours en offre Free et 7 jours en offre Paid ; suppression à l’expiration de la rétention de l’offre</dd>
@@ -157,6 +164,12 @@ useSeoMeta({
         <dd>Seulement le temps nécessaire à la vérification, sauf obligation légale de conservation</dd>
       </div>
     </dl>
+    <p>
+      Les <ULink
+        to="https://docs.sentry.io/security-legal-pii/security/data-retention-periods/"
+        class="text-primary underline"
+      >durées de rétention Sentry</ULink> détaillent ce critère par offre et type de données.
+    </p>
     <p>
       La <ULink
         to="https://developers.cloudflare.com/workers/observability/logs/workers-logs/"
