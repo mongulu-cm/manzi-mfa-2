@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/vitrine.css'],
   runtimeConfig: {
-    public: { appUrl: 'https://app.manzi-mfa-2.mongulu.cm' },
+    public: { appUrl: 'https://app.manzi-mfa-2.mongulu.cm', sentry: { app: 'vitrine' } },
   },
   compatibilityDate: '2026-10-01',
   nitro: {

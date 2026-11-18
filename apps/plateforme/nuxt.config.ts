@@ -34,6 +34,7 @@ export default defineNuxtConfig({
     supabaseSecretKey: '',
     public: {
       analyticsSurface: 'plateforme',
+      sentry: { app: 'plateforme' },
       siteUrl: 'https://manzi-mfa-2.mongulu.cm',
       supabaseUrl: '',
       supabasePublishableKey: '',

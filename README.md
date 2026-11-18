@@ -11,6 +11,10 @@ Le dépôt contient deux applications Nuxt 4 et une Layer Mongulu commune :
 
 La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première connexion crée le compte Supabase et son profil ; `/` affiche le nom, la photo et l’e-mail du compte connecté. L’e-mail est conservé dans Supabase Auth et, avec consentement, sert d’identifiant PostHog et les profils ne sont lisibles que par leur propriétaire.
 
+## Diagnostic des erreurs
+
+Sentry couvre le navigateur et les endpoints Cloudflare des deux applications. Voir [docs/sentry.md](docs/sentry.md) pour la configuration des environnements, les source maps, le filtrage et la vérification contrôlée. Les secrets d'upload restent dans Workers Builds ; un DSN vide désactive la télémétrie locale.
+
 ## Confidentialité
 
 [PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Le texte décrit les comptes LinkedIn et les profils Supabase. Réviser ce texte avant toute nouvelle collecte (CV, échanges, statistiques ou paiements).
@@ -136,8 +140,8 @@ L’image de build fournit npm 10.9.2, qui refuse le `package-lock.json` produit
 
 Chemins surveillés, relatifs à la racine Git :
 
-- Vitrine : `apps/vitrine/**`, `layers/**`, `package.json`, `package-lock.json`, `.nvmrc`.
-- Plateforme : `apps/plateforme/**`, `layers/**`, `package.json`, `package-lock.json`, `.nvmrc`.
+- Vitrine : `apps/vitrine/**`, `layers/**`, `package.json`, `package-lock.json`, `.nvmrc`, `scripts/**`.
+- Plateforme : `apps/plateforme/**`, `layers/**`, `package.json`, `package-lock.json`, `.nvmrc`, `scripts/**`.
 
 Un changement dans la Layer ou les dépendances déclenche donc les deux builds. Les deux Workers disposent de l'observabilité et de previews activées sur leur domaine personnalisé.
 
