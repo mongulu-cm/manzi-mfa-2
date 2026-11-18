@@ -44,7 +44,7 @@
     "@nuxt/ui": "^4.11.3",
     "@sentry/nuxt": "11.14.0",
     "@supabase/server": "^1.9.0",
-    "nuxt": "4.6.2",
+    "nuxt": "4.6.4",
     "tailwindcss": "^4.3.3",
     "vue": "^3.5.43"
   },
