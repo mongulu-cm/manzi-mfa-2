@@ -1,10 +1,11 @@
 import { getCookie } from 'h3'
+import { isExpectedError } from '../../shared/utils/expected-error'
 import { consentCookie, identityCookie, parseIdentity, exceptionProperties } from '../../shared/utils/analytics'
 
 export default defineNitroPlugin((nitro) => {
   nitro.hooks.hook('error', (error, { event }) => {
     // Sans requête consentie, les journaux Cloudflare restent le diagnostic serveur.
-    if (!event || getCookie(event, consentCookie) !== 'accepted') return
+    if (!event || getCookie(event, consentCookie) !== 'accepted' || isExpectedError(error)) return
     const config = useRuntimeConfig(event).public
     const identity = parseIdentity(getCookie(event, identityCookie))
     if (!config.posthogKey || !identity) return

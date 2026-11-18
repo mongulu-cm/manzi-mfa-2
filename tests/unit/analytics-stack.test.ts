@@ -9,6 +9,10 @@ function frames(stack: string, runtime: 'browser' | 'server' = 'server') {
 
 describe('stacktraces PostHog', () => {
   afterEach(() => vi.unstubAllGlobals())
+  it('ne symbolique pas les dépendances comme une entrée applicative et distingue les vendors', () => {
+    expect(frames('Error\n at fn (file:///build/node_modules/package/index.mjs:1:2)\n at fn (file:///build/other/index.js:1:2)')).toEqual([])
+    expect(frames('Error\n at fn (https://app.test/_nuxt/vendor-abc.js:3:4)', 'browser')[0]?.in_app).toBe(false)
+  })
   it('associe chaque frame au chunk injecté, avant de retirer le chemin privé', () => {
     const id = '11111111-2222-4333-8444-555555555555'
     vi.stubGlobal('_posthogChunkIds', {
@@ -19,7 +23,7 @@ describe('stacktraces PostHog', () => {
     expect(frames('Error\n    at handler (file:///private/index.js:15:3)')[0]).toMatchObject({
       platform: 'node:javascript', filename: '/server/index.js', chunk_id: id, lineno: 15, colno: 3,
     })
-    expect(frames('Error\n    at handler (file:///private/worker.js:15:3)')[0]).not.toHaveProperty('chunk_id')
+    expect(frames('Error\n    at handler (file:///private/worker.js:15:3)')).toEqual([])
   })
   it('conserve les frames Wrangler observées, sans chemin local, dans l’ordre des appels', () => {
     const result = frames(`Error: private message

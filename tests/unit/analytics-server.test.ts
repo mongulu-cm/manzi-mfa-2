@@ -31,6 +31,8 @@ it('signale les erreurs Nitro consenties en arrière-plan sans données de requ�
   report(error, { event })
   expect(send).not.toHaveBeenCalled()
   config.public.posthogKey = 'test'
+  for (const statusCode of [400, 401, 404, 429]) report(Object.assign(new Error('expected'), { statusCode }), { event })
+  expect(send).not.toHaveBeenCalled()
   report(error, { event })
   await waitUntil.mock.calls[0]![0]
   expect(send).toHaveBeenCalledWith('https://posthog.test.invalid/i/v0/e/', expect.objectContaining({

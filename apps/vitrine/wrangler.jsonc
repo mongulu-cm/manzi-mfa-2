@@ -12,6 +12,8 @@
   },
   // Token de collecte public, sans accès en lecture au projet PostHog.
   "vars": {
+    "NUXT_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com",
+    "NUXT_PUBLIC_ANALYTICS_ENVIRONMENT": "production",
     "NUXT_PUBLIC_POSTHOG_KEY": "phc_ufZYVFfQx6zXYJmPUtHfoDQatKEb8FFqPgwFYvA328xE",
     "NUXT_PUBLIC_ANALYTICS_COOKIE_DOMAIN": "manzi-mfa-2.mongulu.cm"
   },

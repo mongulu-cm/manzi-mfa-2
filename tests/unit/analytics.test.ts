@@ -3,16 +3,18 @@ import { createAnalyticsService } from '../../layers/mongulu/app/utils/analytics
 import { cookieDomain, exceptionProperties, filterProperties, parseIdentity, safePage, sanitizeCapture } from '../../layers/mongulu/shared/utils/analytics'
 
 const anonymous = '11111111-1111-4111-8111-111111111111'
+const resetId = (sequence: number) => `22222222-2222-4222-8222-${String(sequence).padStart(12, '0')}`
 const user = 'membre@example.invalid'
 const other = 'autre@example.invalid'
 function fixture() {
   let id = anonymous
+  let resets = 0
   let consent = true
   let identity: { id: string, identified: boolean } | undefined
   const client = {
     capture: vi.fn(), identify: vi.fn((value: string) => { id = value }),
     register: vi.fn((value: { distinct_id: string }) => { id = value.distinct_id }),
-    reset: vi.fn(() => { id = anonymous }), get_distinct_id: () => id,
+    reset: vi.fn(() => { id = resetId(++resets) }), get_distinct_id: () => id,
   }
   const options = {
     enabled: true, surface: 'plateforme', environment: 'test', origin: 'https://app.example.test',
@@ -114,7 +116,7 @@ describe('collecte indépendante du parcours utilisateur', () => {
     expect(f.client.reset).toHaveBeenCalledWith(true)
     expect(f.client.identify).toHaveBeenLastCalledWith(other, { email: other })
     f.service.identify(null)
-    expect(f.options.saveIdentity).toHaveBeenLastCalledWith({ id: anonymous, identified: false })
+    expect(f.options.saveIdentity).toHaveBeenLastCalledWith({ id: resetId(2), identified: false })
     f.service.identify(null)
     f.service.track('profile.viewed')
     f.service.track('unknown' as 'profile.viewed')
@@ -131,6 +133,8 @@ describe('collecte indépendante du parcours utilisateur', () => {
     expect(f.client.capture).toHaveBeenCalledTimes(1)
     f.service.pageview('/ressources?email=private')
     expect(f.client.capture).toHaveBeenCalledTimes(2)
+    f.service.exception({ statusCode: 404 })
+    expect(f.client.capture).toHaveBeenCalledTimes(2)
     f.service.exception(new Error('secret'))
     expect(f.client.capture).toHaveBeenLastCalledWith('$exception', expect.objectContaining({ $exception_level: 'error' }))
   })
@@ -144,7 +148,7 @@ describe('collecte indépendante du parcours utilisateur', () => {
     expect(f.client.identify).toHaveBeenLastCalledWith(other)
     f.setIdentity(undefined)
     f.service.track('profile.viewed')
-    expect(f.client.get_distinct_id()).toBe(anonymous)
+    expect(f.client.get_distinct_id()).toBe(resetId(2))
   })
   it('conserve le statut anonyme après une déconnexion dans un autre onglet', async () => {
     const f = fixture()

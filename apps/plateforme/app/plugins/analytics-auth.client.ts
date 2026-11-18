@@ -1,6 +1,7 @@
 export default defineNuxtPlugin({
   dependsOn: ['analytics'],
   setup(app) {
+    const analytics = useAnalytics()
     // Le plugin auth est disponible après l'installation des plugins.
     app.hook('app:created', () => {
       const auth = app.$auth
@@ -14,13 +15,13 @@ export default defineNuxtPlugin({
         else if (ready) app.$analytics.identify(null)
       }, { immediate: true, flush: 'sync' })
       watch(() => auth.state.signingIn, (value) => {
-        if (value) app.$analytics.track('auth.login_started')
+        if (value) analytics.track('auth.login_started')
       })
       watch(() => auth.state.profile, (value) => {
-        if (value) app.$analytics.track('profile.viewed')
+        if (value) analytics.track('profile.viewed')
       })
       watch(() => auth.state.profileError, (value) => {
-        if (value) app.$analytics.track('profile.load_failed')
+        if (value) analytics.track('profile.load_failed')
       })
     })
   },

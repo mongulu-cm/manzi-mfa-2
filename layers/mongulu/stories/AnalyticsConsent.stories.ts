@@ -20,9 +20,13 @@ export const Accepted: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByRole('button', { name: 'Préférences de statistiques' }))
+    await expect(canvas.getByRole('heading')).toHaveFocus()
     await userEvent.click(canvas.getByRole('button', { name: 'Refuser', exact: true }))
     await expect(args.onChoose).toHaveBeenCalledWith('rejected')
+    await expect(canvas.getByRole('button', { name: 'Préférences de statistiques' })).toHaveFocus()
   },
 }
 export const Rejected: Story = { args: { choice: 'rejected' } }
-export const Mobile: Story = { globals: { viewport: { value: 'mobile1', isRotated: false } } }
+export const Mobile: Story = {
+  decorators: [() => ({ template: '<div class="w-80"><story /></div>' })],
+}

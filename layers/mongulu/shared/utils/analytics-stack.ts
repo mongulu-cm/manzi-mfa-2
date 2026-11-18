@@ -17,13 +17,15 @@ function chunkIds() {
   return files
 }
 
-function codeFile(location: string, runtime: Runtime) {
+function codeFile(location: string, runtime: Runtime, instrumented: boolean) {
   // Normaliser les bundles sans transmettre le répertoire de build ni les URLs.
+  if (/(?:^|\/)node_modules\//.test(location)) return
   const chunk = location.match(/\/(?:_nuxt|chunks)\/(?:[\w-]+\/)*[\w.-]+\.m?js$/)
   if (chunk) return chunk[0]
   if (runtime === 'server') {
     const worker = location.match(/(?:^|\/)((?:index|_?worker)\.m?js)$/)
-    if (worker) return `/server/${worker[1]}`
+    const entry = !location.includes('/') || /\/(?:\.output\/server|\.wrangler\/tmp\/[\w-]+|server)\/[^/]+$/.test(location)
+    if (worker && (entry || instrumented)) return `/server/${worker[1]}`
   }
 }
 
@@ -37,13 +39,14 @@ export function exceptionFrames(stack: string, runtime: Runtime) {
   return stack.split('\n').slice(1, 21).flatMap((line) => {
     const frame = parseFrame(line)
     if (!frame) return []
-    const filename = codeFile(frame[2]!, runtime)
+    const filename = codeFile(frame[2]!, runtime, chunks.has(frame[2]!))
     if (!filename) return []
     return [{
       platform: runtime === 'server' ? 'node:javascript' : 'web:javascript',
       ...(chunks.has(frame[2]!) ? { chunk_id: chunks.get(frame[2]!) } : {}),
       function: codeFunction(frame[1] ?? '<anonymous>', runtime),
-      filename, lineno: Number(frame[3]), colno: Number(frame[4]), in_app: true,
+      filename, lineno: Number(frame[3]), colno: Number(frame[4]),
+      in_app: !/(?:^|[/_-])vendor(?:[/_.-]|$)/i.test(filename),
     }]
   }).reverse()
 }

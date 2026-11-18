@@ -782,6 +782,41 @@ test('PostHog respecte le consentement, relie les deux sites et retire les donn�
     await waitEvent('$exception')
     assert.equal(events.find(event => event.event === '$exception').properties.distinct_id, authUser.email)
     assert.doesNotMatch(JSON.stringify(events), /private@example|private-oauth|secret-token|test-refresh|test-code/)
+    // Un échec de déconnexion garde le compte ; seule la réussite émet l'événement anonyme.
+    await page.route('https://supabase.test.invalid/auth/v1/logout**', route => route.fulfill({ status: 500, json: { message: 'unavailable' } }))
+    await page.getByRole('button', { name: 'Se déconnecter' }).click()
+    await page.getByRole('alert').getByText(/La déconnexion a échoué/).waitFor()
+    assert.equal(events.some(event => event.event === 'auth.logout_succeeded'), false)
+    await page.unroute('https://supabase.test.invalid/auth/v1/logout**')
+    await page.getByRole('button', { name: 'Se déconnecter' }).click()
+    await page.waitForURL(`${appUrl}/login`)
+    await waitEvent('auth.logout_succeeded')
+    const logoutId = events.find(event => event.event === 'auth.logout_succeeded').properties.distinct_id
+    assert.notEqual(logoutId, anonymousId)
+    assert.notEqual(logoutId, authUser.email)
+    const saved = (await context.cookies()).find(cookie => cookie.name === 'manzi_analytics_identity_v1')
+    assert.deepEqual(JSON.parse(decodeURIComponent(saved.value)), { id: logoutId, identified: false })
+    const exceptionsBefore = events.filter(event => event.event === '$exception').length
+    await site.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { error: new Error('cross-tab reset') })))
+    await new Promise((resolve, reject) => {
+      const started = Date.now()
+      const timer = setInterval(() => {
+        if (events.filter(event => event.event === '$exception').length > exceptionsBefore) {
+          clearInterval(timer)
+          resolve()
+        }
+        else if (Date.now() - started > 15_000) {
+          clearInterval(timer)
+          reject(new Error('Cross-tab exception absent'))
+        }
+      }, 100)
+    })
+    assert.equal(events.filter(event => event.event === '$exception').at(-1).properties.distinct_id, logoutId)
+    await page.goto(`${appUrl}/auth/callback`)
+    await page.waitForURL(`${appUrl}/login`)
+    assert.equal(events.some(event => event.event === 'auth.login_failed'), false)
+    await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+    await page.getByRole('heading', { name: /Bienvenue/ }).waitFor()
     await site.getByRole('button', { name: 'Préférences de statistiques' }).click()
     await site.getByRole('button', { name: 'Refuser', exact: true }).click()
     const count = requests.length

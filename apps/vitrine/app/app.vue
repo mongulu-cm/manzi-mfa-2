@@ -8,6 +8,5 @@ import { fr } from '@nuxt/ui/locale'
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <AnalyticsPreferences />
   </UApp>
 </template>

@@ -1,5 +1,6 @@
 <template>
   <MonguluShell>
+    <AnalyticsPreferences />
     <slot />
     <PwaInstallCard
       v-bind="$pwaInstall.state"

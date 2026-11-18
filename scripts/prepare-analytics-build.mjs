@@ -14,7 +14,8 @@ const config = JSON.parse(await readFile(configPath, 'utf8'))
 const artifacts = resolve(output, 'posthog')
 const client = resolve(output, 'public/_nuxt')
 const server = resolve(output, 'server')
-const version = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+const version = process.env.SENTRY_RELEASE || process.env.WORKERS_CI_COMMIT_SHA
+  || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 const release = ['--release-name', config.name, '--release-version', version]
 const run = (bin, args) => execFileSync(process.execPath, [resolve(root, 'node_modules', bin), ...args], {
   stdio: 'inherit',
@@ -51,10 +52,12 @@ else console.info('PostHog : sourcemaps préparées localement ; aucun upload sa
 // PostHog ajuste les positions pendant l'injection : Sentry reçoit les mêmes fichiers finaux.
 if (process.env.SENTRY_AUTH_TOKEN) {
   const cli = new SentryCli(null, { authToken: process.env.SENTRY_AUTH_TOKEN, org: 'mongulu', project: 'manzi-mfa-2' })
-  const sentryRelease = process.env.SENTRY_RELEASE || process.env.WORKERS_CI_COMMIT_SHA || version
   for (const directory of directories) {
-    await cli.execute(['sourcemaps', 'upload', '--no-rewrite', '--wait', '--strict', '--release', sentryRelease, directory], false)
+    await cli.execute(['sourcemaps', 'upload', '--no-rewrite', '--wait', '--strict', '--release', version, directory], false)
   }
+}
+else if (process.env.SENTRY_SOURCEMAPS_REQUIRED === 'true') {
+  throw new Error('SENTRY_AUTH_TOKEN est nécessaire à la publication des sourcemaps.')
 }
 else console.info('Sentry : aucun upload sans clé privée de build.')
 

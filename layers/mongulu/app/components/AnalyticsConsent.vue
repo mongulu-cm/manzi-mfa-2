@@ -2,19 +2,33 @@
 defineProps<{ choice: string }>()
 const emit = defineEmits<{ choose: [choice: 'accepted' | 'rejected'] }>()
 const editing = ref(false)
-function choose(choice: 'accepted' | 'rejected') {
+const region = useTemplateRef<HTMLElement>('region')
+const heading = useTemplateRef<HTMLHeadingElement>('heading')
+async function choose(choice: 'accepted' | 'rejected') {
   emit('choose', choice)
   editing.value = false
+  await nextTick()
+  region.value?.querySelector<HTMLButtonElement>('[data-preferences]')?.focus()
+}
+async function edit() {
+  editing.value = true
+  await nextTick()
+  heading.value?.focus()
 }
 </script>
 
 <template>
   <section
+    ref="region"
     class="mx-auto w-full max-w-4xl px-3 py-5 sm:px-5"
     aria-label="Préférences de statistiques"
   >
     <UCard v-if="!choice || editing">
-      <h2 class="font-display text-h3 font-bold">
+      <h2
+        ref="heading"
+        tabindex="-1"
+        class="font-display text-h3 font-bold"
+      >
         Nous aider à améliorer Manzi-mfa
       </h2>
       <p class="my-4">
@@ -38,8 +52,9 @@ function choose(choice: 'accepted' | 'rejected') {
     <UButton
       v-else
       label="Préférences de statistiques"
+      data-preferences
       variant="link"
-      @click="editing = true"
+      @click="edit"
     />
   </section>
 </template>

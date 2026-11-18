@@ -29,7 +29,7 @@ export default defineNuxtConfig({
       posthogKey: '',
       posthogHost: 'https://eu.i.posthog.com',
       analyticsSurface: 'vitrine',
-      analyticsEnvironment: 'production',
+      analyticsEnvironment: 'unconfigured',
       analyticsCookieDomain: '',
       sentry: {
         dsn: '',

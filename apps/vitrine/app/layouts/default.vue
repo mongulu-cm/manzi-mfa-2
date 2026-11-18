@@ -3,6 +3,7 @@
     <template #header>
       <SiteHeaderActions />
     </template>
+    <AnalyticsPreferences />
     <slot />
     <template #footer>
       <div class="flex flex-wrap items-center justify-between gap-4">

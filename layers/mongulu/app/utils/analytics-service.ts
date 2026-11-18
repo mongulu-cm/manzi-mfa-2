@@ -1,5 +1,6 @@
 import type { AnalyticsEvent, AnalyticsIdentity, AnalyticsPerson } from '../../shared/utils/analytics'
 import { analyticsEmail, analyticsEvents, analyticsPerson, exceptionProperties, safePage } from '../../shared/utils/analytics'
+import { isExpectedError } from '../../shared/utils/expected-error'
 
 export interface AnalyticsClient {
   capture: (event: string, properties: Record<string, unknown>) => unknown
@@ -114,6 +115,7 @@ export function createAnalyticsService(options: {
     },
     exception(error: unknown) {
       try {
+        if (isExpectedError(error)) return
         emit('$exception', exceptionProperties(error))
       }
       catch { /* Ne jamais signaler récursivement une erreur d'instrumentation. */ }
