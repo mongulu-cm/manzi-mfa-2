@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { normalizeSourcePaths } from './analytics-sourcemaps.mjs'
 
 // Exécuté après Nuxt, depuis le workspace de l'application.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -21,6 +22,17 @@ await mkdir(artifacts, { recursive: true })
 // Wrangler compose les maps Nitro/TypeScript dans le bundle réellement exécuté.
 run('wrangler/bin/wrangler.js', ['deploy', '--config', configPath, '--dry-run', '--outdir', resolve(artifacts, 'server'), '--upload-source-maps'])
 await cp(client, resolve(artifacts, 'client'), { recursive: true })
+async function normalizeMaps(directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name)
+    if (entry.isDirectory()) await normalizeMaps(path)
+    else if (entry.name.endsWith('.map')) {
+      const map = normalizeSourcePaths(JSON.parse(await readFile(path, 'utf8')), path, root)
+      await writeFile(path, JSON.stringify(map))
+    }
+  }
+}
+await normalizeMaps(artifacts)
 if (process.env.POSTHOG_CLI_API_KEY) {
   run(posthogCli, ['sourcemap', 'inject', '--directory', artifacts, ...release])
   run(posthogCli, ['sourcemap', 'upload', '--directory', artifacts, ...release])
