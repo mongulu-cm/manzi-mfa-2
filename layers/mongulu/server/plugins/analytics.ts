@@ -16,7 +16,7 @@ export default defineNitroPlugin((nitro) => {
           body: {
             api_key: config.posthogKey, distinct_id: identity.id, event: '$exception',
             properties: {
-              ...exceptionProperties(error), $process_person_profile: identity.identified,
+              ...exceptionProperties(error, 'server'), $process_person_profile: identity.identified,
               $geoip_disable: true,
               surface: config.analyticsSurface, environment: config.analyticsEnvironment,
               schema_version: 1, runtime: 'server',

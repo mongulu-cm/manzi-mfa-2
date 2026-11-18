@@ -19,6 +19,7 @@ it('signale les erreurs Nitro consenties en arrière-plan sans données de requ�
   const waitUntil = vi.fn()
   const event = { waitUntil }
   const error = new Error('private email token')
+  error.stack = 'Error: private email token\n    at Object.handler (file:///private/.wrangler/tmp/dev-test/index.js:1561:118)'
   report(error, {})
   report(error, { event })
   expect(send).not.toHaveBeenCalled()
@@ -37,6 +38,9 @@ it('signale les erreurs Nitro consenties en arrière-plan sans données de requ�
     body: expect.objectContaining({ event: '$exception', properties: expect.objectContaining({ $geoip_disable: true, runtime: 'server' }) }),
   }))
   expect(JSON.stringify(send.mock.calls)).not.toMatch(/private|email|token/)
+  expect(send.mock.calls[0]![1].body.properties.$exception_list[0].stacktrace.frames).toEqual([
+    { platform: 'custom', lang: 'javascript', function: 'Object.handler', filename: '/server/index.js', lineno: 1561, colno: 118, in_app: true },
+  ])
   send.mockRejectedValueOnce(new Error('offline'))
   report(error, { event })
   await expect(waitUntil.mock.calls[1]![0]).resolves.toBeUndefined()

@@ -1,4 +1,5 @@
 import type { CaptureResult } from 'posthog-js'
+import { exceptionFrames } from './analytics-stack'
 
 // Ce catalogue est le contrat commun : aucune propriété libre ni contenu utilisateur.
 export const analyticsEvents = {
@@ -44,14 +45,9 @@ export function parseIdentity(value: unknown): AnalyticsIdentity | undefined {
 }
 
 // Garder les emplacements du code, jamais le message, les causes, les variables ou l'URL de requête.
-export function exceptionProperties(error: unknown) {
+export function exceptionProperties(error: unknown, runtime: 'browser' | 'server' = 'browser') {
   const type = error instanceof Error && ['Error', 'TypeError', 'RangeError', 'ReferenceError', 'SyntaxError', 'URIError', 'EvalError'].includes(error.name) ? error.name : 'Error'
-  const frames = error instanceof Error
-    ? (error.stack ?? '').split('\n').slice(1, 21).flatMap((line) => {
-        const match = line.match(/(?:https?:\/\/[^/\s]+)?(\/(?:_nuxt|chunks)\/[\w./-]+\.(?:m?js)):(\d+):(\d+)/)
-        return match ? [{ platform: 'custom', lang: 'javascript', function: '<redacted>', filename: match[1], lineno: Number(match[2]), colno: Number(match[3]), in_app: true }] : []
-      }).reverse()
-    : []
+  const frames = error instanceof Error ? exceptionFrames(error.stack ?? '', runtime) : []
   return {
     $exception_list: [{ type, value: 'Unexpected application error', mechanism: { type: 'generic', handled: false }, stacktrace: { type: 'raw', frames } }],
     $exception_level: 'error',

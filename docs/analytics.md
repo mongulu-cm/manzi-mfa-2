@@ -32,7 +32,9 @@ Le retrait du consentement supprime le cookie d’identité ; chaque capture vé
 
 ## Erreurs
 
-Les messages, causes, variables, en-têtes et corps de requête sont exclus. PostHog reçoit un type d’erreur standard et, lorsqu’ils existent, les emplacements `/_nuxt/*.js` et `/chunks/*.mjs` (fichier, ligne, colonne) pour le regroupement. Cette minimisation limite le diagnostic : pas de message métier ni de sourcemaps téléversées dans cette version. Les journaux Cloudflare restent disponibles, notamment sans consentement ou avant l’initialisation du navigateur. Une erreur Vue/Nuxt relayée par plusieurs hooks peut apparaître plusieurs fois.
+Les messages, causes, variables, en-têtes et corps de requête sont exclus. PostHog reçoit un type d’erreur standard et les frames de code (fichier, ligne, colonne) dans l’ordre des appels. Les bundles navigateur `/_nuxt/*.js` et les chunks Nitro `/chunks/*.mjs` sont reconnus. Côté serveur, les bundles Cloudflare/Wrangler `index.js`, `index.mjs`, `worker.js` et `_worker.js` sont normalisés sous `/server/`, sans chemin local ni répertoire temporaire. Les noms de fonctions serveur sont conservés lorsqu’ils sont des identifiants de code ; les noms dynamiques sont remplacés par `<anonymous>`.
+
+Les lignes et colonnes désignent le bundle exécuté : conserver les artefacts du build concerné pour les rapprocher du code. Il n’y a pas encore de sourcemaps téléversées ni de message métier dans cette version. Les journaux Cloudflare restent disponibles, notamment sans consentement ou avant l’initialisation du navigateur. Une erreur Vue/Nuxt relayée par plusieurs hooks peut apparaître plusieurs fois.
 
 Nitro envoie un rapport seulement pour une requête portant les cookies de consentement et d’identité valides. Il utilise l’API publique d’ingestion et `event.waitUntil`, avec un timeout de trois secondes et sans retry ; aucun état utilisateur n’est partagé entre requêtes. Les échecs PostHog sont absorbés et ne remplacent pas l’erreur d’origine. Le cookie client est un indicateur de corrélation, jamais une preuve d’identité serveur.
 
