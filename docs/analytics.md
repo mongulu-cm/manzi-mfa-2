@@ -71,7 +71,7 @@ Configurer `POSTHOG_CLI_API_KEY` comme **secret de build**, jamais comme variabl
 
 La release reprend le nom du Worker et la version explicite (`SENTRY_RELEASE`, puis `WORKERS_CI_COMMIT_SHA`, sinon le SHA Git). Pour vérifier une erreur réelle sans toucher la production :
 
-1. Créer les fixtures temporaires avec `node tests/smoke/sentry-fixtures.mjs create`, puis construire avec les deux secrets de sourcemaps fournis au processus de build.
+1. Créer les fixtures temporaires avec `node tests/smoke/sentry-fixtures.mjs create`, puis construire avec les deux secrets de sourcemaps fournis au seul processus `npm run build`. Retirer ensuite ces variables de l’environnement local et supprimer leur copie temporaire avant de lancer Wrangler, conformément à [la procédure Sentry](sentry.md) ; ne jamais les transmettre au runtime.
 2. Exécuter le build localement avec Wrangler, configurer le token public PostHog, `environment=validation`, le consentement accepté et une identité synthétique.
 3. Appeler `/api/__sentry-verify` : la route temporaire lance une exception non interceptée et répond 500. Vérifier sa réception dans PostHog et le fichier `apps/<application>/server/api/__sentry-verify.get.ts`, ligne 5, avec son contexte TypeScript. Ne pas simuler seulement un événement `$exception` à la main.
 4. Appeler `/api/__sentry-verify?mode=expected` : la réponse 401 ne doit produire aucun événement d’erreur. Les réponses 4xx, notamment un challenge invalide à `/api/auth/linkedin`, sont volontairement exclues.
