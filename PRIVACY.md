@@ -1,6 +1,6 @@
 # Politique de confidentialité — Manzi-mfa
 
-**Version du 6 octobre 2026.**
+**Version du 18 novembre 2026.**
 
 Le Collectif Mongulu explique ici comment les informations sont traitées lors de la consultation de Manzi-mfa et des échanges avec le collectif. Pour toute question ou demande concernant vos données, écrivez à [collectif@mongulu.cm](mailto:collectif@mongulu.cm).
 
@@ -11,9 +11,9 @@ Le Collectif Mongulu explique ici comment les informations sont traitées lors d
 | Responsable | Collectif Mongulu — collectif@mongulu.cm |
 | Service | Manzi-mfa facilite l’accès à l’emploi IT grâce à un échange avec un senior ; cette fonctionnalité n’est pas encore ouverte sur les sites |
 | Sites concernés | https://manzi-mfa-2.mongulu.cm et https://app.manzi-mfa-2.mongulu.cm |
-| Données | Informations techniques, identifiant de compte, nom, e-mail, URL de photo, session locale, préférence d’affichage et courriels |
-| Utilisation | Affichage des pages et du profil, connexion et maintien de session, sécurité, diagnostic et réponse à vos demandes |
-| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos |
+| Données | Informations techniques, identifiants de compte et de mesure, événements consentis, choix de statistiques, nom, e-mail, URL de photo, session locale, préférence d’affichage et courriels |
+| Utilisation | Affichage des pages et du profil, connexion et maintien de session, statistiques consenties, sécurité, diagnostic et réponse à vos demandes |
+| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos, PostHog pour les statistiques et erreurs consenties |
 | Conservation | Compte et profil tant que le compte existe ; session jusqu’à déconnexion ou effacement local ; journaux Workers : 3 ou 7 jours selon l’offre ; préférence locale jusqu’à son effacement ; correspondance pendant le traitement de la demande et la durée nécessaire à sa justification |
 | Droits | Accès, rectification, effacement et autres droits selon la législation applicable ; demande par courriel au collectif |
 | Cadre juridique | Les règles de protection des données applicables au traitement, notamment le droit camerounais et, lorsque ses critères territoriaux sont remplis, le RGPD |
@@ -46,13 +46,13 @@ Avant l’ouverture de nouvelles fonctions, cette politique sera actualisée pou
 
 **Courriels.** Si vous écrivez à collectif@mongulu.cm, nous recevons votre adresse électronique, le contenu de votre message et les pièces jointes que vous choisissez d’envoyer. Fournissez uniquement les informations nécessaires à votre demande et évitez de transmettre des documents sensibles sans nécessité.
 
-Le nom, la photo et l’adresse e-mail peuvent être fournis par LinkedIn lors de la connexion. Votre mot de passe LinkedIn est saisi uniquement chez LinkedIn et n’est pas reçu par Manzi-mfa. Les pages ne demandent ni CV ni coordonnées de paiement. Elles ne sollicitent pas votre localisation précise, votre caméra ou votre microphone. Le code des applications ne comporte pas d’outil publicitaire, de mesure d’audience, de profilage de candidats ou de décision automatisée de recrutement.
+Le nom, la photo et l’adresse e-mail peuvent être fournis par LinkedIn lors de la connexion. Votre mot de passe LinkedIn est saisi uniquement chez LinkedIn et n’est pas reçu par Manzi-mfa. Les pages ne demandent ni CV ni coordonnées de paiement. Elles ne sollicitent pas votre localisation précise, votre caméra ou votre microphone. Le code des applications ne comporte pas d’outil publicitaire, de profilage de candidats ou de décision automatisée de recrutement. Avec votre accord, PostHog mesure les visites, les étapes des parcours et les erreurs sur les deux sites. Un identifiant aléatoire partagé entre les sites est rattaché à votre identifiant de compte Supabase après connexion. Il est renouvelé à la déconnexion. Nous ne transmettons ni nom, ni e-mail, ni photo, ni contenu de formulaire, ni jeton de connexion. Les paramètres des URL et les messages d’erreur bruts sont retirés. Les enregistrements de session et la capture automatique des clics sont désactivés.
 
 ### 4. Finalités
 
 Les données du compte permettent de vous authentifier, de maintenir votre session et d’afficher votre nom, votre photo et votre e-mail dans votre espace.
 
-Les informations techniques servent à afficher les pages et leurs ressources, maintenir leur disponibilité, protéger les sites contre les requêtes abusives et diagnostiquer les erreurs. La préférence locale sert à conserver un affichage cohérent.
+Les informations techniques servent à afficher les pages et leurs ressources, maintenir leur disponibilité, protéger les sites contre les requêtes abusives et diagnostiquer les erreurs. La préférence locale sert à conserver un affichage cohérent. Les statistiques consenties servent à comprendre la fréquentation, les abandons de parcours et les erreurs pour améliorer le service.
 
 Les informations que vous nous adressez par courriel servent à comprendre votre demande, vous répondre et, le cas échéant, traiter l’exercice de vos droits.
 
@@ -66,13 +66,13 @@ Les traitements techniques nécessaires au fonctionnement et à la sécurité du
 
 Le traitement des demandes d’exercice de droits repose sur les obligations de protection des données applicables au collectif. Une conservation ou une communication imposée par la loi repose sur l’obligation légale correspondante.
 
-La simple consultation du site ne constitue pas un consentement général à l’utilisation de vos données. Un éventuel traitement futur nécessitant votre consentement fera l’objet d’un choix préalable, spécifique et révocable. Les données du compte ne sont pas utilisées pour la publicité ou pour évaluer une candidature.
+La simple consultation du site ne constitue pas un consentement général à l’utilisation de vos données. La mesure d’audience, des parcours et des erreurs par PostHog repose sur votre consentement préalable et révocable depuis « Préférences de statistiques », sur chacun des deux sites. Le refus ne limite pas l’accès au service. Les données du compte ne sont pas utilisées pour la publicité ou pour évaluer une candidature.
 
 ### 6. Destinataires et prestataires
 
 Les personnes du collectif habilitées à administrer le service ou à traiter votre demande peuvent accéder aux informations nécessaires à leur mission.
 
-Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
+PostHog reçoit les événements consentis dans notre projet hébergé dans la région Union européenne. L’adresse IP est nécessaire au transport réseau, mais la géolocalisation PostHog est désactivée. Cloudflare intervient pour l’hébergement, la distribution des ressources et la protection du trafic. Les courriels transitent également par les services de messagerie de l’expéditeur et du destinataire. Les informations peuvent être communiquées aux autorités lorsqu’une demande légalement valable impose cette communication.
 
 Les polices Alegreya et Hanken Grotesk et le logo sont servis par nos sites : leur chargement ne nécessite pas de requête vers Google Fonts. Supabase héberge les comptes, les sessions et les profils. LinkedIn assure la connexion et fournit les informations autorisées. Les photos restent hébergées à l’adresse fournie par LinkedIn : leur affichage entraîne une requête de votre navigateur vers cet hébergeur, sans transmettre l’adresse de la page Manzi-mfa comme référent.
 
@@ -80,7 +80,7 @@ Les informations relatives aux traitements de Cloudflare figurent dans sa [polit
 
 ### 7. Traitements internationaux
 
-Cloudflare, Supabase et LinkedIn utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
+Cloudflare, Supabase, LinkedIn et PostHog utilisent des infrastructures internationales et les échanges par courriel peuvent également transiter par d’autres pays. Des traitements peuvent donc avoir lieu hors de votre pays de résidence ; cette politique ne garantit pas une conservation exclusivement au Cameroun ou dans l’Union européenne.
 
 Les transferts doivent respecter les conditions du droit applicable. Lorsque le RGPD s’applique, les transferts hors de l’Espace économique européen nécessitent un mécanisme autorisé, tel qu’une décision d’adéquation ou des clauses contractuelles types, selon le transfert concerné. Pour obtenir des informations sur les garanties concernant vos données, contactez collectif@mongulu.cm.
 
@@ -100,13 +100,13 @@ Le compte et son profil sont conservés tant que le compte existe. Pour demander
 
 ### 9. Cookies et stockage local
 
-Le code applicatif ne dépose pas de cookie publicitaire ou de mesure d’audience. La préférence éventuelle de thème est conservée dans le stockage local, distinct des cookies. Sur la plateforme, Supabase conserve également les éléments de session dans ce stockage pour maintenir votre connexion et renouveler les jetons expirés. Ils sont retirés à la déconnexion ou lorsque vous effacez les données du site dans votre navigateur.
+Le code applicatif ne dépose pas de cookie publicitaire. Le cookie manzi_analytics_consent_v1 conserve votre choix pendant 180 jours sur les deux sites. Seulement après acceptation, manzi_analytics_identity_v1 conserve l’identifiant de mesure pendant 180 jours à compter de sa dernière écriture. Le retrait du consentement supprime cet identifiant et arrête les nouveaux envois. Les événements déjà reçus sont conservés jusqu’à un an, selon l’offre gratuite PostHog sélectionnée ; vous pouvez en demander l’effacement au collectif. Le suivi ne relie pas automatiquement des navigateurs ou appareils distincts avant connexion. La préférence éventuelle de thème est conservée dans le stockage local, distinct des cookies. Sur la plateforme, Supabase conserve également les éléments de session dans ce stockage pour maintenir votre connexion et renouveler les jetons expirés. Ils sont retirés à la déconnexion ou lorsque vous effacez les données du site dans votre navigateur.
 
 Cloudflare peut utiliser des cookies de sécurité selon les protections activées. Sa [documentation sur les cookies](https://developers.cloudflare.com/fundamentals/reference/policies-compliances/cloudflare-cookies/) décrit leurs fonctions et leurs durées ; cette liste générale ne signifie pas que tous ces cookies sont présents sur nos sites.
 
 Vous pouvez effacer les cookies et le stockage local de chaque domaine dans les paramètres de votre navigateur. Vos préférences et certains mécanismes de sécurité pourront être réinitialisés.
 
-Tout futur traceur nécessitant un consentement sera soumis à votre choix avant son activation. Vous pourrez le refuser et retirer votre consentement. La navigation seule ne vaudra pas acceptation.
+Aucune requête PostHog n’est envoyée avant votre accord. Vous pouvez accepter, refuser et retirer votre consentement depuis « Préférences de statistiques ». La navigation seule ne vaut pas acceptation.
 
 ### 10. Vos droits
 

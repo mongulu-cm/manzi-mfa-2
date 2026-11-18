@@ -15,6 +15,12 @@ La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première con
 
 [PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Le texte décrit les comptes LinkedIn et les profils Supabase. Réviser ce texte avant toute nouvelle collecte (CV, échanges, statistiques ou paiements).
 
+## Analytics et erreurs (F-019)
+
+Les deux sites utilisent le même projet PostHog EU pour les pages vues, les parcours produit et les erreurs navigateur/Nitro. La collecte commence après acceptation dans « Préférences de statistiques ». Le cookie commun relie la visite anonyme à l’identifiant Supabase à la connexion ; la déconnexion renouvelle l’identité. Aucun e-mail, nom, formulaire, paramètre OAuth ou message d’erreur brut n’est envoyé. Les replays et l’autocapture sont désactivés.
+
+Voir [le contrat et le guide PostHog](docs/analytics.md) pour les événements, la configuration, les limites, les tests et l’exploitation. Le token de collecte public et le domaine de cookie sont configurés dans les Workers ; un développement local ou une CI sans token n’envoie rien.
+
 ## Démarrage
 
 Node.js 24 LTS >= 24.15.0 et npm. Node.js 22 >= 22.22.3 est également supporté. Ces minimums correspondent aux exigences de Nuxt 4.6.

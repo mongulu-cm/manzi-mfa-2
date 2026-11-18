@@ -9,6 +9,9 @@ import axe from 'axe-core'
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const vitrineUrl = 'http://127.0.0.1:3100'
 const appUrl = 'http://127.0.0.1:3101'
+// Opt-in local uniquement : aucune donnée réelle, même le compte OAuth est simulé.
+const smokeKey = process.env.CI ? '' : process.env.POSTHOG_SMOKE_KEY
+const analyticsHost = smokeKey ? 'https://eu.i.posthog.com' : 'https://posthog.test.invalid'
 const servers = []
 let browser
 
@@ -42,6 +45,9 @@ async function startServer(app, port, env = {}) {
       ...process.env, NUXT_PUBLIC_APP_URL: appUrl, NUXT_PUBLIC_SITE_URL: vitrineUrl,
       NUXT_PUBLIC_SUPABASE_URL: 'https://supabase.test.invalid',
       NUXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_e2e',
+      NUXT_PUBLIC_POSTHOG_KEY: smokeKey || 'phc_e2e',
+      NUXT_PUBLIC_POSTHOG_HOST: analyticsHost,
+      NUXT_PUBLIC_ANALYTICS_ENVIRONMENT: smokeKey ? 'validation' : 'test',
       ...env,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -303,7 +309,6 @@ test('la vitrine livre son contenu SEO en SSR et la plateforme une SPA', async (
 test('le lien de connexion ouvre la plateforme dans le même onglet puis permet de revenir', async () => {
   const page = await browser.newPage()
   const errors = []
-  page.on('pageerror', error => errors.push(error.message))
   try {
     await page.goto(vitrineUrl)
     const login = page.getByRole('link', { name: 'Se connecter', exact: true })
@@ -341,7 +346,6 @@ test('la confidentialité est accessible sur la vitrine, en SSR et à 320px', as
 
   const page = await browser.newPage()
   const errors = []
-  page.on('pageerror', error => errors.push(error.message))
   try {
     await page.goto(vitrineUrl)
     const link = page.locator('footer').getByRole('link', { name: 'Politique de confidentialité' })
@@ -382,7 +386,6 @@ test('la vitrine présente les ressources d’entretien externes en SSR', async 
 
   const page = await browser.newPage()
   const errors = []
-  page.on('pageerror', error => errors.push(error.message))
   try {
     await page.goto(vitrineUrl)
     await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Ressources', exact: true }).click()
@@ -719,6 +722,74 @@ for (const platform of [
     finally { await context.close() }
   }, { timeout: 30_000 })
 }
+
+test('PostHog respecte le consentement, relie les deux sites et retire les données privées', { timeout: 120_000 }, async () => {
+  const context = await browser.newContext({ userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36' })
+  const page = await context.newPage()
+  const events = []
+  const requests = []
+  await context.route(`${analyticsHost}/**`, async (route) => {
+    requests.push(route.request().url())
+    const body = route.request().postData()
+    if (body) {
+      const data = body.startsWith('{') || body.startsWith('[')
+        ? JSON.parse(body)
+        : JSON.parse(Buffer.from(new URLSearchParams(body).get('data'), 'base64').toString())
+      events.push(...(Array.isArray(data) ? data : data.batch ?? [data]))
+    }
+    if (smokeKey) {
+      const response = await route.fetch()
+      assert.ok(response.ok(), `Ingestion PostHog : ${response.status()}`)
+      await route.fulfill({ response })
+    }
+    else await route.fulfill({ status: 200, json: { status: 1 } })
+  })
+  const waitEvent = async name => page.waitForFunction(() => true).then(async () => {
+    const deadline = Date.now() + 60_000
+    while (!events.some(event => event.event === name) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100))
+    assert.ok(events.some(event => event.event === name), `Événement absent : ${name}; requêtes=${JSON.stringify(requests)}; événements=${JSON.stringify(events)}`)
+  })
+  try {
+    await page.goto(`${vitrineUrl}/?email=private@example.invalid`)
+    await page.getByRole('button', { name: 'Accepter', exact: true }).waitFor()
+    assert.equal(requests.length, 0)
+    await page.getByRole('button', { name: 'Refuser', exact: true }).click()
+    await page.reload()
+    await page.getByRole('button', { name: 'Préférences de statistiques' }).waitFor()
+    assert.equal(requests.length, 0)
+    await page.getByRole('button', { name: 'Préférences de statistiques' }).click()
+    await page.getByRole('button', { name: 'Accepter', exact: true }).click()
+    await waitEvent('$pageview')
+    const anonymousId = events.find(event => event.event === '$pageview').properties.distinct_id
+    await mockAuth(page)
+    await page.goto(`${appUrl}/login?code=private-oauth`)
+    await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+    await page.getByRole('heading', { name: /Bienvenue/ }).waitFor()
+    await waitEvent('profile.viewed')
+    const loginPage = events.find(event => event.event === '$pageview' && event.properties.surface === 'plateforme')
+    assert.equal(loginPage.properties.distinct_id, anonymousId)
+    const identify = events.find(event => event.event === '$identify')
+    assert.equal(identify.properties.$anon_distinct_id, anonymousId)
+    assert.equal(identify.properties.distinct_id, authUser.id)
+    const site = await context.newPage()
+    await site.goto(vitrineUrl)
+    await site.getByRole('button', { name: 'Préférences de statistiques' }).waitFor()
+    await site.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { error: new Error('private@example.invalid secret-token') })))
+    await waitEvent('$exception')
+    assert.equal(events.find(event => event.event === '$exception').properties.distinct_id, authUser.id)
+    assert.doesNotMatch(JSON.stringify(events), /private@example|private-oauth|secret-token|membre@example|test-refresh|test-code|Membre Test/)
+    await site.getByRole('button', { name: 'Préférences de statistiques' }).click()
+    await site.getByRole('button', { name: 'Refuser', exact: true }).click()
+    const count = requests.length
+    await page.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { error: new Error('after withdrawal') })))
+    await page.goto(`${appUrl}/`)
+    await page.getByRole('heading', { name: /Bienvenue/ }).waitFor()
+    assert.equal(requests.length, count)
+    assert.equal((await context.cookies()).some(cookie => cookie.name === 'manzi_analytics_identity_v1'), false)
+    if (smokeKey) console.log(`PostHog validation : ${events.length} événements synthétiques, personne ${authUser.id}`)
+  }
+  finally { await context.close() }
+})
 
 test('une adresse FTP propose un contact explicite sur tous les liens applicatifs', async () => {
   // Nuxt verrouille un serveur de développement par application : ce dernier

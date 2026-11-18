@@ -13,6 +13,15 @@ export default defineNuxtConfig({
   colorMode: { preference: 'light', fallback: 'light' },
   // Fontsource fournit déjà les polices locales, sans requête à un fournisseur.
   ui: { fonts: false },
+  runtimeConfig: {
+    public: {
+      posthogKey: '',
+      posthogHost: 'https://eu.i.posthog.com',
+      analyticsSurface: 'vitrine',
+      analyticsEnvironment: 'production',
+      analyticsCookieDomain: '',
+    },
+  },
   nitro: {
     publicAssets: [{ dir: fileURLToPath(new URL('./public', import.meta.url)), baseURL: '/' }],
   },
