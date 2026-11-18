@@ -782,12 +782,16 @@ test('PostHog respecte le consentement, relie les deux sites et retire les donn�
     await waitEvent('$exception')
     assert.equal(events.find(event => event.event === '$exception').properties.distinct_id, authUser.email)
     assert.doesNotMatch(JSON.stringify(events), /private@example|private-oauth|secret-token|test-refresh|test-code/)
-    // Un échec de déconnexion garde le compte ; seule la réussite émet l'événement anonyme.
+    // Même en cas d'erreur HTTP, Supabase efface la session locale.
+    // Attendre la redirection évite de recliquer sur un bouton en cours de démontage.
     await page.route('https://supabase.test.invalid/auth/v1/logout**', route => route.fulfill({ status: 500, json: { message: 'unavailable' } }))
     await page.getByRole('button', { name: 'Se déconnecter' }).click()
     await page.getByRole('alert').getByText(/La déconnexion a échoué/).waitFor()
+    await page.waitForURL(`${appUrl}/login`)
     assert.equal(events.some(event => event.event === 'auth.logout_succeeded'), false)
     await page.unroute('https://supabase.test.invalid/auth/v1/logout**')
+    await page.getByRole('button', { name: 'Continuer avec LinkedIn' }).click()
+    await page.getByRole('heading', { name: /Bienvenue/ }).waitFor()
     await page.getByRole('button', { name: 'Se déconnecter' }).click()
     await page.waitForURL(`${appUrl}/login`)
     await waitEvent('auth.logout_succeeded')
