@@ -27,7 +27,6 @@ const emit = defineEmits<{ connect: [] }>()
       class="space-y-5 py-8"
       aria-labelledby="login-title"
     >
-      <slot name="preferences" />
       <UCard :ui="{ root: 'bg-white ring-(--mongulu-divider)', body: 'p-5 sm:p-8' }">
         <UAuthForm :ui="{ root: 'space-y-8', body: 'gap-y-5' }">
           <template #title>
@@ -98,6 +97,7 @@ const emit = defineEmits<{ connect: [] }>()
           </template>
         </UAuthForm>
       </UCard>
+      <slot name="preferences" />
     </main>
 
     <footer class="space-y-4 text-center text-caption text-muted">
