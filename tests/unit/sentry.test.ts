@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict'
+import { test } from 'vitest'
+import { filterSentryError, sentryPrivacyOptions } from '../../layers/mongulu/monitoring/privacy'
+
+test('removes request secrets and user data while preserving diagnostic stacks and release', () => {
+  const exception = { values: [{ type: 'Error', value: 'Operation failed', stacktrace: { frames: [{ filename: 'app.vue', lineno: 12 }] } }] }
+  const result = filterSentryError({
+    release: 'commit123',
+    environment: 'preview',
+    exception,
+    user: { email: 'private@example.com' },
+    extra: { password: 'secret' },
+    breadcrumbs: [{ message: 'private form contents' }],
+    request: { method: 'POST', url: 'https://example.com/api?token=secret#private', headers: { authorization: 'secret' }, data: 'private', cookies: 'secret' },
+    contexts: { nuxt: { method: 'POST', path: '/api?token=secret', propsData: { password: 'secret' } }, trace: { trace_id: 'abc', span_id: 'def' } },
+    transaction: 'POST /api?token=secret',
+  }, {})
+  assert.ok(result)
+  assert.equal(JSON.stringify(result).includes('secret'), false)
+  assert.equal(JSON.stringify(result).includes('private'), false)
+  assert.deepEqual(result.exception, exception)
+  assert.equal(result.release, 'commit123')
+  assert.equal(result.contexts?.trace?.trace_id, 'abc')
+})
+
+test('filters expected failures but retains server failures and unexpected exceptions', () => {
+  for (const statusCode of [400, 401, 403, 404, 409, 422, 429]) {
+    assert.equal(filterSentryError({}, { originalException: { statusCode } }), null)
+  }
+  assert.equal(filterSentryError({}, { originalException: { name: 'AbortError' } }), null)
+  assert.deepEqual(filterSentryError({}, { originalException: { statusCode: 500 } }), {})
+  assert.deepEqual(filterSentryError({}, { originalException: new Error('Unexpected') }), {})
+})
+
+test('disables automatic sensitive data collection', () => {
+  const options = sentryPrivacyOptions()
+  assert.equal(options.dataCollection.userInfo, false)
+  assert.equal(options.dataCollection.cookies, false)
+  assert.equal(options.dataCollection.httpHeaders, false)
+  assert.deepEqual(options.dataCollection.httpBodies, [])
+  assert.equal(options.dataCollection.urlQueryParams, false)
+  assert.equal(options.maxBreadcrumbs, 0)
+})
+
+test('scrubs credentials embedded in exception messages and stack URLs', () => {
+  const result = filterSentryError({
+    message: 'Failed for private@example.com token=secret',
+    logentry: { message: 'private', params: ['private'] },
+    exception: { values: [{
+      value: 'GET https://example.com/auth?code=secret#private Bearer private password=secret',
+      stacktrace: { frames: [{ filename: 'https://example.com/app.js?token=secret', vars: { password: 'secret' } }, {}] },
+    }, {}] },
+  }, { originalException: 'message' })
+  assert.ok(result)
+  assert.equal(JSON.stringify(result).includes('secret'), false)
+  assert.equal(JSON.stringify(result).includes('private'), false)
+  assert.equal(result.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename, 'https://example.com/app.js')
+})

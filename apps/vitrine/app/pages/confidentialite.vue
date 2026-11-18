@@ -21,7 +21,7 @@ useSeoMeta({
     </h1>
     <!-- Texte public issu de PRIVACY.md ; le test E2E vérifie la parité du HTML SSR. -->
     <p>
-      <strong>Version du 6 octobre 2026.</strong>
+      <strong>Version du 18 novembre 2026.</strong>
     </p>
     <p>
       Le Collectif Mongulu explique ici comment les informations sont traitées lors de la consultation de Manzi-mfa et des échanges avec le collectif. Pour toute question ou demande concernant vos données, écrivez à <ULink
@@ -61,6 +61,9 @@ useSeoMeta({
     </p>
     <p>
       <strong>Diagnostic technique.</strong> Les journaux d’exécution des Workers sont activés. Ils peuvent contenir l’horodatage, la méthode et l’adresse de la requête, le résultat de l’exécution et les erreurs. Tous les en-têtes et toutes les adresses IP ne sont pas nécessairement enregistrés dans chaque journal. Évitez d’inscrire des informations confidentielles dans les adresses de pages ou leurs paramètres.
+    </p>
+    <p>
+      <strong>Suivi des erreurs.</strong> Sentry reçoit les erreurs techniques des deux sites pour diagnostiquer les pannes : pile d’appels, version déployée, environnement, application et informations de navigateur ou de runtime. Les paramètres d’URL, en-têtes, cookies, corps des requêtes, profils et données de formulaire sont exclus de cette collecte. L’enregistrement de sessions et les journaux console Sentry sont désactivés. Le projet Sentry empêche le stockage des adresses IP ; son infrastructure reçoit néanmoins les informations réseau nécessaires à la transmission. Les événements sont hébergés dans la région États-Unis du compte Sentry et conservés selon la rétention de son offre, puis supprimés automatiquement.
     </p>
     <p>
       <strong>Compte LinkedIn.</strong> Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification Supabase Auth. Le nom et l’URL de la photo sont conservés dans les métadonnées de ce compte et copiés dans votre profil applicatif à sa création. Cette version ne synchronise pas le profil applicatif à chaque connexion ; les métadonnées d’authentification peuvent être actualisées par Supabase lors d’une connexion ultérieure.

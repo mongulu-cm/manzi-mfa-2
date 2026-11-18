@@ -1,7 +1,10 @@
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
+
+const release = process.env.SENTRY_RELEASE || process.env.WORKERS_CI_COMMIT_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
 
 export default defineNuxtConfig({
-  modules: ['@nuxt/ui'],
+  modules: ['@nuxt/ui', '@sentry/nuxt/module', fileURLToPath(new URL('./monitoring/source-maps.ts', import.meta.url))],
   $meta: { name: 'mongulu' },
   app: { head: { htmlAttrs: { lang: 'fr' } } },
   css: [
@@ -13,8 +16,37 @@ export default defineNuxtConfig({
   colorMode: { preference: 'light', fallback: 'light' },
   // Fontsource fournit déjà les polices locales, sans requête à un fournisseur.
   ui: { fonts: false },
+  runtimeConfig: {
+    public: {
+      sentry: {
+        dsn: '',
+        environment: 'development',
+        release,
+        app: '',
+      },
+    },
+  },
+  sourcemap: { client: 'hidden', server: true },
   nitro: {
+    // Preserve Nitro's debug IDs and source maps instead of bundling a second time.
+    cloudflare: {
+      wrangler: {
+        no_bundle: true,
+        find_additional_modules: true,
+        rules: [{ type: 'ESModule', globs: ['**/*.mjs'] }],
+      },
+    },
+    plugins: [fileURLToPath(new URL('./monitoring/sentry-nitro.ts', import.meta.url))],
     publicAssets: [{ dir: fileURLToPath(new URL('./public', import.meta.url)), baseURL: '/' }],
   },
   typescript: { strict: true },
+  sentry: {
+    org: 'mongulu',
+    project: 'manzi-mfa-2',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    configDir: fileURLToPath(new URL('./monitoring', import.meta.url)),
+    release: { name: release },
+    telemetry: false,
+    sourcemaps: { disable: 'disable-upload', filesToDeleteAfterUpload: ['.output/public/**/*.map'] },
+  },
 })

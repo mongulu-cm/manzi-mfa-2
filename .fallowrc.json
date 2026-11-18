@@ -7,6 +7,9 @@
     "apps/*/app/app.vue",
     "apps/*/app/assets/css/*.css",
     "layers/*/nuxt.config.ts",
+    "layers/mongulu/monitoring/sentry.client.config.ts",
+    "layers/mongulu/monitoring/sentry-nitro.ts",
+    "layers/mongulu/monitoring/source-maps.ts",
     "layers/*/stories/**/*.stories.ts",
     "apps/*/stories/**/*.stories.ts",
     "tests/e2e/*.test.mjs",
@@ -14,6 +17,7 @@
     "tests/smoke/linkedin.mjs",
     "tests/smoke/email.smoke.ts",
     "tests/smoke/resource-links.mjs",
+    "tests/smoke/sentry-fixtures.mjs",
     "vitest.config.ts",
     "vitest.unit.config.ts",
     "vitest.smoke.config.ts"

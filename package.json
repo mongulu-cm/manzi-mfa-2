@@ -42,6 +42,7 @@
     "@fontsource/alegreya": "^5.2.8",
     "@fontsource/hanken-grotesk": "^5.2.8",
     "@nuxt/ui": "^4.11.3",
+    "@sentry/nuxt": "11.14.0",
     "@supabase/server": "^1.9.0",
     "nuxt": "4.6.2",
     "tailwindcss": "^4.3.3",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
+    "@sentry/cli": "3.8.2",
     "@storybook-vue/nuxt": "^10.0.3",
     "@storybook/addon-a11y": "^10.6.1",
     "@storybook/addon-vitest": "^10.6.2",

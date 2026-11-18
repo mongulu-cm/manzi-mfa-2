@@ -1,6 +1,6 @@
 # Politique de confidentialité — Manzi-mfa
 
-**Version du 6 octobre 2026.**
+**Version du 18 novembre 2026.**
 
 Le Collectif Mongulu explique ici comment les informations sont traitées lors de la consultation de Manzi-mfa et des échanges avec le collectif. Pour toute question ou demande concernant vos données, écrivez à [collectif@mongulu.cm](mailto:collectif@mongulu.cm).
 
@@ -13,7 +13,7 @@ Le Collectif Mongulu explique ici comment les informations sont traitées lors d
 | Sites concernés | https://manzi-mfa-2.mongulu.cm et https://app.manzi-mfa-2.mongulu.cm |
 | Données | Informations techniques, identifiant de compte, nom, e-mail, URL de photo, session locale, préférence d’affichage et courriels |
 | Utilisation | Affichage des pages et du profil, connexion et maintien de session, sécurité, diagnostic et réponse à vos demandes |
-| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos |
+| Prestataires | Cloudflare pour les sites, Supabase pour les comptes et profils, LinkedIn pour la connexion et les photos, Sentry pour le diagnostic des erreurs |
 | Conservation | Compte et profil tant que le compte existe ; session jusqu’à déconnexion ou effacement local ; journaux Workers : 3 ou 7 jours selon l’offre ; préférence locale jusqu’à son effacement ; correspondance pendant le traitement de la demande et la durée nécessaire à sa justification |
 | Droits | Accès, rectification, effacement et autres droits selon la législation applicable ; demande par courriel au collectif |
 | Cadre juridique | Les règles de protection des données applicables au traitement, notamment le droit camerounais et, lorsque ses critères territoriaux sont remplis, le RGPD |
@@ -39,6 +39,8 @@ Avant l’ouverture de nouvelles fonctions, cette politique sera actualisée pou
 **Consultation des sites.** Votre navigateur transmet les informations nécessaires à la connexion : notamment votre adresse IP, l’adresse de la ressource demandée et des en-têtes techniques pouvant indiquer le navigateur, la langue ou la page d’origine. Cloudflare reçoit ce trafic pour distribuer les pages et protéger le service. Certaines de ces informations peuvent permettre de vous identifier indirectement.
 
 **Diagnostic technique.** Les journaux d’exécution des Workers sont activés. Ils peuvent contenir l’horodatage, la méthode et l’adresse de la requête, le résultat de l’exécution et les erreurs. Tous les en-têtes et toutes les adresses IP ne sont pas nécessairement enregistrés dans chaque journal. Évitez d’inscrire des informations confidentielles dans les adresses de pages ou leurs paramètres.
+
+**Suivi des erreurs.** Sentry reçoit les erreurs techniques des deux sites pour diagnostiquer les pannes : pile d’appels, version déployée, environnement, application et informations de navigateur ou de runtime. Les paramètres d’URL, en-têtes, cookies, corps des requêtes, profils et données de formulaire sont exclus de cette collecte. L’enregistrement de sessions et les journaux console Sentry sont désactivés. Le projet Sentry empêche le stockage des adresses IP ; son infrastructure reçoit néanmoins les informations réseau nécessaires à la transmission. Les événements sont hébergés dans la région États-Unis du compte Sentry et conservés selon la rétention de son offre, puis supprimés automatiquement.
 
 **Compte LinkedIn.** Lors de la connexion LinkedIn, Supabase reçoit un identifiant de compte, les informations techniques de connexion et, lorsqu’ils sont disponibles, votre nom, votre adresse e-mail et l’URL de votre photo. L’e-mail est conservé dans le compte d’authentification Supabase Auth. Le nom et l’URL de la photo sont conservés dans les métadonnées de ce compte et copiés dans votre profil applicatif à sa création. Cette version ne synchronise pas le profil applicatif à chaque connexion ; les métadonnées d’authentification peuvent être actualisées par Supabase lors d’une connexion ultérieure.
 

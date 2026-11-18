@@ -11,6 +11,10 @@ Le dépôt contient deux applications Nuxt 4 et une Layer Mongulu commune :
 
 La plateforme propose une connexion LinkedIn OIDC sur `/login`. La première connexion crée le compte Supabase et son profil ; `/` affiche le nom, la photo et l’e-mail du compte connecté. L’e-mail reste dans Supabase Auth et les profils ne sont lisibles que par leur propriétaire.
 
+## Diagnostic des erreurs
+
+Sentry couvre le navigateur et les endpoints Cloudflare des deux applications. Voir [docs/sentry.md](docs/sentry.md) pour la configuration des environnements, les source maps, le filtrage et la vérification contrôlée. Les secrets d'upload restent dans Workers Builds ; un DSN vide désactive la télémétrie locale.
+
 ## Confidentialité
 
 [PRIVACY.md](PRIVACY.md) contient la politique de confidentialité commune aux deux sites, son résumé et ses notes de maintenance. Le texte public est accessible sur la vitrine à [/confidentialite](https://manzi-mfa-2.mongulu.cm/confidentialite), depuis son pied de page. Le responsable est le Collectif Mongulu et le contact est collectif@mongulu.cm. Le texte décrit les comptes LinkedIn et les profils Supabase. Réviser ce texte avant toute nouvelle collecte (CV, échanges, statistiques ou paiements).
