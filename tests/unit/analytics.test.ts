@@ -11,6 +11,7 @@ function fixture() {
   let identity: { id: string, identified: boolean } | undefined
   const client = {
     capture: vi.fn(), identify: vi.fn((value: string) => { id = value }),
+    register: vi.fn((value: { distinct_id: string }) => { id = value.distinct_id }),
     reset: vi.fn(() => { id = anonymous }), get_distinct_id: () => id,
   }
   const options = {
@@ -123,6 +124,21 @@ describe('collecte indépendante du parcours utilisateur', () => {
     f.setIdentity(undefined)
     f.service.track('profile.viewed')
     expect(f.client.get_distinct_id()).toBe(anonymous)
+  })
+  it('conserve le statut anonyme après une déconnexion dans un autre onglet', async () => {
+    const f = fixture()
+    await f.service.start()
+    f.service.identify(user)
+    f.client.identify.mockClear()
+    f.setIdentity({ id: other, identified: false })
+    f.service.track('auth.login_started')
+    expect(f.client.register).toHaveBeenCalledWith({ distinct_id: other, $device_id: other })
+    expect(f.client.identify).not.toHaveBeenCalled()
+    expect(f.client.get_distinct_id()).toBe(other)
+    const resets = f.client.reset.mock.calls.length
+    f.service.identify(user)
+    expect(f.client.reset).toHaveBeenCalledTimes(resets)
+    expect(f.client.identify).toHaveBeenCalledWith(user)
   })
   it('ne transmet rien après un refus, même pendant le chargement', async () => {
     const f = fixture()

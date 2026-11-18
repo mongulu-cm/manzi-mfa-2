@@ -4,6 +4,7 @@ import { analyticsEvents, exceptionProperties, safePage } from '../../shared/uti
 export interface AnalyticsClient {
   capture: (event: string, properties: Record<string, unknown>) => unknown
   identify: (id: string) => unknown
+  register: (properties: { distinct_id: string, $device_id: string }) => unknown
   reset: (resetDeviceId: boolean) => unknown
   get_distinct_id: () => string
 }
@@ -40,7 +41,8 @@ export function createAnalyticsService(options: {
     if (shared?.id !== activeIdentity?.id) {
       // Un autre onglet a changé de compte ou s'est déconnecté : ne jamais fusionner deux comptes.
       client.reset(true)
-      if (shared) client.identify(shared.id)
+      if (shared?.identified) client.identify(shared.id)
+      else if (shared) client.register({ distinct_id: shared.id, $device_id: shared.id })
       activeIdentity = shared
       // Un onglet plateforme obsolète ne doit pas réidentifier l'ancien compte.
       userId = undefined
