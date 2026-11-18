@@ -4,6 +4,7 @@ import { filterSentryError, sentryPrivacyOptions } from '../../layers/mongulu/mo
 
 test('removes request secrets and user data while preserving diagnostic stacks and release', () => {
   const exception = { values: [{ type: 'Error', value: 'Operation failed', stacktrace: { frames: [{ filename: 'app.vue', lineno: 12 }] } }] }
+  const expectedException = structuredClone(exception)
   const result = filterSentryError({
     release: 'commit123',
     environment: 'preview',
@@ -18,7 +19,7 @@ test('removes request secrets and user data while preserving diagnostic stacks a
   assert.ok(result)
   assert.equal(JSON.stringify(result).includes('secret'), false)
   assert.equal(JSON.stringify(result).includes('private'), false)
-  assert.deepEqual(result.exception, exception)
+  assert.deepEqual(result.exception, expectedException)
   assert.equal(result.release, 'commit123')
   assert.equal(result.contexts?.trace?.trace_id, 'abc')
 })
@@ -55,4 +56,20 @@ test('scrubs credentials embedded in exception messages and stack URLs', () => {
   assert.equal(JSON.stringify(result).includes('secret'), false)
   assert.equal(JSON.stringify(result).includes('private'), false)
   assert.equal(result.exception?.values?.[0]?.stacktrace?.frames?.[0]?.filename, 'https://example.com/app.js')
+})
+
+test('scrubs quoted and prefixed credentials and credentials in every URL field', () => {
+  const url = 'https://private:canary-sensitive@example.com/app.js?access_token=canary-sensitive'
+  const result = filterSentryError({
+    message: `access_token=canary-sensitive refresh_token=canary-sensitive {"password":"canary-sensitive with spaces","client_secret":"canary-sensitive"} api-token='canary-sensitive value'`,
+    request: { url },
+    transaction: `GET ${url}`,
+    contexts: { nuxt: { path: url } },
+    exception: { values: [{ stacktrace: { frames: [{ filename: url, abs_path: url }] } }] },
+  }, {})
+  assert.ok(result)
+  assert.equal(JSON.stringify(result).includes('canary-sensitive'), false)
+  assert.equal(JSON.stringify(result).includes('private'), false)
+  assert.equal(result.request?.url, 'https://[Filtered]@example.com/app.js')
+  assert.equal(result.exception?.values?.[0]?.stacktrace?.frames?.[0]?.abs_path, result.request?.url)
 })

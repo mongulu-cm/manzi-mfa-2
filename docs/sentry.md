@@ -2,13 +2,13 @@
 
 Les deux applications utilisent le projet Sentry `mongulu/manzi-mfa-2`. La Layer initialise le SDK Nuxt dans le navigateur et son plugin Nitro Cloudflare sur le serveur. Les scopes sont isolés par requête et l'envoi serveur utilise `waitUntil`. Le serveur de développement Node n'est pas la cible de ce plugin : utiliser Wrangler local pour vérifier le backend.
 
-Les tags `app` (`vitrine`, `plateforme`) et `runtime` (`browser`, `cloudflare`) distinguent les frontières. `environment` distingue `development`, `preview`, `production` et `sentry-verification`. La release est le SHA Git du build, commun au navigateur et au serveur ; `SENTRY_RELEASE` permet une valeur explicite.
+Les tags `app` (`vitrine`, `plateforme`) et `runtime` (`browser`, `cloudflare`) distinguent les frontières. `environment` distingue `development`, `preview`, `production` et `sentry-verification`. La release est le SHA Git du build, commun au navigateur et au serveur ; `SENTRY_RELEASE` permet une valeur explicite, nécessaire pour identifier un build sans métadonnées Git. Un environnement omis apparaît comme `unconfigured`, afin de signaler une configuration incomplète.
 
 ## Configuration
 
 Pour chaque Worker, définir `NUXT_PUBLIC_SENTRY_DSN` et `NUXT_PUBLIC_SENTRY_ENVIRONMENT` dans les bindings runtime et les variables Workers Builds. Les previews ont leur propre configuration : utiliser `preview`, jamais `production`. Un DSN vide désactive l'envoi en local et dans la CI habituelle.
 
-`SENTRY_AUTH_TOKEN` est un secret **Workers Builds uniquement**, avec le scope Sentry `org:ci`. Il ne doit jamais être un binding runtime, une variable `NUXT_PUBLIC_*` ou une valeur committée. Le module upload les source maps des deux bundles vers Sentry, puis retire les maps du répertoire public. Les builds de validation sans token ne prouvent pas la symbolication ; ils avertissent que l'upload est absent.
+`SENTRY_AUTH_TOKEN` est un secret **de build uniquement** : Workers Builds pour les déploiements, environnement du processus de build pour la vérification locale autorisée, avec le scope Sentry `org:ci`. Il ne doit jamais être un binding runtime, une variable `NUXT_PUBLIC_*` ou une valeur committée. Le module upload les source maps des deux bundles vers Sentry, puis retire les maps du répertoire public. Les builds de validation sans token ne prouvent pas la symbolication ; ils avertissent que l'upload est absent.
 
 Le SDK est fixé à `11.14.0`. Son uploader intégré réécrit les bundles temporaires déjà instrumentés, ce qui décale les positions par rapport aux fichiers exécutés (`js_invalid_sourcemap_location` observé pendant la vérification). Le module local `monitoring/source-maps.ts` conserve l'injection des debug IDs du SDK et utilise le CLI officiel Rust `@sentry/cli` avec `--no-rewrite --wait --strict`, après compilation du client et du serveur. Le nouveau CLI JavaScript `sentry` n’est pas utilisé : son option `noRewrite` omet les références de debug IDs. Un échec d’upload fait échouer le build. Revalider les quatre combinaisons app/runtime avant de retirer ce contournement lors d'une mise à jour. Wrangler utilise `no_bundle` et charge les modules ESM générés par Nitro pour préserver ces mêmes debug IDs côté serveur.
 
@@ -23,7 +23,7 @@ Le projet Sentry active le scrubber, le filtrage des champs sensibles et la supp
 ## Vérification contrôlée (locale, sans données réelles)
 
 1. Depuis la racine, `node tests/smoke/sentry-fixtures.mjs create`. Ces fichiers temporaires ne doivent jamais être publiés.
-2. Exporter le DSN, `NUXT_PUBLIC_SENTRY_ENVIRONMENT=sentry-verification`, une `SENTRY_RELEASE` explicite et le token de build ; lancer `npm run build`.
+2. Exporter le DSN, `NUXT_PUBLIC_SENTRY_ENVIRONMENT=sentry-verification`, une `SENTRY_RELEASE` explicite et fournir le token de build autorisé uniquement au processus `npm run build`. Retirer ensuite la variable et toute copie locale du secret ; ne pas le transmettre au processus Wrangler runtime. Si un token distinct a été créé pour ce test, le révoquer après vérification.
 3. Dans chaque application, lancer `npx wrangler dev --local` avec les bindings publics DSN et environnement (ports distincts, par exemple 8787 et 8788). Ne pas utiliser `--remote` ni `deploy` avec ces fixtures.
 4. Visiter `/__sentry-verify` et cliquer le bouton. Appeler `/api/__sentry-verify` : attendre 500 et vérifier une erreur backend. Le mode `?mode=ok` doit retourner 200 ; `?mode=expected` doit retourner 401 sans événement Sentry.
 5. Dans Sentry, vérifier les quatre combinaisons app/runtime, la release, l'environnement, le fichier source et la ligne de chaque exception. Inspecter les événements pour vérifier l'absence de données de requête et d'utilisateur.

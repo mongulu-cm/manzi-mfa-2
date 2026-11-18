@@ -20,7 +20,7 @@ export default defineNuxtModule({
     })
     const release = nuxt.options.runtimeConfig.public.sentry.release
     const upload = async (directory: string) => {
-      await cli.execute(['sourcemaps', 'upload', '--no-rewrite', '--wait', '--strict', '--release', release, directory], false)
+      await cli.execute(['sourcemaps', 'upload', '--no-rewrite', '--wait', '--strict', ...(release ? ['--release', release] : []), directory], false)
       console.info('[Sentry] Uploaded exact build source maps.')
     }
     nuxt.hooks.hookOnce('vite:compiled', () => upload(join(nuxt.options.buildDir, 'dist/client')))

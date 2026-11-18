@@ -1,7 +1,15 @@
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 
-const release = process.env.SENTRY_RELEASE || process.env.WORKERS_CI_COMMIT_SHA || execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+const release = process.env.SENTRY_RELEASE || process.env.WORKERS_CI_COMMIT_SHA || (() => {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  }
+  catch {
+    console.warn('[Sentry] No Git metadata: set SENTRY_RELEASE to identify this build.')
+    return ''
+  }
+})()
 
 export default defineNuxtConfig({
   modules: ['@nuxt/ui', '@sentry/nuxt/module', fileURLToPath(new URL('./monitoring/source-maps.ts', import.meta.url))],
@@ -20,7 +28,7 @@ export default defineNuxtConfig({
     public: {
       sentry: {
         dsn: '',
-        environment: 'development',
+        environment: 'unconfigured',
         release,
         app: '',
       },
