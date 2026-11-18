@@ -40,6 +40,13 @@ test('disables automatic sensitive data collection', () => {
   assert.equal(options.dataCollection.httpHeaders, false)
   assert.deepEqual(options.dataCollection.httpBodies, [])
   assert.equal(options.dataCollection.urlQueryParams, false)
+  assert.equal(options.dataCollection.stackFrameVariables, false)
+  assert.equal(options.dataCollection.databaseQueryData, false)
+  assert.equal(options.dataCollection.queues, false)
+  assert.deepEqual(options.dataCollection.graphQL, { document: false, variables: false })
+  assert.deepEqual(options.dataCollection.genAI, { inputs: false, outputs: false })
+  assert.deepEqual(options.dataCollection.mcp, { inputs: false, outputs: false })
+  assert.equal(options.enableLogs, false)
   assert.equal(options.maxBreadcrumbs, 0)
 })
 
